@@ -1,8 +1,5 @@
 /* cygwin/socket.h
 
-   Copyright 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007, 2009, 2010, 2012,
-   2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -16,16 +13,15 @@ details. */
 extern "C" {
 #endif /* __cplusplus */
 
-#include <stdint.h>
+#include <sys/types.h>
 
-/* Not unsigned for backward compatibility.  Keep #define for backward
-   compatibility. */
+/* Keep #define socklen_t for backward compatibility. */
 #ifndef socklen_t
-typedef int socklen_t;
+typedef __socklen_t socklen_t;
 #define socklen_t socklen_t
 #endif
 
-typedef uint16_t sa_family_t;
+typedef __sa_family_t sa_family_t;
 
 #ifndef __INSIDE_CYGWIN_NET__
 struct sockaddr {
@@ -51,7 +47,6 @@ struct sockaddr_storage {
 #include <asm/socket.h>			/* arch-dependent defines	*/
 #include <cygwin/sockios.h>		/* the SIOCxxx I/O controls	*/
 #include <sys/uio.h>			/* iovec support		*/
-#include <sys/types.h>
 
 struct ucred {
   pid_t			pid;

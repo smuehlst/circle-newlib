@@ -32,11 +32,14 @@
 #include <limits.h>
 
 #if defined __OPTIMIZE_SIZE__ || defined PREFER_SIZE_OVER_SPEED
-#if defined __thumb__ && !defined __thumb2__
+#if __ARM_ARCH_ISA_THUMB == 2
+/* Implemented in strlen.S.  */
+
+#elif defined (__ARM_ARCH_ISA_THUMB)
 /* Implemented in strlen.S.  */
 
 #else
-/* Implemented in strlen.S.  */
+#include "../../string/strlen.c"
 
 #endif
 
@@ -55,7 +58,9 @@ strlen (const char* str)
        "data .req r3\n\t"
        "addr .req r1\n\t"
 
-       "optpld r0\n\t"
+#ifdef _ISA_ARM_7
+       "pld [r0]\n\t"
+#endif
        /* Word-align address */
        "bic	addr, r0, #3\n\t"
        /* Get adjustment for start ... */
@@ -110,8 +115,8 @@ strlen (const char* str)
        "ldreq	data, [addr], #4\n\t"
        /* and 4 more bytes  */
        "addeq	len, len, #4\n\t"
-	/* If we have PLD, then unroll the loop a bit.  */
-       "optpld addr, #8\n\t"
+	/* Unroll the loop a bit.  */
+       "pld	[addr, #8]\n\t"
        /*  test (data - 0x01010101)  */
        "ittt	eq\n\t"
        "subeq	r2, data, ip\n\t"
@@ -163,7 +168,7 @@ strlen (const char* str)
        "addne	len, len, #1\n\t"
 # endif
 #endif
-       "RETURN");
+       "bx	lr\n\t");
 }
 #endif
 #endif

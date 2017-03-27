@@ -572,13 +572,15 @@ contributing it for others to use)
 Can I bundle Cygwin with my product for free?
 </para></question>
 <answer><para>
-Only if you comply with Cygwin's <ulink
-url="https://cygwin.com/licensing.html">license</ulink> very carefully.  If you
-choose to distribute cygwin1.dll, you must be willing to distribute the
-exact source code used to build that copy of cygwin1.dll as per the
-terms of the GPL.  If you ship applications that link with cygwin1.dll,
-you must either provide those applications' source code under a
-GPL-compatible license, *or* purchase a cygwin license from Red Hat.
+Starting with Cygwin version 2.5.2, which is LGPL licensed, yes, albeit
+it's not recommended for interoperability reasons.</para>
+
+<para>Cygwin versions prior to 2.5.2 were GPL licensed.
+If you choose to distribute an older cygwin1.dll, you must be willing to
+distribute the exact source code used to build that copy of cygwin1.dll
+as per the terms of the GPL.  If you ship applications that link with
+older cygwin1.dll, you must provide those applications' source code
+under a GPL-compatible license.
 </para></answer></qandaentry>
 
 <qandaentry id="faq.using.older-cygwin-conflict">
@@ -722,9 +724,9 @@ the following line to your .inputrc file:
 <answer>
 
 <para>We have had good reports about Kerio Personal Firewall, ZoneLabs
-Integrity Desktop, and the built-in firewall in Windows XP. Other
-well-known products including ZoneAlarm and Norton Internet Security have
-caused problems for some users but work fine for others. At last report,
+Integrity Desktop, and the Windows built-in firewall. Other well-known
+products including ZoneAlarm and Norton Internet Security have caused
+problems for some users but work fine for others. At last report,
 Agnitum Outpost did not work with Cygwin.  If you are having strange
 connection-related problems, disabling the firewall is a good
 troubleshooting step (as is closing or disabling all other running
@@ -1158,7 +1160,7 @@ domains. For example, you might want to use the <computeroutput>Domain
 Users</computeroutput> group instead.</para>
 
 <para>For more information on <command>setfacl</command>, see
-<ulink url="https://cygwin.com/cygwin-ug-net/using-utils.html#setfacl"/></para>
+<ulink url="https://cygwin.com/cygwin-ug-net/setfacl.html"/></para>
 </answer></qandaentry>
 
 <qandaentry id="faq.using.same-with-rhosts">
@@ -1246,26 +1248,6 @@ includes an X server; please see the <ulink url="https://x.cygwin.com/docs/ug/cy
 for installation and startup instructions.
 </para></answer></qandaentry>
 
-<qandaentry id="faq.using.ipv6">
-<question><para>Why do I get "Address family not supported" errors when playing with IPv6?</para></question>
-<answer>
-
-<para>IPv6 is only fully supported and available right from the start
-beginning with Windows Vista and Windows Server 2008.</para>
-
-<para>The previous generation of Windows,
-Windows XP and Windows Server 2003, only support IPv6 on an "experimental"
-basis.  On these Windows versions, the IPv6 TCP/IP stack is not installed
-automatically, rather the system administrator has to install it manually.
-Unless this has already been done on your machine, your machine is not
-IPv6-capable and that's why you see the "Address family not supported"
-error message.  Note, however, that the IPv6 stack on these systems
-don't fully support all features of IPv6.</para>
-
-<para>For more information about IPv6 on Windows and how to install the
-IPv6 stack, see the <ulink url="http://www.microsoft.com/technet/network/ipv6/ipv6faq.mspx">Microsoft TechNet IPv6 FAQ article</ulink>
-</para></answer></qandaentry>
-
 <qandaentry id="faq.using.bloda" xreflabel="BLODA">
 <question><para>What applications have been found to interfere with Cygwin?</para></question>
 <answer>
@@ -1316,6 +1298,7 @@ behaviour which affect the operation of other programs, such as Cygwin.
 <listitem><para>Webroot Spy Sweeper with Antivirus</para></listitem>
 <listitem><para>Windows Defender </para></listitem>
 <listitem><para>Windows LiveOneCare</para></listitem>
+<listitem><para>IBM Security Trusteer Rapport (see <ulink url="http://www-03.ibm.com/software/products/en/trusteer-rapport">its home page</ulink></para></listitem>
 </itemizedlist></para>
 <para>Sometimes these problems can be worked around, by temporarily or partially
 disabling the offending software.  For instance, it may be possible to disable

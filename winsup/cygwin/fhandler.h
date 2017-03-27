@@ -1,8 +1,5 @@
 /* fhandler.h
 
-   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -291,8 +288,6 @@ class fhandler_base
   int get_readahead ();
   int peek_readahead (int queryput = 0);
 
-  int eat_readahead (int n);
-
   void set_readahead_valid (int val, int ch = -1);
 
   int get_readahead_into_buffer (char *buf, size_t buflen);
@@ -385,7 +380,7 @@ public:
   virtual int munmap (HANDLE h, caddr_t addr, size_t len);
   virtual int msync (HANDLE h, caddr_t addr, size_t len, int flags);
   virtual bool fixup_mmap_after_fork (HANDLE h, int prot, int flags,
-				      off_t offset, DWORD size,
+				      off_t offset, SIZE_T size,
 				      void *address);
 
   void *operator new (size_t, void *p) __attribute__ ((nothrow)) {return p;}
@@ -428,9 +423,9 @@ public:
   virtual select_record *select_except (select_stuff *);
   virtual const char *get_native_name ()
   {
-    return dev ().native;
+    return dev ().native ();
   }
-  virtual bg_check_types bg_check (int) {return bg_ok;}
+  virtual bg_check_types bg_check (int, bool = false) {return bg_ok;}
   void clear_readahead ()
   {
     raixput = raixget = ralen = rabuflen = 0;
@@ -1028,7 +1023,7 @@ class fhandler_disk_file: public fhandler_base
   int munmap (HANDLE h, caddr_t addr, size_t len);
   int msync (HANDLE h, caddr_t addr, size_t len, int flags);
   bool fixup_mmap_after_fork (HANDLE h, int prot, int flags,
-			      off_t offset, DWORD size, void *address);
+			      off_t offset, SIZE_T size, void *address);
   int mkdir (mode_t mode);
   int rmdir ();
   DIR __reg2 *opendir (int fd);
@@ -1062,8 +1057,9 @@ class fhandler_disk_file: public fhandler_base
 
 class fhandler_dev: public fhandler_disk_file
 {
-  const struct device *devidx;
+  const struct _device *devidx;
   bool dir_exists;
+  int drive, part;
 public:
   fhandler_dev ();
   int open (int flags, mode_t mode);
@@ -1219,6 +1215,8 @@ class fhandler_termios: public fhandler_base
   int ioctl (int, void *);
   tty_min *_tc;
   tty *get_ttyp () {return (tty *) tc ();}
+  int eat_readahead (int n);
+
  public:
   tty_min*& tc () {return _tc;}
   fhandler_termios () :
@@ -1235,7 +1233,7 @@ class fhandler_termios: public fhandler_base
   void sigflush ();
   int tcgetpgrp ();
   int tcsetpgrp (int pid);
-  bg_check_types bg_check (int sig);
+  bg_check_types bg_check (int sig, bool dontsignal = false);
   virtual DWORD __acquire_output_mutex (const char *fn, int ln, DWORD ms) {return 1;}
   virtual void __release_output_mutex (const char *fn, int ln) {}
   void echo_erase (int force = 0);
@@ -1357,7 +1355,7 @@ class dev_console
 
   inline UINT get_console_cp ();
   DWORD con_to_str (char *d, int dlen, WCHAR w);
-  DWORD str_to_con (mbtowc_p, const char *, PWCHAR d, const char *s, DWORD sz);
+  DWORD str_to_con (mbtowc_p, PWCHAR d, const char *s, DWORD sz);
   void set_color (HANDLE);
   void set_default_attr ();
   int set_cl_x (cltype);
@@ -1453,7 +1451,8 @@ private:
   bool focus_aware () {return shared_console_info->con.use_focus;}
   bool get_cons_readahead_valid ()
   {
-    return shared_console_info->con.cons_rapoi != NULL;
+    return shared_console_info->con.cons_rapoi != NULL &&
+      *shared_console_info->con.cons_rapoi;
   }
 
   select_record *select_read (select_stuff *);
@@ -1571,7 +1570,7 @@ class fhandler_pty_slave: public fhandler_pty_common
   void fixup_after_exec ();
 
   select_record *select_read (select_stuff *);
-  virtual char const *ttyname () { return pc.dev.name; }
+  virtual char const *ttyname () { return pc.dev.name (); }
   int __reg2 fstat (struct stat *buf);
   int __reg3 facl (int, int, struct acl *);
   int __reg1 fchmod (mode_t mode);
@@ -1683,6 +1682,8 @@ class fhandler_dev_null: public fhandler_base
     copyto (fh);
     return fh;
   }
+
+  ssize_t __stdcall write (const void *ptr, size_t len);
 };
 
 class fhandler_dev_zero: public fhandler_base
@@ -1698,7 +1699,7 @@ class fhandler_dev_zero: public fhandler_base
   virtual int munmap (HANDLE h, caddr_t addr, size_t len);
   virtual int msync (HANDLE h, caddr_t addr, size_t len, int flags);
   virtual bool fixup_mmap_after_fork (HANDLE h, int prot, int flags,
-				      off_t offset, DWORD size,
+				      off_t offset, SIZE_T size,
 				      void *address);
 
   fhandler_dev_zero (void *) {}

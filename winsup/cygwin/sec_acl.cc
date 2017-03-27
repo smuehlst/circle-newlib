@@ -1,8 +1,5 @@
 /* sec_acl.cc: Solaris compatible ACL functions.
 
-   Copyright 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011, 2012, 2014, 2015 Red Hat, Inc.
-
    Written by Corinna Vinschen <corinna@vinschen.de>
 
 This file is part of Cygwin.
@@ -151,6 +148,7 @@ set_posix_access (mode_t attr, uid_t uid, gid_t gid,
   int idx, start_idx, tmp_idx;
   bool owner_eq_group = false;
   bool dev_has_admins = false;
+  bool has_class_obj;
 
   /* Initialize local security descriptor. */
   RtlCreateSecurityDescriptor (&sd, SECURITY_DESCRIPTOR_REVISION);
@@ -322,23 +320,36 @@ set_posix_access (mode_t attr, uid_t uid, gid_t gid,
 
       /* To check if the NULL SID deny ACE is required we need user_obj.  */
       tmp_idx = searchace (aclbufp, nentries, def | USER_OBJ);
-      user_obj = aclbufp[tmp_idx].a_perm;
-      /* To compute deny access masks, we need group_obj, other_obj and... */
-      tmp_idx = searchace (aclbufp, nentries, def | GROUP_OBJ);
       /* No default entries present? */
       if (tmp_idx < 0)
 	break;
+      user_obj = aclbufp[tmp_idx].a_perm;
+      /* To compute deny access masks, we need group_obj, other_obj and... */
+      tmp_idx = searchace (aclbufp, nentries, def | GROUP_OBJ);
       group_obj = aclbufp[tmp_idx].a_perm;
       tmp_idx = searchace (aclbufp, nentries, def | OTHER_OBJ);
       other_obj = aclbufp[tmp_idx].a_perm;
 
       /* ... class_obj.  Create NULL deny ACE.  Only the S_ISGID attribute gets
-	 inherited. */
+	 inherited.  For directories check if we are also going to generate
+	 default entries.  If not we have a problem.  We can't generate only a
+	 single, inheritable NULL SID ACE because that leads to (fixable, TODO)
+	 access problems when trying to create the matching child permissions.
+	 Therefore we remove the S_ISGID bit on the directory because having it
+	 set would be misleading. */
+      if (!def && S_ISDIR (attr) && (attr & S_ISGID))
+	{
+	  /* Check for a required entry per POSIX. */
+	  tmp_idx = searchace (aclbufp, nentries, DEF_USER_OBJ);
+	  if (tmp_idx < 0)
+	    attr &= ~S_ISGID;
+	}
       access = CYG_ACE_ISBITS_TO_WIN (def ? attr & S_ISGID : attr)
 	       | CYG_ACE_NEW_STYLE;
       tmp_idx = searchace (aclbufp, nentries, def | CLASS_OBJ);
       if (tmp_idx >= 0)
 	{
+	  has_class_obj = true;
 	  class_obj = aclbufp[tmp_idx].a_perm;
 	  access |= CYG_ACE_MASK_TO_WIN (class_obj);
 	}
@@ -346,6 +357,7 @@ set_posix_access (mode_t attr, uid_t uid, gid_t gid,
 	{
 	  /* Setting class_obj to group_obj allows to write below code without
 	     additional checks for existence of a CLASS_OBJ. */
+	  has_class_obj = false;
 	  class_obj = group_obj;
 	}
       /* Note that Windows filters the ACE Mask value so it only reflects
@@ -358,9 +370,10 @@ set_posix_access (mode_t attr, uid_t uid, gid_t gid,
 	 no special bits set.  In all other cases we either need the NULL SID
 	 ACE or we write it to avoid calls to AuthZ from get_posix_access. */
       if (!S_ISCHR (attr)
-	  && access != CYG_ACE_NEW_STYLE
-	  && ((user_obj | group_obj | other_obj) != user_obj
-	      || (group_obj | other_obj) != group_obj)
+	  && (has_class_obj
+	      || access != CYG_ACE_NEW_STYLE
+	      || ((user_obj | group_obj | other_obj) != user_obj
+		  || (group_obj | other_obj) != group_obj))
 	  && !add_access_denied_ace (acl, access, well_known_null_sid, acl_len,
 				     inherit))
 	return NULL;
@@ -863,7 +876,8 @@ get_posix_access (PSECURITY_DESCRIPTOR psd,
 	{
 	  type = GROUP_OBJ;
 	  lacl[1].a_id = gid = id;
-	  owner_eq_group = true;
+	  if (type == USER_OBJ)
+	    owner_eq_group = true;
 	}
       if (!(ace->Header.AceFlags & INHERIT_ONLY || type & ACL_DEFAULT))
 	{
@@ -929,7 +943,8 @@ get_posix_access (PSECURITY_DESCRIPTOR psd,
 		 with a standard ACL, one only consisting of POSIX perms, plus
 		 SYSTEM and Admins as maximum non-POSIX perms entries.  If it's
 		 a standard ACL, we apply umask.  That's not entirely correct,
-		 but it's probably the best we can do. */
+		 but it's probably the best we can do.  Chmod also wants to
+		 know this.  See there for the details. */
 	      else if (type & (USER | GROUP)
 		       && standard_ACEs_only
 		       && ace_sid != well_known_system_sid
@@ -997,6 +1012,21 @@ get_posix_access (PSECURITY_DESCRIPTOR psd,
 	    }
 	}
     }
+  /* If this is a just created file, and this is an ACL with only standard
+     entries, or if standard POSIX permissions are missing (probably no
+     inherited ACEs so created from a default DACL), assign the permissions
+     specified by the file creation mask.  The values get masked by the
+     actually requested permissions by the caller per POSIX 1003.1e draft 17. */
+  if (just_created)
+    {
+      mode_t perms = (S_IRWXU | S_IRWXG | S_IRWXO) & ~cygheap->umask;
+      if (standard_ACEs_only || !saw_user_obj)
+	lacl[0].a_perm = (perms >> 6) & S_IRWXO;
+      if (standard_ACEs_only || !saw_group_obj)
+	lacl[1].a_perm = (perms >> 3) & S_IRWXO;
+      if (standard_ACEs_only || !saw_other_obj)
+	lacl[2].a_perm = perms & S_IRWXO;
+    }
   /* If this is an old-style or non-Cygwin ACL, and secondary user and group
      entries exist in the ACL, fake a matching CLASS_OBJ entry. The CLASS_OBJ
      permissions are the or'ed permissions of the primary group permissions
@@ -1024,21 +1054,6 @@ get_posix_access (PSECURITY_DESCRIPTOR psd,
       lacl[pos].a_id = ACL_UNDEFINED_ID;
       lacl[pos].a_perm = lacl[1].a_perm; /* == group perms */
       aclsid[pos] = well_known_null_sid;
-    }
-  /* If this is a just created file, and this is an ACL with only standard
-     entries, or if standard POSIX permissions are missing (probably no
-     inherited ACEs so created from a default DACL), assign the permissions
-     specified by the file creation mask.  The values get masked by the
-     actually requested permissions by the caller per POSIX 1003.1e draft 17. */
-  if (just_created)
-    {
-      mode_t perms = (S_IRWXU | S_IRWXG | S_IRWXO) & ~cygheap->umask;
-      if (standard_ACEs_only || !saw_user_obj)
-	lacl[0].a_perm = (perms >> 6) & S_IRWXO;
-      if (standard_ACEs_only || !saw_group_obj)
-	lacl[1].a_perm = (perms >> 3) & S_IRWXO;
-      if (standard_ACEs_only || !saw_other_obj)
-	lacl[2].a_perm = perms & S_IRWXO;
     }
   /* Ensure that the default acl contains at least
      DEF_(USER|GROUP|OTHER)_OBJ entries.  */

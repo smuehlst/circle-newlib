@@ -1,8 +1,5 @@
 /* mount.cc: mount handling.
 
-   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -81,7 +78,7 @@ win32_device_name (const char *src_path, char *win32_path, device& dev)
   dev.parse (src_path);
   if (dev == FH_FS || dev == FH_DEV)
     return false;
-  strcpy (win32_path, dev.native);
+  strcpy (win32_path, dev.native ());
   return true;
 }
 
@@ -388,7 +385,7 @@ fs_info::update (PUNICODE_STRING upath, HANDLE in_vol)
 	     and stuff like that. */
 	  && !is_mvfs (RtlEqualUnicodePathPrefix (&fsname, &ro_u_mvfs, FALSE))
 	  /* NWFS == Novell Netware FS.  Broken info class, see below. */
-	  /* NcFsd == Novell Netware FS via own driver since Windows Vista. */
+	  /* NcFsd == Novell Netware FS via own driver. */
 	  && !is_nwfs (RtlEqualUnicodeString (&fsname, &ro_u_nwfs, FALSE))
 	  && !is_ncfsd (RtlEqualUnicodeString (&fsname, &ro_u_ncfsd, FALSE))
 	  /* UNIXFS == TotalNet Advanced Server (TAS).  Doesn't support
@@ -396,15 +393,11 @@ fs_info::update (PUNICODE_STRING upath, HANDLE in_vol)
 	  && !is_unixfs (RtlEqualUnicodeString (&fsname, &ro_u_unixfs, FALSE))
 	  /* AFSRDRFsd == Andrew File System.  Doesn't support DOS attributes.
 	     Only native symlinks are supported. */
-	  && !is_afs (RtlEqualUnicodeString (&fsname, &ro_u_afs, FALSE))
+	  && !is_afs (RtlEqualUnicodeString (&fsname, &ro_u_afs, FALSE)))
+	{
 	  /* PrlSF == Parallels Desktop File System.  Has a bug in
 	     FileNetworkOpenInformation, see below. */
-	  && !is_prlfs (RtlEqualUnicodeString (&fsname, &ro_u_prlfs, FALSE)))
-	{
-	  /* Known remote file system with buggy open calls.  Further
-	     explanation in fhandler.cc (fhandler_disk_file::open_fs). */
-	  is_sunwnfs (RtlEqualUnicodeString (&fsname, &ro_u_sunwnfs, FALSE));
-	  has_buggy_open (is_sunwnfs ());
+	  is_prlfs (RtlEqualUnicodeString (&fsname, &ro_u_prlfs, FALSE));
 	}
       if (got_fs ())
 	{
@@ -455,18 +448,9 @@ fs_info::update (PUNICODE_STRING upath, HANDLE in_vol)
      except on Samba which handles Windows clients case insensitive.
 
      NFS doesn't set the FILE_CASE_SENSITIVE_SEARCH flag but is case
-     sensitive.
-
-     UDF on NT 5.x is broken (at least) in terms of case sensitivity.
-     The UDF driver reports the FILE_CASE_SENSITIVE_SEARCH capability
-     but:
-     - Opening the root directory for query seems to work at first,
-       but the filenames in the directory listing are mutilated.
-     - When trying to open a file or directory case sensitive, the file
-       appears to be non-existant. */
-  caseinsensitive (((!(flags () & FILE_CASE_SENSITIVE_SEARCH) || is_samba ())
-		    && !is_nfs ())
-		   || (is_udf () && wincap.has_broken_udf ()));
+     sensitive. */
+  caseinsensitive ((!(flags () & FILE_CASE_SENSITIVE_SEARCH) || is_samba ())
+		   && !is_nfs ());
 
   if (!in_vol)
     NtClose (vol);
@@ -597,8 +581,6 @@ mount_info::conv_to_win32_path (const char *src_path, char *dst, device& dev,
 {
   bool chroot_ok = !cygheap->root.exists ();
 
-  MALLOC_CHECK;
-
   dev = FH_FS;
 
   *flags = 0;
@@ -630,7 +612,6 @@ mount_info::conv_to_win32_path (const char *src_path, char *dst, device& dev,
       goto out_no_chroot_check;
     }
 
-  MALLOC_CHECK;
   /* If the path is on a network drive or a //./ resp. //?/ path prefix,
      bypass the mount table.  If it's // or //MACHINE, use the netdrive
      device. */
@@ -740,7 +721,6 @@ mount_info::conv_to_win32_path (const char *src_path, char *dst, device& dev,
       backslashify (src_path, dst + offset, 0);
     }
  out:
-  MALLOC_CHECK;
   if (chroot_ok || cygheap->root.ischroot_native (dst))
     rc = 0;
   else
@@ -905,7 +885,6 @@ mount_info::conv_to_posix_path (const char *src_path, char *posix_path,
 
   debug_printf ("conv_to_posix_path (%s, 0x%x, %s)", src_path, ccp_flags,
 		append_slash ? "add-slash" : "no-add-slash");
-  MALLOC_CHECK;
 
   if (src_path_len >= NT_MAX_PATH)
     {
@@ -1008,7 +987,6 @@ mount_info::conv_to_posix_path (const char *src_path, char *posix_path,
 
 out:
   debug_printf ("%s = conv_to_posix_path (%s)", posix_path, src_path);
-  MALLOC_CHECK;
   return 0;
 }
 
@@ -1582,7 +1560,6 @@ fs_names_t fs_names[] = {
     { "iso9660", true },
     { "udf", true },
     { "csc-cache", false },
-    { "sunwnfs", false },
     { "unixfs", false },
     { "mvfs", false },
     { "cifs", false },

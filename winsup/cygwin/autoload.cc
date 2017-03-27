@@ -1,8 +1,5 @@
 /* autoload.cc: all dynamic load stuff.
 
-   Copyright 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -335,31 +332,17 @@ union retchain
 /* This function handles the problem described here:
 
   http://www.microsoft.com/technet/security/advisory/2269637.mspx
-  https://msdn.microsoft.com/library/ff919712
-
-  It also contains a workaround for the problem reported here:
-  http://cygwin.com/ml/cygwin/2011-02/msg00552.html
-  and discussed here:
-  http://cygwin.com/ml/cygwin-developers/2011-02/threads.html#00007
-
-  To wit: winmm.dll calls FreeLibrary in its DllMain and that can result
-  in LoadLibraryExW returning an ERROR_INVALID_ADDRESS. */
+  https://msdn.microsoft.com/library/ff919712 */
 static __inline bool
 dll_load (HANDLE& handle, PWCHAR name)
 {
   HANDLE h = NULL;
   WCHAR dll_path[MAX_PATH];
 
-  /* If that failed, try loading with full path, which sometimes
-     fails for no good reason. */
+  /* Try loading with full path, which sometimes fails for no good reason. */
   wcpcpy (wcpcpy (dll_path, windows_system_directory), name);
   h = LoadLibraryW (dll_path);
-  /* If that failed according to the second problem outlined in the
-     comment preceeding this function. */
-  if (!h && handle && wincap.use_dont_resolve_hack ()
-      && GetLastError () == ERROR_INVALID_ADDRESS)
-    h = LoadLibraryExW (dll_path, NULL, DONT_RESOLVE_DLL_REFERENCES);
-  /* Last resort: Try loading just by name. */
+  /* If it failed, try loading just by name. */
   if (!h)
     h = LoadLibraryW (name);
   if (!h)
@@ -591,19 +574,14 @@ LoadDLLfunc (GetIpAddrTable, 12, iphlpapi)
 LoadDLLfunc (GetIpForwardTable, 12, iphlpapi)
 LoadDLLfunc (GetNetworkParams, 8, iphlpapi)
 LoadDLLfunc (GetUdpTable, 12, iphlpapi)
+LoadDLLfunc (if_indextoname, 8, iphlpapi)
+LoadDLLfunc (if_nametoindex, 4, iphlpapi)
 
-LoadDLLfuncEx (CancelSynchronousIo, 4, kernel32, 1)
-LoadDLLfunc (CreateSymbolicLinkW, 12, kernel32)
 LoadDLLfuncEx2 (DiscardVirtualMemory, 8, kernel32, 1, 127)
 LoadDLLfuncEx (GetLogicalProcessorInformationEx, 12, kernel32, 1)
-LoadDLLfuncEx (GetNamedPipeClientProcessId, 8, kernel32, 1)
 LoadDLLfunc (GetSystemTimePreciseAsFileTime, 4, kernel32)
-LoadDLLfuncEx (IdnToAscii, 20, kernel32, 1)
-LoadDLLfuncEx (IdnToUnicode, 20, kernel32, 1)
-LoadDLLfunc (LocaleNameToLCID, 8, kernel32)
 LoadDLLfuncEx (PrefetchVirtualMemory, 16, kernel32, 1)
 LoadDLLfunc (SetThreadGroupAffinity, 12, kernel32)
-LoadDLLfunc (SetThreadStackGuarantee, 4, kernel32)
 
 /* ldap functions are cdecl! */
 #pragma push_macro ("mangle")
@@ -648,12 +626,6 @@ LoadDLLfunc (NetUserEnum, 32, netapi32)
 LoadDLLfunc (NetUserGetGroups, 28, netapi32)
 LoadDLLfunc (NetUserGetInfo, 16, netapi32)
 LoadDLLfunc (NetUserGetLocalGroups, 32, netapi32)
-
-LoadDLLfunc (NtCommitTransaction, 8, ntdll)
-LoadDLLfunc (NtCreateTransaction, 40, ntdll)
-LoadDLLfunc (NtRollbackTransaction, 8, ntdll)
-LoadDLLfunc (RtlGetCurrentTransaction, 0, ntdll)
-LoadDLLfunc (RtlSetCurrentTransaction, 4, ntdll)
 
 LoadDLLfunc (CoTaskMemFree, 4, ole32)
 

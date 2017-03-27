@@ -1,9 +1,6 @@
 
 /* sys/cygwin.h
 
-   Copyright 1997, 1998, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -397,11 +394,9 @@ extern void cygwin_premain3 (int, char **, struct per_process *);
 #define EXTERNAL_PINFO_VERSION_32_LP  2
 #define EXTERNAL_PINFO_VERSION EXTERNAL_PINFO_VERSION_32_LP
 
-#ifndef __uid_t_defined
+#ifndef __INSIDE_CYGWIN__
 typedef __uint16_t __uid16_t;
 typedef __uint16_t __gid16_t;
-typedef __uint32_t uid_t;
-typedef __uint32_t gid_t;
 #endif
 
 struct external_pinfo

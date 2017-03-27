@@ -1,8 +1,5 @@
 /* dcrt0.cc -- essentially the main() for the Cygwin dll
 
-   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -38,7 +35,6 @@ details. */
 #include "cygxdr.h"
 #include "fenv.h"
 #include "ntdll.h"
-#include "wow64.h"
 
 #define MAX_AT_FILE_LEVEL 10
 
@@ -409,18 +405,8 @@ child_info NO_COPY *child_proc_info;
 void
 child_info_fork::alloc_stack ()
 {
-  /* Make sure not to try a hard allocation if we have been forked off from
-     the main thread of a Cygwin process which has been started from a 64 bit
-     parent.  In that case the StackBase of the forked child is not the same
-     as the StackBase of the parent (== this.stackbase), but only because the
-     stack of the parent has been slightly rearranged.  See comment in
-     wow64_revert_to_original_stack for details. We check here if the
-     parent stack fits into the child stack. */
   PTEB teb = NtCurrentTeb ();
-  if (teb->Tib.StackBase != stackbase
-      && (!wincap.is_wow64 ()
-	  || stacklimit < teb->DeallocationStack
-	  || stackbase > teb->Tib.StackBase))
+  if (teb->Tib.StackBase != stackbase)
     {
       void *stack_ptr;
       size_t stacksize;
@@ -457,11 +443,9 @@ child_info_fork::alloc_stack ()
 	    api_fatal ("fork: couldn't allocate new stack guard page %p, %E",
 		       stack_ptr);
 	}
-      /* On post-XP systems, set thread stack guarantee matching the
-	 guardsize.  Note that the guardsize is one page bigger than
-	 the guarantee. */
-      if (wincap.has_set_thread_stack_guarantee ()
-	  && real_guardsize > wincap.def_guard_page_size ())
+      /* Set thread stack guarantee matching the guardsize.
+	 Note that the guardsize is one page bigger than the guarantee. */
+      if (real_guardsize > wincap.def_guard_page_size ())
 	{
 	  real_guardsize -= wincap.page_size ();
 	  SetThreadStackGuarantee (&real_guardsize);
@@ -756,7 +740,6 @@ dll_crt0_0 ()
   _impure_ptr->_stdin = &_impure_ptr->__sf[0];
   _impure_ptr->_stdout = &_impure_ptr->__sf[1];
   _impure_ptr->_stderr = &_impure_ptr->__sf[2];
-  _impure_ptr->_current_locale = "C";
   user_data->impure_ptr = _impure_ptr;
   user_data->impure_ptr_ptr = &_impure_ptr;
 
@@ -775,14 +758,6 @@ dll_crt0_0 ()
     {
       setup_cygheap ();
       memory_init ();
-#ifndef __x86_64__
-      /* WOW64 process on XP/64 or Server 2003/64?  Check if we have been
-	 started from 64 bit process and if our stack is at an unusual
-	 address.  Set wow64_needs_stack_adjustment if so.  Problem
-	 description in wow64_test_for_64bit_parent. */
-      if (wincap.wow64_has_secondary_stack ())
-	wow64_needs_stack_adjustment = wow64_test_for_64bit_parent ();
-#endif /* !__x86_64__ */
     }
   else
     {
@@ -902,11 +877,6 @@ dll_crt0_1 (void *)
      Need to do this before any helper threads start. */
   debug_init ();
 
-#ifdef NEWVFORK
-  cygheap->fdtab.vfork_child_fixup ();
-  main_vfork = vfork_storage.create ();
-#endif
-
   cygbench ("pre-forkee");
   if (in_forkee)
     {
@@ -994,6 +964,7 @@ dll_crt0_1 (void *)
       if (cp > __progname && ascii_strcasematch (cp, ".exe"))
 	*cp = '\0';
     }
+  SetThreadName (GetCurrentThreadId (), program_invocation_short_name);
 
   (void) xdr_set_vprintf (&cygxdr_vwarnx);
   cygwin_finished_initializing = true;
@@ -1016,7 +987,6 @@ dll_crt0_1 (void *)
   /* Disable case-insensitive globbing */
   ignore_case_with_glob = false;
 
-  MALLOC_CHECK;
   cygbench (__progname);
 
   ld_preload ();
@@ -1071,7 +1041,7 @@ _dll_crt0 ()
      under our own control and avoids collision with the OS. */
   if (!dynamically_loaded)
     {
-      if (!in_forkee || fork_info->from_main)
+      if (!in_forkee)
 	{
 	  /* Must be static since it's referenced after the stack and frame
 	     pointer registers have been changed. */
@@ -1100,32 +1070,6 @@ _dll_crt0 ()
 	fork_info->alloc_stack ();
     }
 #else
-  /* Handle WOW64 process on XP/2K3 which has been started from native 64 bit
-     process.  See comment in wow64_test_for_64bit_parent for a full problem
-     description. */
-  if (wow64_needs_stack_adjustment && !dynamically_loaded)
-    {
-      /* Must be static since it's referenced after the stack and frame
-	 pointer registers have been changed. */
-      static PVOID allocationbase;
-
-      PVOID stackaddr = wow64_revert_to_original_stack (allocationbase);
-      if (stackaddr)
-      	{
-	  /* Set stack pointer to new address.  Set frame pointer to 0. */
-	  __asm__ ("\n\
-		   movl  %[ADDR], %%esp \n\
-		   xorl  %%ebp, %%ebp   \n"
-		   : : [ADDR] "r" (stackaddr));
-	  /* We're back on the original stack now.  Free up space taken by the
-	     former main thread stack and set DeallocationStack correctly. */
-	  VirtualFree (NtCurrentTeb ()->DeallocationStack, 0, MEM_RELEASE);
-	  NtCurrentTeb ()->DeallocationStack = allocationbase;
-	}
-      else
-	/* Fall back to respawning if creating a new stack fails. */
-	wow64_respawn_process ();
-    }
   main_environ = user_data->envptr;
   if (in_forkee)
     fork_info->alloc_stack ();
@@ -1196,15 +1140,6 @@ void __reg1
 do_exit (int status)
 {
   syscall_printf ("do_exit (%d), exit_state %d", status, exit_state);
-
-#ifdef NEWVFORK
-  vfork_save *vf = vfork_storage.val ();
-  if (vf != NULL && vf->pid < 0)
-    {
-      exit_state = ES_NOT_EXITING;
-      vf->restore_exit (status);
-    }
-#endif
 
   lock_process until_exit (true);
 

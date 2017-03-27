@@ -1,8 +1,5 @@
 /* signal.cc
 
-   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
    Written by Steve Chamberlain of Cygnus Support, sac@cygnus.com
    Significant changes by Sergey Okhapkin <sos@prospect.com.ru>
 
@@ -37,7 +34,7 @@ signal (int sig, _sig_func_ptr func)
   _sig_func_ptr prev;
 
   /* check that sig is in right range */
-  if (sig < 0 || sig >= NSIG || sig == SIGKILL || sig == SIGSTOP)
+  if (sig <= 0 || sig >= NSIG || sig == SIGKILL || sig == SIGSTOP)
     {
       set_errno (EINVAL);
       syscall_printf ("SIG_ERR = signal (%d, %p)", sig, func);
@@ -263,7 +260,7 @@ _pinfo::kill (siginfo_t& si)
 	}
       this_pid = pid;
     }
-  else if (si.si_signo == 0 && this && process_state == PID_EXITED)
+  else if (this && process_state == PID_EXITED)
     {
       this_process_state = process_state;
       this_pid = pid;
@@ -282,7 +279,7 @@ _pinfo::kill (siginfo_t& si)
   return res;
 }
 
-int
+extern "C" int
 raise (int sig)
 {
   return kill (myself->pid, sig);
@@ -390,7 +387,7 @@ sigaction_worker (int sig, const struct sigaction *newact,
     {
       sig_dispatch_pending ();
       /* check that sig is in right range */
-      if (sig < 0 || sig >= NSIG)
+      if (sig <= 0 || sig >= NSIG)
 	set_errno (EINVAL);
       else
 	{
@@ -538,18 +535,21 @@ extern "C" int
 siginterrupt (int sig, int flag)
 {
   struct sigaction act;
-  sigaction (sig, NULL, &act);
-  if (flag)
+  int res = sigaction_worker (sig, NULL, &act, false);
+  if (res == 0)
     {
-      act.sa_flags &= ~SA_RESTART;
-      act.sa_flags |= _SA_NORESTART;
+      if (flag)
+	{
+	  act.sa_flags &= ~SA_RESTART;
+	  act.sa_flags |= _SA_NORESTART;
+	}
+      else
+	{
+	  act.sa_flags &= ~_SA_NORESTART;
+	  act.sa_flags |= SA_RESTART;
+	}
+      res = sigaction_worker (sig, &act, NULL, true);
     }
-  else
-    {
-      act.sa_flags &= ~_SA_NORESTART;
-      act.sa_flags |= SA_RESTART;
-    }
-  int res = sigaction_worker (sig, &act, NULL, true);
   syscall_printf ("%R = siginterrupt(%d, %y)", sig, flag);
   return res;
 }
@@ -623,6 +623,13 @@ sigqueue (pid_t pid, int sig, const union sigval value)
   if (!dest)
     {
       set_errno (ESRCH);
+      return -1;
+    }
+  if (sig == 0)
+    return 0;
+  if (sig < 0 || sig >= NSIG)
+    {
+      set_errno (EINVAL);
       return -1;
     }
   si.si_signo = sig;

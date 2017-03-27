@@ -1,15 +1,12 @@
 /* cygcheck.cc
 
-   Copyright 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
    This file is part of Cygwin.
 
    This software is a copyrighted work licensed under the terms of the
    Cygwin license.  Please consult the file "CYGWIN_LICENSE" for
    details. */
 
-#define _WIN32_WINNT 0x0602
+#define _WIN32_WINNT 0x0a00
 #define cygwin_internal cygwin_internal_dontuse
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +14,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <ctype.h>
+#include <fcntl.h>
 #include <io.h>
 #include <windows.h>
 #include <wininet.h>
@@ -314,10 +312,7 @@ pathlike::check_existence (const char *fn, int showall, int verbose,
 			   char* first, const char *ext1, const char *ext2)
 {
   char file[4000];
-  strcpy (file, dir);
-  strcat (file, fn);
-  strcat (file, ext1);
-  strcat (file, ext2);
+  snprintf (file, sizeof file, "%s%s%s%s", dir, fn, ext1, ext2);
 
   wide_path wpath (file);
   if (GetFileAttributesW (wpath) != (DWORD) - 1)
@@ -353,7 +348,8 @@ find_on_path (const char *in_file, const char *ext, bool showall = false,
 {
   static char rv[4000];
 
-  /* Sort of a kludge but we've already tested this once, so don't try it again */
+  /* Sort of a kludge but we've already tested this once, so don't try it
+     again */
   if (in_file == rv)
     return in_file;
 
@@ -366,13 +362,15 @@ find_on_path (const char *in_file, const char *ext, bool showall = false,
   *rv = '\0';
   if (!in_file)
     {
-      display_error ("internal error find_on_path: NULL pointer for file", false, false);
+      display_error ("internal error find_on_path: NULL pointer for file",
+		     false, false);
       return 0;
     }
 
   if (!ext)
     {
-      display_error ("internal error find_on_path: NULL pointer for default_extension", false, false);
+      display_error ("internal error find_on_path: "
+		     "NULL pointer for default_extension", false, false);
       return 0;
     }
 
@@ -392,7 +390,8 @@ find_on_path (const char *in_file, const char *ext, bool showall = false,
 
   if (!file)
     {
-      display_error ("internal error find_on_path: cygpath conversion failed for %s\n", in_file);
+      display_error ("internal error find_on_path: "
+		     "cygpath conversion failed for %s\n", in_file);
       return 0;
     }
 
@@ -406,7 +405,8 @@ find_on_path (const char *in_file, const char *ext, bool showall = false,
 	pth->check_existence (file, showall, verbose, rv, ext);
 
 	if (checklinks)
-	  pth->check_existence (file, showall, verbose, rv, ext, LINK_EXTENSION);
+	  pth->check_existence (file, showall, verbose, rv, ext,
+				LINK_EXTENSION);
 
 	if (!*ext)
 	  continue;
@@ -798,12 +798,6 @@ track_down (const char *file, const char *suffix, int lvl)
   if (lvl)
     printf ("%*c", lvl, ' ');
 
-  if (!path)
-    {
-      display_error ("file not found - '%s'\n", file);
-      return false;
-    }
-
   printf ("%s", path);
 
   wide_path wpath (path);
@@ -1192,15 +1186,17 @@ dump_sysinfo_services ()
   int ret = fscanf (f, "cygrunsrv V%u.%u", &maj, &min);
   if (ferror (f) || feof (f) || ret == EOF || maj < 1 || min < 10)
     {
-      puts ("The version of cygrunsrv installed is too old to dump service info.\n");
+      puts ("The version of cygrunsrv installed is too old to dump "
+	    "service info.\n");
       return;
     }
-  fclose (f);
+  pclose (f);
 
   /* For verbose mode, just run cygrunsrv --list --verbose and copy output
      verbatim; otherwise run cygrunsrv --list and then cygrunsrv --query for
      each service.  */
-  snprintf (buf, sizeof (buf), (verbose ? "\"%s\" --list --verbose" : "\"%s\" --list"),
+  snprintf (buf, sizeof (buf),
+	    (verbose ? "\"%s\" --list --verbose" : "\"%s\" --list"),
 	    cygrunsrv);
   if ((f = popen (buf, "rt")) == NULL)
     {
@@ -1234,7 +1230,8 @@ dump_sysinfo_services ()
 	    snprintf (buf2, sizeof (buf2), "\"%s\" --query %s", cygrunsrv, srv);
 	    if ((f = popen (buf2, "rt")) == NULL)
 	      {
-		printf ("Failed to execute '%s', skipping services check.\n", buf2);
+		printf ("Failed to execute '%s', skipping services check.\n",
+			buf2);
 		return;
 	      }
 
@@ -1567,38 +1564,6 @@ dump_sysinfo ()
 	    {
 	    }
 	}
-      else if (osversion.dwMajorVersion == 5)
-	{
-	  /* cygcheck won't run on Windows 200 or earlier. */
-	  if (osversion.dwMinorVersion == 1)
-	    {
-	      strcpy (osname, "XP");
-	      if (GetSystemMetrics (SM_MEDIACENTER))
-		strcat (osname, " Media Center Edition");
-	      else if (GetSystemMetrics (SM_TABLETPC))
-		strcat (osname, " Tablet PC Edition");
-	      else if (GetSystemMetrics (SM_STARTER))
-		strcat (osname, " Starter Edition");
-	      else if (osversion.wSuiteMask & VER_SUITE_PERSONAL)
-		strcat (osname, " Home Edition");
-	      else
-		strcat (osname, " Professional");
-	    }
-	  else if (osversion.dwMinorVersion == 2)
-	    {
-	      strcpy (osname, "2003 Server");
-	      if (GetSystemMetrics (SM_SERVERR2))
-		strcat (osname, " R2");
-	      if (osversion.wSuiteMask & VER_SUITE_BLADE)
-		strcat (osname, " Web Edition");
-	      else if (osversion.wSuiteMask & VER_SUITE_DATACENTER)
-		strcat (osname, " Datacenter Edition");
-	      else if (osversion.wSuiteMask & VER_SUITE_ENTERPRISE)
-		strcat (osname, " Enterprise Edition");
-	      else if (osversion.wSuiteMask & VER_SUITE_COMPUTE_SERVER)
-		strcat (osname, " Compute Cluster Edition");
-	    }
-	}
       else
 	strcpy (osname, "NT");
       break;
@@ -1837,13 +1802,11 @@ dump_sysinfo ()
 	      flags & FS_PERSISTENT_ACLS ? "PA" : "  ",
 	      flags & FS_FILE_COMPRESSION ? "FC" : "  ",
 	      flags & FS_VOL_IS_COMPRESSED ? "VC" : "  ",
-#if 0
 	      flags & FILE_SUPPORTS_ENCRYPTION ? "EN" : "  ",
 	      flags & FILE_SUPPORTS_OBJECT_IDS ? "OI" : "  ",
 	      flags & FILE_SUPPORTS_REPARSE_POINTS ? "RP" : "  ",
 	      flags & FILE_SUPPORTS_SPARSE_FILES ? "SP" : "  ",
 	      flags & FILE_VOLUME_QUOTAS ? "QU" : "  ",
-#endif
 	      name);
     }
 
@@ -2047,12 +2010,19 @@ check_keys ()
   return 0;
 }
 
-/* RFC1738 says that these do not need to be escaped.  */
-static const char safe_chars[] = "$-_.+!*'(),";
+/* These do not need to be escaped in application/x-www-form-urlencoded */
+static const char safe_chars[] = "$-_.!*'(),";
 
 /* the URL to query.  */
 static const char base_url[] =
 	"http://cygwin.com/cgi-bin2/package-grep.cgi?text=1&grep=";
+
+#ifdef __x86_64__
+#define ARCH_STR  "&arch=x86_64"
+#else
+#define ARCH_STR  "&arch=x86"
+#endif
+static const char *ARCH_str = ARCH_STR;
 
 /* Queries Cygwin web site for packages containing files matching a regexp.
    Return value is 1 if there was a problem, otherwise 0.  */
@@ -2062,7 +2032,8 @@ package_grep (char *search)
   char buf[1024];
 
   /* construct the actual URL by escaping  */
-  char *url = (char *) alloca (sizeof (base_url) + strlen ("&arch=x86_64") + strlen (search) * 3);
+  char *url = (char *) alloca (sizeof (base_url) + strlen (ARCH_str)
+			       + strlen (search) * 3);
   strcpy (url, base_url);
 
   char *dest;
@@ -2080,11 +2051,7 @@ package_grep (char *search)
 	  dest += 2;
 	}
     }
-#ifdef __x86_64__
-  strcpy (dest, "&arch=x86_64");
-#else
-  strcpy (dest, "&arch=x86");
-#endif
+  strcpy (dest, ARCH_str);
 
   /* Connect to the net and open the URL.  */
   if (InternetAttemptConnect (0) != ERROR_SUCCESS)
@@ -2095,7 +2062,8 @@ package_grep (char *search)
 
   /* Initialize WinInet and attempt to fetch our URL.  */
   HINTERNET hi = NULL, hurl = NULL;
-  if (!(hi = InternetOpenA ("cygcheck", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0)))
+  if (!(hi = InternetOpenA ("cygcheck", INTERNET_OPEN_TYPE_PRECONFIG,
+			    NULL, NULL, 0)))
     return display_internet_error ("InternetOpen() failed", NULL);
 
   if (!(hurl = InternetOpenUrlA (hi, url, NULL, 0, 0, 0)))
@@ -2199,9 +2167,11 @@ print_version ()
 {
   printf ("cygcheck (cygwin) %d.%d.%d\n"
 	  "System Checker for Cygwin\n"
-	  "Copyright (C) 1998 - %s Red Hat, Inc.\n"
-	  "This is free software; see the source for copying conditions.  There is NO\n"
-	  "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n",
+	  "Copyright (C) 1998 - %s Cygwin Authors\n"
+	  "This is free software; see the source for copying conditions.  "
+	  "There is NO\n"
+	  "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR "
+	  "PURPOSE.\n",
 	  CYGWIN_VERSION_DLL_MAJOR / 1000,
 	  CYGWIN_VERSION_DLL_MAJOR % 1000,
 	  CYGWIN_VERSION_DLL_MINOR,
@@ -2281,6 +2251,9 @@ main (int argc, char **argv)
   int i;
   bool ok = true;
   load_cygwin (argc, argv);
+
+  _setmode (1, _O_BINARY);
+  _setmode (2, _O_BINARY);
 
   /* Need POSIX sorting while parsing args, but don't forget the
      user's original environment.  */

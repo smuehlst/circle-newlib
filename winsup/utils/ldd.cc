@@ -5,11 +5,11 @@
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
 
-	* Redistributions of source code must retain the above copyright
-	notice, this list of conditions and the following disclaimer.
-	* Neither the name of the owner nor the names of its
-	contributors may be used to endorse or promote products derived from
-	this software without specific prior written permission.
+  1. Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
+     documentation and/or other materials provided with the distribution.
 
   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS "AS
   IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -37,7 +37,7 @@
 #include <unistd.h>
 #include <libgen.h>
 
-#define _WIN32_WINNT 0x0501
+#define _WIN32_WINNT 0x0a00
 #include <windows.h>
 #include <imagehlp.h>
 #include <psapi.h>
@@ -212,25 +212,6 @@ start_process (const wchar_t *fn, bool& isdll)
   set_errno_and_return (1);
 }
 
-static int
-set_entry_point_break ()
-{
-  HMODULE hm;
-  DWORD cbe;
-  SIZE_T cbw;
-  if (!EnumProcessModules (hProcess, &hm, sizeof (hm), &cbe) || !cbe)
-    set_errno_and_return (1);
-
-  MODULEINFO mi = {};
-  if (!GetModuleInformation (hProcess, hm, &mi, sizeof (mi)) || !mi.EntryPoint)
-    set_errno_and_return (1);
-
-  static const unsigned char int3 = 0xcc;
-  if (!WriteProcessMemory (hProcess, mi.EntryPoint, &int3, 1, &cbw) || cbw != 1)
-    set_errno_and_return (1);
-  return 0;
-}
-
 struct dlls
   {
     LPVOID lpBaseOfDll;
@@ -318,8 +299,6 @@ report (const char *in_fn, bool multiple)
 
   DEBUG_EVENT ev;
 
-  unsigned dll_count = 0;
-
   dlls dll_list = {};
   dlls *dll_last = &dll_list;
   const wchar_t *process_fn = NULL;
@@ -331,9 +310,31 @@ report (const char *in_fn, bool multiple)
 	break;
       switch (ev.dwDebugEventCode)
 	{
+	case CREATE_PROCESS_DEBUG_EVENT:
+	  if (!isdll)
+	    {
+	      PIMAGE_DOS_HEADER dos_header = (PIMAGE_DOS_HEADER) alloca (4096);
+	      PIMAGE_NT_HEADERS nt_header;
+	      PVOID entry_point;
+	      static const unsigned char int3 = 0xcc;
+	      SIZE_T bytes;
+
+	      if (!ReadProcessMemory (hProcess,
+				      ev.u.CreateProcessInfo.lpBaseOfImage,
+				      dos_header, 4096, &bytes))
+		print_errno_error_and_return (in_fn);
+
+	      nt_header = PIMAGE_NT_HEADERS (PBYTE (dos_header)
+					     + dos_header->e_lfanew);
+	      entry_point = (PVOID)
+		  ((caddr_t) ev.u.CreateProcessInfo.lpBaseOfImage
+		   + nt_header->OptionalHeader.AddressOfEntryPoint);
+
+	      if (!WriteProcessMemory (hProcess, entry_point, &int3, 1, &bytes))
+		print_errno_error_and_return (in_fn);
+	    }
+	  break;
 	case LOAD_DLL_DEBUG_EVENT:
-	  if (!isdll && ++dll_count == 2)
-	    set_entry_point_break ();
 	  dll_last->next = (dlls *) malloc (sizeof (dlls));
 	  dll_last->next->lpBaseOfDll = ev.u.LoadDll.lpBaseOfDll;
 	  dll_last->next->next = NULL;
@@ -352,12 +353,9 @@ report (const char *in_fn, bool multiple)
 	      break;
 	    case STATUS_BREAKPOINT:
 	      if (!isdll)
-		cont = DBG_EXCEPTION_NOT_HANDLED;
+		TerminateProcess (hProcess, 0);
 	      break;
 	    }
-	  break;
-	case CREATE_THREAD_DEBUG_EVENT:
-	  TerminateProcess (hProcess, 0);
 	  break;
 	case EXIT_PROCESS_DEBUG_EVENT:
 print_and_exit:

@@ -1,8 +1,5 @@
 /* fhandler_proc.cc: fhandler for /proc virtual filesystem
 
-   Copyright 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012,
-   2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -1337,7 +1334,6 @@ format_proc_partitions (void *, char *&destbuf)
       DWORD bytes_read;
       DWORD part_cnt = 0;
       unsigned long long size;
-      device dev;
 
       restart = FALSE;
       /* ... and check for a "Harddisk[0-9]*" entry. */
@@ -1388,10 +1384,10 @@ format_proc_partitions (void *, char *&destbuf)
 			 "IOCTL_DISK_GET_PARTITION_INFO{_EX}) %E", &upath);
 	  size = 0;
 	}
-      dev.parsedisk (drive_num, 0);
+      device dev (drive_num, 0);
       bufptr += __small_sprintf (bufptr, "%5d %5d %9U %s\n",
 				 dev.get_major (), dev.get_minor (),
-				 size >> 10, dev.name + 5);
+				 size >> 10, dev.name () + 5);
       /* Fetch drive layout info to get size of all partitions on the disk. */
       if (DeviceIoControl (devhdl, IOCTL_DISK_GET_DRIVE_LAYOUT_EX,
 			   NULL, 0, ioctl_buf, NT_MAX_PATH, &bytes_read, NULL))
@@ -1413,7 +1409,7 @@ format_proc_partitions (void *, char *&destbuf)
 		      "IOCTL_DISK_GET_DRIVE_LAYOUT{_EX}): %E", &upath);
       /* Loop over partitions. */
       if (pix || pi)
-	for (DWORD i = 0; i < part_cnt; ++i)
+	for (DWORD i = 0; i < part_cnt && i < 64; ++i)
 	  {
 	    DWORD part_num;
 
@@ -1434,11 +1430,11 @@ format_proc_partitions (void *, char *&destbuf)
 	       Just skip. */
 	    if (part_num == 0)
 	      continue;
-	    dev.parsedisk (drive_num, part_num);
+	    device dev (drive_num, part_num);
 
 	    bufptr += __small_sprintf (bufptr, "%5d %5d %9U %s",
 				       dev.get_major (), dev.get_minor (),
-				       size >> 10, dev.name + 5);
+				       size >> 10, dev.name () + 5);
 	    /* Check if the partition is mounted in Windows and, if so,
 	       print the mount point list. */
 	    __small_swprintf (fpath,
@@ -1448,7 +1444,7 @@ format_proc_partitions (void *, char *&destbuf)
 		&& GetVolumePathNamesForVolumeNameW (gpath, mp_buf,
 						     NT_MAX_PATH, &len))
 	      {
-		len = strlen (dev.name + 5);
+		len = strlen (dev.name () + 5);
 		while (len++ < 6)
 		  *bufptr++ = ' ';
 		for (PWCHAR p = mp_buf; *p; p = wcschr (p, L'\0') + 1)

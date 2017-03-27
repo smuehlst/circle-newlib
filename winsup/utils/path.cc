@@ -1,8 +1,5 @@
 /* path.cc
 
-   Copyright 2001, 2002, 2003, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012,
-   2013, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -166,7 +163,7 @@ is_symlink (HANDLE fh)
     }
   else /* magic == SYMLINK_MAGIC */
     {
-      if (!local.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM)
+      if (!(local.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM))
 	goto out; /* Not a Cygwin symlink. */
       char buf[sizeof (SYMLINK_COOKIE) - 1];
       SetFilePointer (fh, 0, 0, FILE_BEGIN);
@@ -223,10 +220,10 @@ readlink (HANDLE fh, char *path, int maxlen)
 	}
       if (*(PWCHAR) cp == 0xfeff)	/* BOM */
 	{
-	  len = wcstombs (NULL, (wchar_t *) (cp + 2), 0);
-	  if (len == (size_t) -1 || len + 1 > maxlen)
+	  size_t wlen = wcstombs (NULL, (wchar_t *) (cp + 2), 0);
+	  if (wlen == (size_t) -1 || wlen + 1 > maxlen)
 	    return false;
-	  wcstombs (path, (wchar_t *) (cp + 2), len + 1);
+	  wcstombs (path, (wchar_t *) (cp + 2), wlen + 1);
 	}
       else if (len + 1 > maxlen)
 	return false;
@@ -241,10 +238,10 @@ readlink (HANDLE fh, char *path, int maxlen)
       cp = buf + strlen (SYMLINK_COOKIE);
       if (*(PWCHAR) cp == 0xfeff)	/* BOM */
 	{
-	  len = wcstombs (NULL, (wchar_t *) (cp + 2), 0);
-	  if (len == (size_t) -1 || len + 1 > maxlen)
+	  size_t wlen = wcstombs (NULL, (wchar_t *) (cp + 2), 0);
+	  if (wlen == (size_t) -1 || wlen + 1 > maxlen)
 	    return false;
-	  wcstombs (path, (wchar_t *) (cp + 2), len + 1);
+	  wcstombs (path, (wchar_t *) (cp + 2), wlen + 1);
 	}
       else if (fi.nFileSizeLow - strlen (SYMLINK_COOKIE) > (unsigned) maxlen)
 	return false;

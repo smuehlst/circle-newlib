@@ -32,7 +32,8 @@ DESCRIPTION
 	copying takes place between objects that overlap, the behavior
 	is undefined.
 
-	With a C locale, this function just copies.
+	(NOT Cygwin:) The current implementation of <<strxfrm>> simply copies
+	the input and does not support any language-specific transformations.
 
 RETURNS
 	The <<strxfrm>> function returns the length of the transformed string

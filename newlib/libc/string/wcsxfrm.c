@@ -27,8 +27,8 @@ DESCRIPTION
 
 	If <[n]> is 0, <[stra]> may be a NULL pointer.
 
-	The current implementation of <<wcsxfrm>> simply uses <<wcslcpy>>
-	and does not support any language-specific transformations.
+	(NOT Cygwin:) The current implementation of <<wcsxfrm>> simply uses
+	<<wcslcpy>> and does not support any language-specific transformations.
 
 RETURNS
 	<<wcsxfrm>> returns the length of the transformed wide character

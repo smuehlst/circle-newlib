@@ -1,8 +1,5 @@
 /* exceptions.cc
 
-   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -178,15 +175,12 @@ cygwin_exception::dump_exception ()
 {
   const char *exception_name = NULL;
 
-  if (e)
+  for (int i = 0; status_info[i].name; i++)
     {
-      for (int i = 0; status_info[i].name; i++)
+      if (status_info[i].code == (NTSTATUS) e->ExceptionCode)
 	{
-	  if (status_info[i].code == (NTSTATUS) e->ExceptionCode)
-	    {
-	      exception_name = status_info[i].name;
-	      break;
-	    }
+	  exception_name = status_info[i].name;
+	  break;
 	}
     }
 
@@ -357,12 +351,6 @@ stack_info::walk ()
 
       /* The arguments follow the return address */
       sf.Params[0] = (_ADDR) *++framep;
-      /* Hack for XP/2K3 WOW64.  If the first stack param points to the
-	 application entry point, we can only fetch one additional
-	 parameter.  Accessing anything beyond this address results in
-	 a SEGV.  This is fixed in Vista/2K8 WOW64. */
-      if (wincap.has_restricted_stack_args () && sf.Params[0] == 0x401000)
-	nparams = 2;
       for (unsigned i = 1; i < nparams; i++)
 	sf.Params[i] = (_ADDR) *++framep;
     }
@@ -1297,7 +1285,7 @@ DWORD WINAPI
 dumpstack_overflow_wrapper (PVOID arg)
 {
   cygwin_exception *exc = (cygwin_exception *) arg;
-
+  SetThreadName (GetCurrentThreadId (), "__dumpstack_overflow");
   exc->dumpstack ();
   return 0;
 }
@@ -1590,10 +1578,9 @@ altstack_wrapper (int sig, siginfo_t *siginfo, ucontext_t *sigctx,
       /* ...restore guard pages in original stack as if MSVCRT::_resetstkovlw
 	 has been called.
 
-	 Compute size of guard pages.  If SetThreadStackGuarantee isn't
-	 supported, or if it returns 0, use the default guard page size. */
-      if (wincap.has_set_thread_stack_guarantee ())
-	SetThreadStackGuarantee (&guard_size);
+	 Compute size of guard pages.  If SetThreadStackGuarantee returns 0,
+	 use the default guard page size. */
+      SetThreadStackGuarantee (&guard_size);
       if (!guard_size)
 	guard_size = wincap.def_guard_page_size ();
       else

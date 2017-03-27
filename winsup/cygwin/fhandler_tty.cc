@@ -1,8 +1,5 @@
 /* fhandler_tty.cc
 
-   Copyright 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -620,6 +617,7 @@ fhandler_pty_slave::write (const void *ptr, size_t len)
 	{
 	case ERROR_NO_DATA:
 	  err = ERROR_IO_DEVICE;
+	  /*FALLTHRU*/
 	default:
 	  __seterrno_from_win_error (err);
 	}
@@ -756,10 +754,6 @@ fhandler_pty_slave::read (void *ptr, size_t& len)
 	  goto out;
 	}
 
-      /* On first peek determine no. of bytes to flush. */
-      if (!ptr && len == UINT_MAX)
-	len = (size_t) bytes_in_pipe;
-
       if (ptr && !bytes_in_pipe && !vmin && !time_to_wait)
 	{
 	  ReleaseMutex (input_mutex);
@@ -768,6 +762,8 @@ fhandler_pty_slave::read (void *ptr, size_t& len)
 	}
 
       readlen = bytes_in_pipe ? MIN (len, sizeof (buf)) : 0;
+      if (get_ttyp ()->ti.c_lflag & ICANON && ptr)
+	readlen = MIN (bytes_in_pipe, readlen);
 
 #if 0
       /* Why on earth is the read length reduced to vmin, even if more bytes
@@ -804,7 +800,8 @@ fhandler_pty_slave::read (void *ptr, size_t& len)
 		}
 	      if (n)
 		{
-		  len -= n;
+		  if (!(!ptr && len == UINT_MAX)) /* not tcflush() */
+		    len -= n;
 		  totalread += n;
 		  if (ptr)
 		    {
@@ -1521,10 +1518,8 @@ fhandler_pty_slave::fixup_after_exec ()
 
    A special case is when the master side of the tty is about to be closed.
    The client side is the fhandler_pty_master::close function and it sends
-   a PID -1 in that case.  On Vista and later a check is performed that the
-   request to leave really comes from the master process itself.  On earlier
-   OSes there's no function to check for the PID of the client process so
-   we have to trust the client side.
+   a PID -1 in that case.  A check is performed that the request to leave
+   really comes from the master process itself.
 
    Since there's always only one pipe instance, there's a chance that clients
    have to wait to connect to the master control pipe.  Therefore the client
@@ -1560,9 +1555,6 @@ fhandler_pty_master::pty_master_thread ()
 	  termios_printf ("ReadFile, %E");
 	  goto reply;
 	}
-      /* This function is only available since Vista, unfortunately.
-	 In earlier OSes we simply have to believe that the client
-	 has no malicious intent (== sends arbitrary PIDs). */
       if (!GetNamedPipeClientProcessId (master_ctl, &pid))
 	pid = req.pid;
       if (get_object_sd (input_available_event, sd))
@@ -1602,10 +1594,8 @@ fhandler_pty_master::pty_master_thread ()
 	}
       if (req.pid == (DWORD) -1)	/* Request to finish thread. */
 	{
-	  /* Pre-Vista: Just believe in the good of the client process.
-	     Post-Vista: Check if the requesting process is the master
-	     process itself. */
-	  if (pid == (DWORD) -1 || pid == GetCurrentProcessId ())
+	  /* Check if the requesting process is the master process itself. */
+	  if (pid == GetCurrentProcessId ())
 	    exit = true;
 	  goto reply;
 	}
@@ -1787,8 +1777,7 @@ fhandler_pty_master::setup ()
 				     | FILE_FLAG_FIRST_PIPE_INSTANCE,
 				PIPE_WAIT | PIPE_TYPE_MESSAGE
 				| PIPE_READMODE_MESSAGE
-				| (wincap.has_pipe_reject_remote_clients ()
-				   ? PIPE_REJECT_REMOTE_CLIENTS : 0),
+				| PIPE_REJECT_REMOTE_CLIENTS,
 				1, 4096, 4096, 0, &sec_all_nih);
   if (master_ctl == INVALID_HANDLE_VALUE)
     {

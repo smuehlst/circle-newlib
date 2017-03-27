@@ -137,6 +137,25 @@ extern double fmod _PARAMS((double, double));
 #endif /* ! defined (__math_68881) */
 #endif /* ! defined (_REENT_ONLY) */
 
+#if __MISC_VISIBLE
+extern int finite _PARAMS((double));
+extern int finitef _PARAMS((float));
+extern int finitel _PARAMS((long double));
+extern int isinff _PARAMS((float));
+extern int isnanf _PARAMS((float));
+#ifdef __CYGWIN__ /* not implemented in newlib yet */
+extern int isinfl _PARAMS((long double));
+extern int isnanl _PARAMS((long double));
+#endif
+#if !defined(__cplusplus) || __cplusplus < 201103L
+extern int isinf _PARAMS((double));
+#endif
+#endif /* __MISC_VISIBLE */
+#if (__MISC_VISIBLE || (__XSI_VISIBLE && __XSI_VISIBLE < 600)) \
+  && (!defined(__cplusplus) || __cplusplus < 201103L)
+extern int isnan _PARAMS((double));
+#endif
+
 #if __ISO_C_VISIBLE >= 1999
 /* ISO C99 types and macros. */
 
@@ -179,10 +198,10 @@ extern double fmod _PARAMS((double, double));
 #define FP_NORMAL      4
 
 #ifndef FP_ILOGB0
-# define FP_ILOGB0 (-INT_MAX)
+# define FP_ILOGB0 (-__INT_MAX__)
 #endif
 #ifndef FP_ILOGBNAN
-# define FP_ILOGBNAN INT_MAX
+# define FP_ILOGBNAN __INT_MAX__
 #endif
 
 #ifndef MATH_ERRNO
@@ -209,7 +228,7 @@ extern int __signbitd (double x);
  *       supporting multiple floating point types.  Thus, they are
  *       now defined as macros.  Implementations of the old functions
  *       taking double arguments still exist for compatibility purposes
- *       (prototypes for them are in <ieeefp.h>).  */
+ *       (prototypes for them are earlier in this header).  */
 
 #if __GNUC_PREREQ (4, 4)
   #define fpclassify(__x) (__builtin_fpclassify (FP_NAN, FP_INFINITE, \
@@ -289,15 +308,10 @@ extern int __signbitd (double x);
                            fpclassify(__a) == FP_NAN || fpclassify(__b) == FP_NAN;}))
 #endif
 
-/* Non ANSI long double precision functions.  */
-
-extern int finitel _PARAMS((long double));
-
 /* Non ANSI double precision functions.  */
 
 extern double infinity _PARAMS((void));
 extern double nan _PARAMS((const char *));
-extern int finite _PARAMS((double));
 extern double copysign _PARAMS((double, double));
 extern double logb _PARAMS((double));
 extern int ilogb _PARAMS((double));
@@ -396,7 +410,6 @@ extern float fmaf _PARAMS((float, float, float));
 
 extern float infinityf _PARAMS((void));
 extern float nanf _PARAMS((const char *));
-extern int finitef _PARAMS((float));
 extern float copysignf _PARAMS((float, float));
 extern float logbf _PARAMS((float));
 extern int ilogbf _PARAMS((float));
@@ -615,7 +628,7 @@ extern int matherr _PARAMS((struct exception *e));
 
 /* Useful constants.  */
 
-#if __BSD_VISIBLE || __XSI_VISIBLE >= 500
+#if __BSD_VISIBLE || __XSI_VISIBLE
 
 #define MAXFLOAT	3.40282347e+38F
 

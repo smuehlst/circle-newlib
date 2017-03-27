@@ -1,8 +1,5 @@
 /* fhandler_process.cc: fhandler for /proc/<pid> virtual filesystem
 
-   Copyright 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012,
-   2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -52,6 +49,7 @@ static off_t format_process_ctty (void *, char *&);
 static off_t format_process_fd (void *, char *&);
 static off_t format_process_mounts (void *, char *&);
 static off_t format_process_mountinfo (void *, char *&);
+static off_t format_process_environ (void *, char *&);
 
 static const virt_tab_t process_tab[] =
 {
@@ -60,6 +58,7 @@ static const virt_tab_t process_tab[] =
   { _VN ("cmdline"),    FH_PROCESS,   virt_file,      format_process_cmdline },
   { _VN ("ctty"),       FH_PROCESS,   virt_file,      format_process_ctty },
   { _VN ("cwd"),        FH_PROCESS,   virt_symlink,   format_process_cwd },
+  { _VN ("environ"),    FH_PROCESS,   virt_file,      format_process_environ },
   { _VN ("exe"),        FH_PROCESS,   virt_symlink,   format_process_exename },
   { _VN ("exename"),    FH_PROCESS,   virt_file,      format_process_exename },
   { _VN ("fd"),         FH_PROCESSFD, virt_directory, format_process_fd },
@@ -464,8 +463,8 @@ format_process_ctty (void *data, char *&destbuf)
     }
   device d;
   d.parse (p->ctty);
-  destbuf = (char *) crealloc_abort (destbuf, strlen (d.name) + 2);
-  return __small_sprintf (destbuf, "%s\n", d.name);
+  destbuf = (char *) crealloc_abort (destbuf, strlen (d.name ()) + 2);
+  return __small_sprintf (destbuf, "%s\n", d.name ());
 }
 
 static off_t
@@ -573,6 +572,26 @@ format_process_winexename (void *data, char *&destbuf)
   return len;
 }
 
+static off_t
+format_process_environ (void *data, char *&destbuf)
+{
+  _pinfo *p = (_pinfo *) data;
+  size_t fs;
+
+  if (destbuf)
+    {
+      cfree (destbuf);
+      destbuf = NULL;
+    }
+  destbuf = p->environ (fs);
+  if (!destbuf || !*destbuf)
+    {
+      destbuf = cstrdup ("<defunct>");
+      fs = strlen (destbuf) + 1;
+    }
+  return fs;
+}
+
 struct heap_info
 {
   struct heap
@@ -592,10 +611,6 @@ struct heap_info
     NTSTATUS status;
     PDEBUG_HEAP_ARRAY harray;
 
-    /* FIXME?  RtlQueryProcessDebugInformation/CreateToolhelp32Snapshot both
-       crash the target process on 64 bit XP/2003 in native 64 bit mode. */
-    if (wincap.has_broken_rtl_query_process_debug_information ())
-      return;
     buf = RtlCreateQueryDebugBuffer (16 * 65536, FALSE);
     if (!buf)
       return;
@@ -709,7 +724,8 @@ struct thread_info
 	    free (buf);
 	    return;
 	  }
-	proc = (PSYSTEM_PROCESS_INFORMATION) ((PBYTE) proc + proc->NextEntryOffset);
+	proc = (PSYSTEM_PROCESS_INFORMATION) ((PBYTE) proc
+					      + proc->NextEntryOffset);
       }
     thread = proc->Threads;
     for (ULONG i = 0; i < proc->NumberOfThreads; ++i)
@@ -718,8 +734,9 @@ struct thread_info
 	TEB teb;
 	HANDLE thread_h;
 
-	if (!(thread_h = OpenThread (THREAD_QUERY_INFORMATION, FALSE,
-				     (ULONG) (ULONG_PTR) thread[i].ClientId.UniqueThread)))
+	thread_h = OpenThread (THREAD_QUERY_LIMITED_INFORMATION, FALSE,
+			 (ULONG) (ULONG_PTR) thread[i].ClientId.UniqueThread);
+	if (!thread_h)
 	  continue;
 	status = NtQueryInformationThread (thread_h, ThreadBasicInformation,
 					   &tbi, sizeof tbi, NULL);
@@ -729,7 +746,8 @@ struct thread_info
 	region *r = (region *) malloc (sizeof (region));
 	if (r)
 	  {
-	    *r = (region) { regions, (ULONG) (ULONG_PTR) thread[i].ClientId.UniqueThread,
+	    *r = (region) { regions,
+			    (ULONG) (ULONG_PTR) thread[i].ClientId.UniqueThread,
 			    (char *) tbi.TebBaseAddress,
 			    (char *) tbi.TebBaseAddress
 				     + 2 * wincap.page_size (),
@@ -742,7 +760,8 @@ struct thread_info
 	r = (region *) malloc (sizeof (region));
 	if (r)
 	  {
-	    *r = (region) { regions, (ULONG) (ULONG_PTR) thread[i].ClientId.UniqueThread,
+	    *r = (region) { regions,
+			    (ULONG) (ULONG_PTR) thread[i].ClientId.UniqueThread,
 			    (char *) (teb.DeallocationStack
 				      ?: teb.Tib.StackLimit),
 			    (char *) teb.Tib.StackBase,
@@ -799,8 +818,8 @@ static off_t
 format_process_maps (void *data, char *&destbuf)
 {
   _pinfo *p = (_pinfo *) data;
-  HANDLE proc = OpenProcess (PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-			     FALSE, p->dwProcessId);
+  HANDLE proc = OpenProcess (PROCESS_QUERY_INFORMATION
+			     | PROCESS_VM_READ, FALSE, p->dwProcessId);
   if (!proc)
     return 0;
 
@@ -881,7 +900,8 @@ format_process_maps (void *data, char *&destbuf)
 	  static DWORD const RW = (PAGE_EXECUTE_READWRITE | PAGE_READWRITE
 				   | PAGE_EXECUTE_WRITECOPY | PAGE_WRITECOPY);
 	  static DWORD const X = (PAGE_EXECUTE | PAGE_EXECUTE_READ
-				  | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY);
+				  | PAGE_EXECUTE_READWRITE
+				  | PAGE_EXECUTE_WRITECOPY);
 	  static DWORD const WC = (PAGE_EXECUTE_WRITECOPY | PAGE_WRITECOPY);
 	  DWORD p = mb.Protect;
 	  a = (access) {{
@@ -1082,7 +1102,7 @@ format_process_stat (void *data, char *&destbuf)
   QUOTA_LIMITS ql;
   SYSTEM_TIMEOFDAY_INFORMATION stodi;
   SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION spt;
-  hProcess = OpenProcess (PROCESS_VM_READ | PROCESS_QUERY_INFORMATION,
+  hProcess = OpenProcess (PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
 			  FALSE, p->dwProcessId);
   if (hProcess != NULL)
     {
@@ -1210,7 +1230,7 @@ format_process_status (void *data, char *&destbuf)
   if (!get_mem_values (p->dwProcessId, &vmsize, &vmrss, &vmtext, &vmdata,
 		       &vmlib, &vmshare))
     return 0;
-  unsigned page_size = wincap.page_size ();
+  unsigned page_size = wincap.allocation_granularity ();
   vmsize *= page_size; vmrss *= page_size; vmdata *= page_size;
   vmtext *= page_size; vmlib *= page_size;
   /* The real uid value for *this* process is stored at cygheap->user.real_uid
@@ -1253,12 +1273,16 @@ format_process_statm (void *data, char *&destbuf)
   _pinfo *p = (_pinfo *) data;
   unsigned long vmsize = 0UL, vmrss = 0UL, vmtext = 0UL, vmdata = 0UL,
 		vmlib = 0UL, vmshare = 0UL;
+  size_t page_scale;
   if (!get_mem_values (p->dwProcessId, &vmsize, &vmrss, &vmtext, &vmdata,
 		       &vmlib, &vmshare))
     return 0;
+
+  page_scale = wincap.allocation_granularity() / wincap.page_size();
   destbuf = (char *) crealloc_abort (destbuf, 96);
   return __small_sprintf (destbuf, "%ld %ld %ld %ld %ld %ld 0\n",
-			  vmsize, vmrss, vmshare, vmtext, vmlib, vmdata);
+              vmsize / page_scale, vmrss / page_scale, vmshare / page_scale,
+              vmtext / page_scale, vmlib / page_scale, vmdata / page_scale);
 }
 
 extern "C" {
@@ -1440,6 +1464,10 @@ get_mem_values (DWORD dwProcessId, unsigned long *vmsize, unsigned long *vmrss,
   PMEMORY_WORKING_SET_LIST p;
   SIZE_T n = 0x4000, length;
 
+  /* This appears to work despite MSDN claiming that QueryWorkingSet requires
+     PROCESS_QUERY_INFORMATION *and* PROCESS_VM_READ.  Since we're trying to do
+     everything with least perms, we stick to PROCESS_QUERY_INFORMATION only
+     unless this changes in Windows for some reason. */
   hProcess = OpenProcess (PROCESS_QUERY_INFORMATION, FALSE, dwProcessId);
   if (hProcess == NULL)
     {

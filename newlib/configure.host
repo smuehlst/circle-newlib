@@ -385,6 +385,11 @@ case "${host}" in
 	signal_dir=
 	sys_dir=netware
 	;;
+  *-*-phoenix*)
+	sys_dir=phoenix
+	posix_dir=posix
+	unix_dir=unix
+	;;
   *-*-rtems*)			# generic RTEMS support
 	sys_dir=rtems
 	posix_dir=posix
@@ -588,6 +593,11 @@ case "${host}" in
 	newlib_cflags="${newlib_cflags} -DHAVE_OPENDIR -DHAVE_RENAME -DSIGNAL_PROVIDED -D_COMPILING_NEWLIB -DHAVE_BLKSIZE -DHAVE_FCNTL -DMALLOC_PROVIDED"
 	syscall_dir=syscalls
 	;;
+  *-*-phoenix*)
+	newlib_cflags="${newlib_cflags} -DMISSING_SYSCALL_NAMES -D_COMPILING_NEWLIB -DHAVE_BLKSIZE -DHAVE_NANOSLEEP"
+	default_newlib_io_long_long="yes"
+	syscall_dir=
+	;;
 # RTEMS supplies its own versions of some routines:
 #       malloc()            (reentrant version)
 #       exit()              RTEMS has a "global" reent to flush
@@ -705,6 +715,15 @@ case "${host}" in
 	;;
   i[34567]86-*-netware*)
 	newlib_cflags="${newlib_cflags} -DMISSING_SYSCALL_NAMES -DNO_EXEC -DABORT_PROVIDED -DCLOCK_PROVIDED -DMALLOC_PROVIDED -DHAVE_FCNTL"
+	;;
+  i[3-7]86-*-elfiamcu)
+	newlib_cflags="${newlib_cflags} -Os -DPREFER_SIZE_OVER_SPEED -ffunction-sections -fomit-frame-pointer -DREENTRANT_SYSCALL_PROVIDED"
+	if [ "${newlib_multithread}" = "no" ] ; then
+		newlib_cflags="${newlib_cflags} -DMISSING_SYSCALL_NAMES"
+	else
+		syscall_dir=syscalls
+		newlib_cflags="${newlib_cflags} -D__DYNAMIC_REENT__"
+	fi
 	;;
   iq2000*)
 	syscall_dir=syscalls

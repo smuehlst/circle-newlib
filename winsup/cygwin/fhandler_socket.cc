@@ -1,8 +1,5 @@
 /* fhandler_socket.cc. See fhandler.h for a description of the fhandler classes.
 
-   Copyright 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
    This file is part of Cygwin.
 
    This software is a copyrighted work licensed under the terms of the
@@ -24,6 +21,7 @@
 #undef u_long
 #define u_long __ms_u_long
 #endif
+#include <ntsecapi.h>
 #include <ws2tcpip.h>
 #include <mswsock.h>
 #include <iphlpapi.h>
@@ -488,7 +486,7 @@ fhandler_socket::af_local_copy (fhandler_socket *sock)
 void
 fhandler_socket::af_local_set_secret (char *buf)
 {
-  if (getentropy (connect_secret, sizeof (connect_secret)))
+  if (!RtlGenRandom (connect_secret, sizeof (connect_secret)))
     bzero ((char*) connect_secret, sizeof (connect_secret));
   __small_sprintf (buf, "%08x-%08x-%08x-%08x",
 		   connect_secret [0], connect_secret [1],
@@ -1982,8 +1980,7 @@ fhandler_socket::sendmsg (const struct msghdr *msg, int flags)
     }
   /* Disappointing but true:  Even if WSASendMsg is supported, it's only
      supported for datagram and raw sockets. */
-  DWORD controllen = (DWORD) (!wincap.has_sendmsg ()
-			      || get_socket_type () == SOCK_STREAM
+  DWORD controllen = (DWORD) (get_socket_type () == SOCK_STREAM
 			      || get_addr_family () == AF_LOCAL
 			      ? 0 : msg->msg_controllen);
   WSAMSG wsamsg = { msg->msg_name ? (struct sockaddr *) &sst : NULL, len,
@@ -2263,7 +2260,8 @@ fhandler_socket::ioctl (unsigned int cmd, void *p)
 #ifdef __x86_64__
     case _IOR('f', 127, u_long):
 #endif
-      res = ioctlsocket (get_socket (), FIONREAD, (u_long *) p);
+      /* Make sure to use the Winsock definition of FIONREAD. */
+      res = ioctlsocket (get_socket (), _IOR('f', 127, u_long), (u_long *) p);
       if (res == SOCKET_ERROR)
 	set_winsock_errno ();
       break;

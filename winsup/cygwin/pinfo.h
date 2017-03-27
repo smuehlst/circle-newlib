@@ -1,8 +1,5 @@
 /* pinfo.h: process table info
 
-   Copyright 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011, 2012, 2013 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -29,7 +26,8 @@ enum picom
   PICOM_ROOT = 3,
   PICOM_FDS = 4,
   PICOM_FD = 5,
-  PICOM_PIPE_FHANDLER = 6
+  PICOM_PIPE_FHANDLER = 6,
+  PICOM_ENVIRON = 7
 };
 
 #define EXITCODE_SET		0x8000000
@@ -109,6 +107,7 @@ public:
   char *root (size_t &);
   char *cwd (size_t &);
   char *cmdline (size_t &);
+  char *environ (size_t &);
   char *win_heap_info (size_t &);
   bool set_ctty (class fhandler_termios *, int);
   bool alert_parent (char);

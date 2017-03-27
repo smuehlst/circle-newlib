@@ -4,7 +4,7 @@
 /*
  * strftime.c
  * Original Author:	G. Haley
- * Additions from:	Eric Blake
+ * Additions from:	Eric Blake, Corinna Vinschen
  * Changes to allow dual use as wcstime, also:	Craig Howland
  *
  * Places characters into the array pointed to by s as controlled by the string
@@ -17,16 +17,23 @@
 
 /*
 FUNCTION
-<<strftime>>---convert date and time to a formatted string
+<<strftime>>, <<strftime_l>>---convert date and time to a formatted string
 
 INDEX
 	strftime
+
+INDEX
+	strftime_l
 
 ANSI_SYNOPSIS
 	#include <time.h>
 	size_t strftime(char *restrict <[s]>, size_t <[maxsize]>,
 			const char *restrict <[format]>,
                         const struct tm *restrict <[timp]>);
+	size_t strftime_l(char *restrict <[s]>, size_t <[maxsize]>,
+			  const char *restrict <[format]>,
+			  const struct tm *restrict <[timp]>,
+			  locale_t <[locale]>);
 
 TRAD_SYNOPSIS
 	#include <time.h>
@@ -40,6 +47,10 @@ DESCRIPTION
 <<strftime>> converts a <<struct tm>> representation of the time (at
 <[timp]>) into a null-terminated string, starting at <[s]> and occupying
 no more than <[maxsize]> characters.
+
+<<strftime_l>> is like <<strftime>> but creates a string in a format
+as expected in locale <[locale]>.  If <[locale]> is LC_GLOBAL_LOCALE or
+not a valid locale object, the behaviour is undefined.
 
 You control the format of the output using the string at <[format]>.
 <<*<[format]>>> can contain two kinds of specifications: text to be
@@ -258,11 +269,13 @@ value beforehand to distinguish between failure and an empty string.
 This implementation does not support <<s>> being NULL, nor overlapping
 <<s>> and <<format>>.
 
-<<strftime>> requires no supporting OS subroutines.
+<<strftime_l>> is POSIX-1.2008.
+
+<<strftime>> and <<strftime_l>> require no supporting OS subroutines.
 
 BUGS
-<<strftime>> ignores the LC_TIME category of the current locale, hard-coding
-the "C" locale settings.
+(NOT Cygwin:) <<strftime>> ignores the LC_TIME category of the current
+locale, hard-coding the "C" locale settings.
 */
 
 #include <newlib.h>
@@ -276,7 +289,7 @@ the "C" locale settings.
 #include <ctype.h>
 #include <wctype.h>
 #include "local.h"
-#include "../locale/timelocal.h"
+#include "../locale/setlocale.h"
 
 /* Defines to make the file dual use for either strftime() or wcsftime().
  * To get wcsftime, define MAKE_WCSFTIME.
@@ -298,6 +311,7 @@ the "C" locale settings.
 #  define STRLEN(a)	strlen(a)
 # else
 #  define strftime	wcsftime	/* Alternate function name */
+#  define strftime_l	wcsftime_l	/* Alternate function name */
 #  define CHAR		wchar_t		/* string type basis */
 #  define CQ(a)		L##a		/* character constant qualifier */
 #  define snprintf	swprintf	/* wide-char equivalent function name */
@@ -594,7 +608,7 @@ get_alt_digits (const char *alt_digits)
       ++adi->num;
   /* Allocate the `digit' array, which is an array of `num' pointers into
      `buffer'. */
-  adi->digit = (CHAR **) calloc (adi->num, sizeof (CHAR **));
+  adi->digit = (CHAR **) calloc (adi->num, sizeof (CHAR *));
   if (!adi->digit)
     {
       free (adi);
@@ -662,39 +676,16 @@ conv_to_alt_digits (CHAR *buf, size_t bufsiz, unsigned num, alt_digits_t *adi)
   return 0;
 }
 
-static size_t __strftime (CHAR *, size_t, const CHAR *, const struct tm *,
-			  era_info_t **, alt_digits_t **);
-
-size_t
-_DEFUN (strftime, (s, maxsize, format, tim_p),
-	CHAR *__restrict s _AND
-	size_t maxsize _AND
-	_CONST CHAR *__restrict format _AND
-	_CONST struct tm *__restrict tim_p)
-{
-  era_info_t *era_info = NULL;
-  alt_digits_t *alt_digits = NULL;
-  size_t ret = __strftime (s, maxsize, format, tim_p, &era_info, &alt_digits);
-  if (era_info)
-    free_era_info (era_info);
-  if (alt_digits)
-    free_alt_digits (alt_digits);
-  return ret;
-}
-
 static size_t
 __strftime (CHAR *s, size_t maxsize, const CHAR *format,
-	    const struct tm *tim_p, era_info_t **era_info,
-	    alt_digits_t **alt_digits)
+	    const struct tm *tim_p, struct __locale_t *locale,
+	    era_info_t **era_info, alt_digits_t **alt_digits)
 #else /* !_WANT_C99_TIME_FORMATS */
-# define __strftime(s,m,f,t,e,a)	strftime((s),(m),(f),(t))
+static size_t
+__strftime (CHAR *s, size_t maxsize, const CHAR *format,
+	    const struct tm *tim_p, struct __locale_t *locale)
 
-size_t
-_DEFUN (strftime, (s, maxsize, format, tim_p),
-	CHAR *__restrict s _AND
-	size_t maxsize _AND
-	_CONST CHAR *__restrict format _AND
-	_CONST struct tm *__restrict tim_p)
+#define __strftime(s,m,f,t,l,e,a)	__strftime((s),(m),(f),(t),(l))
 #endif /* !_WANT_C99_TIME_FORMATS */
 {
   size_t count = 0;
@@ -709,7 +700,7 @@ _DEFUN (strftime, (s, maxsize, format, tim_p),
   unsigned long width;
   int tzset_called = 0;
 
-  struct lc_time_T *_CurrentTimeLocale = __get_current_time_locale ();
+  const struct lc_time_T *_CurrentTimeLocale = __get_time_locale (locale);
   for (;;)
     {
       while (*format && *format != CQ('%'))
@@ -840,7 +831,7 @@ recurse:
 	    {
 	      /* Recurse to avoid need to replicate %Y formation. */
 	      len = __strftime (&s[count], maxsize - count, ctloc, tim_p,
-				era_info, alt_digits);
+				locale, era_info, alt_digits);
 	      if (len > 0)
 		count += len;
 	      else
@@ -957,7 +948,7 @@ recurse:
 	      }
 	    STRCPY (fmt, CQ("Y-%m-%d"));
 	    len = __strftime (&s[count], maxsize - count, fmtbuf, tim_p,
-			      era_info, alt_digits);
+			      locale, era_info, alt_digits);
 	    if (len > 0)
 	      count += len;
 	    else
@@ -1445,6 +1436,48 @@ recurse:
     s[count] = CQ('\0');
 
   return count;
+}
+
+size_t
+_DEFUN (strftime, (s, maxsize, format, tim_p),
+	CHAR *__restrict s _AND
+	size_t maxsize _AND
+	_CONST CHAR *__restrict format _AND
+	_CONST struct tm *__restrict tim_p)
+{
+#ifdef _WANT_C99_TIME_FORMATS
+  era_info_t *era_info = NULL;
+  alt_digits_t *alt_digits = NULL;
+  size_t ret = __strftime (s, maxsize, format, tim_p, __get_current_locale (),
+			   &era_info, &alt_digits);
+  if (era_info)
+    free_era_info (era_info);
+  if (alt_digits)
+    free_alt_digits (alt_digits);
+  return ret;
+#else /* !_WANT_C99_TIME_FORMATS */
+  return __strftime (s, maxsize, format, tim_p, __get_current_locale (),
+		     NULL, NULL);
+#endif /* !_WANT_C99_TIME_FORMATS */
+}
+
+size_t
+strftime_l (CHAR *__restrict s, size_t maxsize, const CHAR *__restrict format,
+	    const struct tm *__restrict tim_p, struct __locale_t *locale)
+{
+#ifdef _WANT_C99_TIME_FORMATS
+  era_info_t *era_info = NULL;
+  alt_digits_t *alt_digits = NULL;
+  size_t ret = __strftime (s, maxsize, format, tim_p, locale,
+			   &era_info, &alt_digits);
+  if (era_info)
+    free_era_info (era_info);
+  if (alt_digits)
+    free_alt_digits (alt_digits);
+  return ret;
+#else /* !_WANT_C99_TIME_FORMATS */
+  return __strftime (s, maxsize, format, tim_p, locale, NULL, NULL);
+#endif /* !_WANT_C99_TIME_FORMATS */
 }
 
 /* The remainder of this file can serve as a regression test.  Compile

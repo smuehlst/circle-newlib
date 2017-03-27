@@ -1,7 +1,5 @@
 /* bsd_mutex.h: BSD Mutex helper
 
-   Copyright 2003, 2005 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -28,14 +26,20 @@ struct mtx {
   unsigned long cnt;
 };
 
+enum ipc_type {
+  SHM,
+  MSQ,
+  SEM
+};
+
 /* Some BSD kernel global mutex. */
 extern struct mtx Giant;
 
 void mtx_init (mtx *, const char *, const void *, int);
-void _mtx_lock (mtx *, DWORD winpid, const char *, int);
+void _mtx_lock (mtx *, DWORD, const char *, int);
 #define mtx_lock(m) _mtx_lock((m), (td->ipcblk->winpid), __FILE__, __LINE__)
 int mtx_owned (mtx *, DWORD);
-void _mtx_assert(mtx *, int, DWORD winpid, const char *, int);
+void _mtx_assert(mtx *, int, DWORD, const char *, int);
 #define mtx_assert(m,w,p) _mtx_assert((m),(w),(p),__FILE__,__LINE__)
 void _mtx_unlock (mtx *, const char *, int);
 #define mtx_unlock(m) _mtx_unlock((m),__FILE__,__LINE__)
@@ -43,10 +47,10 @@ void _mtx_unlock (mtx *, const char *, int);
 void mtx_destroy (mtx *);
 
 void msleep_init (void);
-int _msleep (void *, struct mtx *, int, const char *, int, struct thread *);
-#define msleep(i,m,p,w,t) _msleep((i),(m),(p),(w),(t),(td))
-#define tsleep(i,p,w,t)   _msleep((i),NULL,(p),(w),(t),(td))
-int wakeup (void *);
+int _sleep (ipc_type, int, struct mtx *, int, const char *, int, struct thread *);
+#define _msleep(T,i,m,p,w,t) _sleep((T),(i),(m),(p),(w),(t),(td))
+#define _tsleep(T,i,p,w,t)   _sleep((T),(i),NULL,(p),(w),(t),(td))
+int _wakeup (ipc_type, int);
 void wakeup_all (void);
 
 #endif /* _BSD_MUTEX_H */

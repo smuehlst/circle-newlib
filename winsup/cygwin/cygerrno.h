@@ -1,8 +1,5 @@
 /* cygerrno.h: main Cygwin header file.
 
-   Copyright 2000, 2001, 2002, 2003, 2004, 2005, 2009, 2010, 2011, 2012, 2013,
-   2014 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -33,7 +30,7 @@ extern inline int
 __set_errno (const char *fn, int ln, int val)
 {
   debug_printf ("%s:%d setting errno %d", fn, ln, val);
-  return errno = _impure_ptr->_errno = val;
+  return errno = val;
 }
 #define set_errno(val) __set_errno (__PRETTY_FUNCTION__, __LINE__, (val))
 
@@ -48,7 +45,7 @@ class save_errno
     save_errno (int what) {saved = get_errno (); set_errno (what); }
     void set (int what) {set_errno (what); saved = what;}
     void reset () {saved = get_errno ();}
-    ~save_errno () {errno = _impure_ptr->_errno = saved;}
+    ~save_errno () {errno = saved;}
   };
 
 extern const char *__sp_fn;

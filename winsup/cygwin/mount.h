@@ -1,8 +1,5 @@
 /* mount.h: mount definitions.
 
-   Copyright 1996, 1997, 1998, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -42,7 +39,6 @@ enum fs_info_type
   cdrom,
   udf,
   csc_cache,
-  sunwnfs,
   unixfs,
   mvfs,
   cifs,
@@ -75,7 +71,6 @@ class fs_info
     unsigned has_acls			: 1;
     unsigned hasgood_inode		: 1;
     unsigned caseinsensitive		: 1;
-    unsigned has_buggy_open		: 1;
     unsigned has_buggy_reopen		: 1;
     unsigned has_buggy_fileid_dirinfo	: 1;
     unsigned has_buggy_basic_info	: 1;
@@ -100,7 +95,6 @@ class fs_info
   IMPLEMENT_STATUS_FLAG (bool, has_acls)
   IMPLEMENT_STATUS_FLAG (bool, hasgood_inode)
   IMPLEMENT_STATUS_FLAG (bool, caseinsensitive)
-  IMPLEMENT_STATUS_FLAG (bool, has_buggy_open)
   IMPLEMENT_STATUS_FLAG (bool, has_buggy_reopen)
   IMPLEMENT_STATUS_FLAG (bool, has_buggy_fileid_dirinfo)
   IMPLEMENT_STATUS_FLAG (bool, has_buggy_basic_info)
@@ -114,7 +108,6 @@ class fs_info
   IMPLEMENT_FS_FLAG (cdrom)
   IMPLEMENT_FS_FLAG (udf)
   IMPLEMENT_FS_FLAG (csc_cache)
-  IMPLEMENT_FS_FLAG (sunwnfs)
   IMPLEMENT_FS_FLAG (unixfs)
   IMPLEMENT_FS_FLAG (mvfs)
   IMPLEMENT_FS_FLAG (cifs)

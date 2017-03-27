@@ -1,8 +1,5 @@
 /* syscalls.cc: syscalls
 
-   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -219,18 +216,10 @@ stop_transaction (NTSTATUS status, HANDLE old_trans, HANDLE &trans)
   return status;
 }
 
-static char desktop_ini[] =
+static const char desktop_ini[] =
   "[.ShellClassInfo]\r\n"
-  "CLSID={645FF040-5081-101B-9F08-00AA002F954E}\r\n";
-
-static char desktop_ini_ext[] =
+  "CLSID={645FF040-5081-101B-9F08-00AA002F954E}\r\n"
   "LocalizedResourceName=@%SystemRoot%\\system32\\shell32.dll,-8964\r\n";
-
-static BYTE info2[] =
-{
-  0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x20, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
 
 enum bin_status
 {
@@ -277,11 +266,11 @@ try_to_bin (path_conv &pc, HANDLE &fh, ACCESS_MASK access, ULONG flags)
      them into the recycler. */
   if (pfni->FileNameLength == 2) /* root dir. */
     goto out;
-  /* The recycler name on Vista and later is $Recycler.Bin by default.  If the
-     recycler dir disappeared for some reason, the shell32.dll recreates the
-     directory in all upper case.  So, we never know beforehand if the dir
-     is written in mixed case or in all upper case.  That's a problem when
-     using casesensitivity.  If the file handle given to FileRenameInformation
+  /* The recycler name is $Recycler.Bin by default.  If the recycler dir
+     disappeared for some reason, the shell32.dll recreates the directory in
+     all upper case.  So, we never know beforehand if the dir is written in
+     mixed case or in all upper case.  That's a problem when using
+     casesensitivity.  If the file handle given to FileRenameInformation
      has been opened casesensitive, the call also handles the path to the
      target dir casesensitive.  Rather then trying to find the right name
      of the recycler, we just reopen the file to move with OBJ_CASE_INSENSITIVE,
@@ -306,14 +295,7 @@ try_to_bin (path_conv &pc, HANDLE &fh, ACCESS_MASK access, ULONG flags)
   RtlInitEmptyUnicodeString (&recycler, recyclerbuf, sizeof recyclerbuf);
   if (!pc.isremote ())
     {
-      if (wincap.has_recycle_dot_bin ()) /* NTFS and FAT since Vista, ReFS */
-	RtlAppendUnicodeToString (&recycler, L"\\$Recycle.Bin\\");
-      else if (pc.fs_is_ntfs ())	/* NTFS up to 2K3 */
-	RtlAppendUnicodeToString (&recycler, L"\\RECYCLER\\");
-      else if (pc.fs_is_fat ())	/* FAT up to 2K3 */
-	RtlAppendUnicodeToString (&recycler, L"\\Recycled\\");
-      else
-	goto out;
+      RtlAppendUnicodeToString (&recycler, L"\\$Recycle.Bin\\");
       RtlInitCountedUnicodeString(&fname, pfni->FileName, pfni->FileNameLength);
       /* Is the file a subdir of the recycler? */
       if (RtlEqualUnicodePathPrefix (&fname, &recycler, TRUE))
@@ -391,7 +373,7 @@ try_to_bin (path_conv &pc, HANDLE &fh, ACCESS_MASK access, ULONG flags)
      names. */
   RtlAppendUnicodeToString (&recycler,
 			    (pc.fs_flags () & FILE_UNICODE_ON_DISK
-			     && !pc.fs_is_samba ())
+			     && !pc.fs_is_samba () && !pc.fs_is_netapp ())
 			    ? L".\xdc63\xdc79\xdc67" : L".cyg");
   pfii = (PFILE_INTERNAL_INFORMATION) infobuf;
   /* Note: Modern Samba versions apparently don't like buffer sizes of more
@@ -434,13 +416,9 @@ try_to_bin (path_conv &pc, HANDLE &fh, ACCESS_MASK access, ULONG flags)
 	}
       /* Then check if recycler exists by opening and potentially creating it.
 	 Yes, we can really do that.  Typically the recycle bin is created
-	 by the first user actually using the bin.  Pre-Vista, the permissions
-	 are the default permissions propagated from the root directory.
-	 Since Vista the top-level recycle dir has explicit permissions. */
+	 by the first user actually using the bin. */
       InitializeObjectAttributes (&attr, &recycler, OBJ_CASE_INSENSITIVE,
-				  rootdir,
-				  wincap.has_recycle_dot_bin ()
-				  ? recycler_sd (true, true) : NULL);
+				  rootdir, recycler_sd (true, true));
       recycler.Length = recycler_base_len;
       status = NtCreateFile (&recyclerdir,
 			     READ_CONTROL
@@ -478,9 +456,8 @@ try_to_bin (path_conv &pc, HANDLE &fh, ACCESS_MASK access, ULONG flags)
 	      goto out;
 	    }
 	}
-      /* The desktop.ini and INFO2 (pre-Vista) files are expected by
-	 Windows Explorer.  Otherwise, the created bin is treated as
-	 corrupted */
+      /* The desktop.ini file is expected by Windows Explorer.  Otherwise,
+         the created bin is treated as corrupted */
       if (io.Information == FILE_CREATED)
 	{
 	  RtlInitUnicodeString (&fname, L"desktop.ini");
@@ -496,43 +473,13 @@ try_to_bin (path_conv &pc, HANDLE &fh, ACCESS_MASK access, ULONG flags)
 			  &recycler, status);
 	  else
 	    {
-	      status = NtWriteFile (tmp_fh, NULL, NULL, NULL, &io, desktop_ini,
-				    sizeof desktop_ini - 1, NULL, NULL);
+	      status = NtWriteFile (tmp_fh, NULL, NULL, NULL, &io,
+				    (PVOID) desktop_ini, sizeof desktop_ini - 1,
+				    NULL, NULL);
 	      if (!NT_SUCCESS (status))
 		debug_printf ("NtWriteFile (%S) failed, status = %y",
 			      &fname, status);
-	      else if (wincap.has_recycle_dot_bin ())
-	      	{
-		  status = NtWriteFile (tmp_fh, NULL, NULL, NULL, &io,
-		  			desktop_ini_ext,
-					sizeof desktop_ini_ext - 1, NULL, NULL);
-		  if (!NT_SUCCESS (status))
-		    debug_printf ("NtWriteFile (%S) failed, status = %y",
-				  &fname, status);
-		}
 	      NtClose (tmp_fh);
-	    }
-	  if (!wincap.has_recycle_dot_bin ()) /* No INFO2 file since Vista */
-	    {
-	      RtlInitUnicodeString (&fname, L"INFO2");
-	      status = NtCreateFile (&tmp_fh, FILE_GENERIC_WRITE, &attr, &io,
-				     NULL, FILE_ATTRIBUTE_ARCHIVE
-					   | FILE_ATTRIBUTE_HIDDEN,
-				     FILE_SHARE_VALID_FLAGS, FILE_CREATE,
-				     FILE_SYNCHRONOUS_IO_NONALERT
-				     | FILE_NON_DIRECTORY_FILE, NULL, 0);
-		if (!NT_SUCCESS (status))
-		  debug_printf ("NtCreateFile (%S) failed, status = %y",
-				&recycler, status);
-		else
-		{
-		  status = NtWriteFile (tmp_fh, NULL, NULL, NULL, &io, info2,
-					sizeof info2, NULL, NULL);
-		  if (!NT_SUCCESS (status))
-		    debug_printf ("NtWriteFile (%S) failed, status = %y",
-				  &fname, status);
-		  NtClose (tmp_fh);
-		}
 	    }
 	}
       NtClose (recyclerdir);
@@ -725,8 +672,7 @@ unlink_nt (path_conv &pc)
 
       /* If possible, hide the non-atomicity of the "remove R/O flag, remove
 	 link to file" operation behind a transaction. */
-      if (wincap.has_transactions ()
-	  && (pc.fs_flags () & FILE_SUPPORTS_TRANSACTIONS))
+      if ((pc.fs_flags () & FILE_SUPPORTS_TRANSACTIONS))
 	start_transaction (old_trans, trans);
 retry_open:
       status = NtOpenFile (&fh_ro, FILE_WRITE_ATTRIBUTES, &attr, &io,
@@ -1007,10 +953,10 @@ try_again:
 	     "Subsequently, the only legal operation by such a caller is
 	     to close the open file handle."
 
-	     FIXME? On Vista and later, we could use FILE_HARD_LINK_INFORMATION
-	     to find all hardlinks and use one of them to restore the R/O bit,
-	     after the NtClose, but before we stop the transaction.  This
-	     avoids the aforementioned problem entirely . */
+	     FIXME?  We could use FILE_HARD_LINK_INFORMATION to find all
+	     hardlinks and use one of them to restore the R/O bit, after the
+	     NtClose, but before we stop the transaction.  This avoids the
+	     aforementioned problem entirely . */
 	  else if (pc.is_lnk_symlink () && num_links > 1)
 	    NtSetAttributesFile (fh, pc.file_attributes ());
 	}
@@ -1129,21 +1075,6 @@ getppid ()
 extern "C" pid_t
 setsid (void)
 {
-#ifdef NEWVFORK
-  vfork_save *vf = vfork_storage.val ();
-  /* This is a horrible, horrible kludge */
-  if (vf && vf->pid < 0)
-    {
-      pid_t pid = fork ();
-      if (pid > 0)
-	{
-	  syscall_printf ("longjmping due to vfork");
-	  vf->restore_pid (pid);
-	}
-      /* assuming that fork was successful */
-    }
-#endif
-
   if (myself->pgid == myself->pid)
     syscall_printf ("hmm.  pgid %d pid %d", myself->pgid, myself->pid);
   else
@@ -1211,7 +1142,6 @@ read (int fd, void *ptr, size_t len)
   __except (EFAULT) {}
   __endtry
   syscall_printf ("%lR = read(%d, %p, %d)", res, fd, ptr, len);
-  MALLOC_CHECK;
   return (ssize_t) res;
 }
 
@@ -1253,7 +1183,6 @@ readv (int fd, const struct iovec *const iov, const int iovcnt)
   __except (EFAULT) {}
   __endtry
   syscall_printf ("%lR = readv(%d, %p, %d)", res, fd, iov, iovcnt);
-  MALLOC_CHECK;
   return res;
 }
 
@@ -1304,7 +1233,6 @@ write (int fd, const void *ptr, size_t len)
   __except (EFAULT) {}
   __endtry
   syscall_printf ("%lR = write(%d, %p, %d)", res, fd, ptr, len);
-  MALLOC_CHECK;
   return res;
 }
 
@@ -1351,7 +1279,6 @@ writev (const int fd, const struct iovec *const iov, const int iovcnt)
     paranoid_printf ("%lR = writev(%d, %p, %d)", res, fd, iov, iovcnt);
   else
     syscall_printf ("%lR = writev(%d, %p, %d)", res, fd, iov, iovcnt);
-  MALLOC_CHECK;
   return res;
 }
 
@@ -1506,7 +1433,6 @@ close (int fd)
 
   pthread_testcancel ();
 
-  MALLOC_CHECK;
   cygheap_fdget cfd (fd, true);
   if (cfd < 0)
     res = -1;
@@ -1518,7 +1444,6 @@ close (int fd)
     }
 
   syscall_printf ("%R = close(%d)", res, fd);
-  MALLOC_CHECK;
   return res;
 }
 
@@ -1670,7 +1595,7 @@ umask (mode_t mask)
 int
 chmod_device (path_conv& pc, mode_t mode)
 {
-  return mknod_worker (pc.get_win32 (), pc.dev.mode & S_IFMT, mode, pc.dev.get_major (), pc.dev.get_minor ());
+  return mknod_worker (pc.get_win32 (), pc.dev.mode () & S_IFMT, mode, pc.dev.get_major (), pc.dev.get_minor ());
 }
 
 #define FILTERED_MODE(m)	((m) & (S_ISUID | S_ISGID | S_ISVTX \
@@ -1951,7 +1876,6 @@ stat_worker (path_conv &pc, struct stat *buf)
     }
   __except (EFAULT) {}
   __endtry
-  MALLOC_CHECK;
   syscall_printf ("%d = (%S,%p)", res, pc.get_nt_native_path (), buf);
   return res;
 }
@@ -2300,7 +2224,7 @@ rename (const char *oldpath, const char *newpath)
 	  /* Check for newpath being identical or a subdir of oldpath. */
 	  if (RtlPrefixUnicodeString (oldpc.get_nt_native_path (),
 				      newpc.get_nt_native_path (),
-				      TRUE))
+				      oldpc.objcaseinsensitive ()))
 	    {
 	      if (newpc.get_nt_native_path ()->Length
 		  == oldpc.get_nt_native_path ()->Length)
@@ -2416,8 +2340,7 @@ rename (const char *oldpath, const char *newpath)
       /* Opening the file must be part of the transaction.  It's not sufficient
 	 to call only NtSetInformationFile under the transaction.  Therefore we
 	 have to start the transaction here, if necessary. */
-      if (wincap.has_transactions ()
-	  && (dstpc->fs_flags () & FILE_SUPPORTS_TRANSACTIONS)
+      if ((dstpc->fs_flags () & FILE_SUPPORTS_TRANSACTIONS)
 	  && (dstpc->isdir ()
 	      || (!removepc && dstpc->has_attribute (FILE_ATTRIBUTE_READONLY))))
 	start_transaction (old_trans, trans);
@@ -2586,11 +2509,10 @@ rename (const char *oldpath, const char *newpath)
       if (status == STATUS_ACCESS_DENIED && dstpc->exists ()
 	  && !dstpc->isdir ())
 	{
-	  if (wincap.has_transactions ()
-	      && (dstpc->fs_flags () & FILE_SUPPORTS_TRANSACTIONS)
-	      && !trans)
+	  bool need_open = false;
+
+	  if ((dstpc->fs_flags () & FILE_SUPPORTS_TRANSACTIONS) && !trans)
 	    {
-	      start_transaction (old_trans, trans);
 	      /* As mentioned earlier, opening the file must be part of the
 		 transaction.  Therefore we have to reopen the file here if the
 		 transaction hasn't been started already.  Unfortunately we
@@ -2600,28 +2522,34 @@ rename (const char *oldpath, const char *newpath)
 		 re-open it.  Fortunately nothing has happened yet, so the
 		 atomicity of the rename functionality is not spoiled. */
 	      NtClose (fh);
-    retry_reopen:
-	      status = NtOpenFile (&fh, DELETE,
-				   oldpc.get_object_attr (attr, sec_none_nih),
-				   &io, FILE_SHARE_VALID_FLAGS,
-				   FILE_OPEN_FOR_BACKUP_INTENT
-				   | (oldpc.is_rep_symlink ()
-				      ? FILE_OPEN_REPARSE_POINT : 0));
-	      if (!NT_SUCCESS (status))
-		{
-		  if (NT_TRANSACTIONAL_ERROR (status) && trans)
-		    {
-		      /* If NtOpenFile fails due to transactional problems,
-			 stop transaction and go ahead without. */
-		      stop_transaction (status, old_trans, trans);
-		      debug_printf ("Transaction failure.  Retry open.");
-		      goto retry_reopen;
-		    }
-		  __seterrno_from_nt_status (status);
-		  __leave;
-		}
+	      start_transaction (old_trans, trans);
+	      need_open = true;
 	    }
-	  if (NT_SUCCESS (status = unlink_nt (*dstpc)))
+	  while (true)
+	    {
+	      status = STATUS_SUCCESS;
+	      if (need_open)
+		status = NtOpenFile (&fh, DELETE,
+				     oldpc.get_object_attr (attr, sec_none_nih),
+				     &io, FILE_SHARE_VALID_FLAGS,
+				     FILE_OPEN_FOR_BACKUP_INTENT
+				     | (oldpc.is_rep_symlink ()
+					? FILE_OPEN_REPARSE_POINT : 0));
+	      if (NT_SUCCESS (status))
+		{
+		  status = unlink_nt (*dstpc);
+		  if (NT_SUCCESS (status))
+		    break;
+		}
+	      if (!NT_TRANSACTIONAL_ERROR (status) || !trans)
+		break;
+	      /* If NtOpenFile or unlink_nt fail due to transactional problems,
+		 stop transaction and retry without. */
+	      NtClose (fh);
+	      stop_transaction (status, old_trans, trans);
+	      debug_printf ("Transaction failure %y.  Retry open.", status);
+	    }
+	  if (NT_SUCCESS (status))
 	    status = NtSetInformationFile (fh, &io, pfri,
 					   sizeof *pfri + pfri->FileNameLength,
 					   FileRenameInformation);
@@ -2794,7 +2722,7 @@ ctermid (char *str)
     {
       device d;
       d.parse (myself->ctty);
-      strcpy (str, d.name);
+      strcpy (str, d.name ());
     }
   return str;
 }
@@ -3063,7 +2991,6 @@ statvfs (const char *name, struct statvfs *sfs)
   __except (EFAULT) {}
   __endtry
   delete fh;
-  MALLOC_CHECK;
   if (get_errno () != EFAULT)
     syscall_printf ("%R = statvfs(%s,%p)", res, name, sfs);
   return res;
@@ -3294,9 +3221,9 @@ seteuid32 (uid_t uid)
 		       CW_TOKEN_RESTRICTED);
        setuid (getuid ());
 
-    Note that using the current uid is a requirement!  Starting with Windows
-    Vista, we have restricted tokens galore (UAC), so this is really just
-    a special case to restict your own processes to lesser rights. */
+    Note that using the current uid is a requirement!  We have restricted
+    tokens galore (UAC), so this is really just a special case to restrict
+    your own processes to lesser rights. */
   bool request_restricted_uid_switch = (uid == myself->uid
       && cygheap->user.ext_token_is_restricted);
   if (uid == myself->uid && !cygheap->user.groups.ischanged

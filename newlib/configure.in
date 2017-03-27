@@ -218,6 +218,17 @@ AC_ARG_ENABLE(newlib_nano_formatted_io,
    *) AC_MSG_ERROR(bad value ${enableval} for newlib-nano-formatted-io) ;;
  esac],[newlib_nano_formatted_io=no])
 
+dnl Support --enable-retargetable-locking
+dnl This option is also read in libc/configure.in.  It is repeated
+dnl here so that it shows up in the help text.
+AC_ARG_ENABLE(newlib-retargetable-locking,
+[  --enable-newlib-retargetable-locking    Allow locking routines to be retargeted at link time],
+[case "${enableval}" in
+   yes) newlib_retargetable_locking=yes ;;
+   no)  newlib_retargetable_locking=no ;;
+   *) AC_MSG_ERROR(bad value ${enableval} for newlib-retargetable-locking) ;;
+ esac],[newlib_retargetable_locking=no])
+
 NEWLIB_CONFIGURE(.)
 
 dnl We have to enable libtool after NEWLIB_CONFIGURE because if we try and
@@ -261,12 +272,27 @@ AC_CONFIG_SUBDIRS(libc)
 AC_CONFIG_SUBDIRS(libm)
 
 if test -z "${with_multisubdir}"; then
+  have_multisubdir=no
   AC_CONFIG_SUBDIRS(doc)
-  have_doc=yes
 else
-  have_doc=
+  have_multisubdir=yes
 fi
-AM_CONDITIONAL(HAVE_DOC, test x$have_doc = xyes)
+AM_CONDITIONAL(HAVE_DOC, test x$have_multisubdir = xno)
+
+# Some run-time support libraries provided by GCC (e.g. libgomp) use configure
+# checks to detect certain features, e.g. availability of thread-local storage.
+# The configure script generates a test program and tries to compile and link
+# it.  It should use target libraries and startfiles of the build tree if
+# available and not random ones from the installation prefix for this
+# procedure.  The search directories specified by -B are a bit special, see
+# for_each_path() in gcc.c of the GCC sources.  First a search is performed on
+# all search paths with the multilib directory appended (if desired), then a
+# second search is performed on demand with the base directory only.  For each
+# multilib there is a "newlib" subdirectory.  This directory is specified by a
+# -B option for the support libraries.  In order to find the newlib artifacts
+# (ctr0.o, libc.a, libg.a and libm.a) they must be located in a proper multilib
+# subdirectory withing the build directory.
+AM_CONDITIONAL(HAVE_MULTISUBDIR, test x$have_multisubdir = xyes)
 
 EXTRA_DIRS=
 case $host in
@@ -283,6 +309,7 @@ if test "x${have_crt0}" = "xyes"; then
   CRT0=crt0.o
   CRT0_DIR=libc/
 fi
+AM_CONDITIONAL(HAVE_CRT0, test x$have_crt0 = xyes)
 AC_SUBST(CRT0)
 AC_SUBST(CRT0_DIR)
 
@@ -440,6 +467,10 @@ fi
 
 if test "${newlib_nano_formatted_io}" = "yes"; then
 AC_DEFINE_UNQUOTED(_NANO_FORMATTED_IO)
+fi
+
+if test "${newlib_retargetable_locking}" = "yes"; then
+AC_DEFINE_UNQUOTED(_RETARGETABLE_LOCKING)
 fi
 
 dnl

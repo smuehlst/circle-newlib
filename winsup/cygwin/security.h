@@ -1,8 +1,5 @@
 /* security.h: security declarations
 
-   Copyright 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -14,9 +11,9 @@ details. */
 #include <accctrl.h>
 #include <dsgetdc.h>
 
-/* Special file attribute set, for instance, in open() and mkdir() to
-   flag that a file has just been created.  Used in alloc_sd, see there. */
-#define S_JUSTCREATED 0x80000000
+/* Special file attribute set in set_created_file_access to flag that a file
+   has just been created.  Used in get_posix_access. */
+#define S_JUSTCREATED	0x80000000
 
 /* UID/GID */
 void uinfo_init ();
@@ -92,7 +89,6 @@ void uinfo_init ();
 #define SE_MANAGE_VOLUME_PRIVILEGE          28U
 #define SE_IMPERSONATE_PRIVILEGE            29U
 #define SE_CREATE_GLOBAL_PRIVILEGE          30U
-/* Starting with Vista */
 #define SE_TRUSTED_CREDMAN_ACCESS_PRIVILEGE 31U
 #define SE_RELABEL_PRIVILEGE                32U
 #define SE_INCREASE_WORKING_SET_PRIVILEGE   33U

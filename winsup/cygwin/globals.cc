@@ -1,8 +1,5 @@
 /* globals.cc - Define global variables here.
 
-   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -68,7 +65,6 @@ int NO_COPY dynamically_loaded;
 
 /* Some CYGWIN environment variable variables. */
 bool allow_glob = true;
-bool detect_bloda;
 bool dos_file_warning;
 bool ignore_case_with_glob;
 bool pipe_byte;
@@ -88,9 +84,6 @@ int NO_COPY __isthreaded = 0;
 int __argc_safe;
 int __argc;
 char **__argv;
-#ifdef NEWVFORK
-vfork_save NO_COPY *main_vfork;
-#endif
 
 _cygtls NO_COPY *_main_tls /* !globals.h */;
 
@@ -144,7 +137,6 @@ const int __collate_load_error = 0;
      in the reply from the filesystem. */
   extern UNICODE_STRING _RDATA ro_u_prlfs = _ROU (L"PrlSF\0");
   extern UNICODE_STRING _RDATA ro_u_refs = _ROU (L"ReFS");
-  extern UNICODE_STRING _RDATA ro_u_sunwnfs = _ROU (L"SUNWNFS");
   extern UNICODE_STRING _RDATA ro_u_udf = _ROU (L"UDF");
   extern UNICODE_STRING _RDATA ro_u_unixfs = _ROU (L"UNIXFS");
   extern UNICODE_STRING _RDATA ro_u_nwfs = _ROU (L"NWFS");

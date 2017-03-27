@@ -1,8 +1,5 @@
 /* spawn.cc
 
-   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -408,39 +405,35 @@ child_info_spawn::worker (const char *prog_arg, const char *const *argv,
 
       c_flags |= CREATE_SEPARATE_WOW_VDM | CREATE_UNICODE_ENVIRONMENT;
 
-      if (wincap.has_program_compatibility_assistant ())
+      /* We're adding the CREATE_BREAKAWAY_FROM_JOB flag here to workaround
+	 issues with the "Program Compatibility Assistant (PCA) Service".
+	 For some reason, when starting long running sessions from mintty(*),
+	 the affected svchost.exe process takes more and more memory and at one
+	 point takes over the CPU.  At this point the machine becomes
+	 unresponsive.  The only way to get back to normal is to stop the
+	 entire mintty session, or to stop the PCA service.  However, a process
+	 which is controlled by PCA is part of a compatibility job, which
+	 allows child processes to break away from the job.  This helps to
+	 avoid this issue.
+
+	 First we call IsProcessInJob.  It fetches the information whether or
+	 not we're part of a job 20 times faster than QueryInformationJobObject.
+
+	 (*) Note that this is not mintty's fault.  It has just been observed
+	 with mintty in the first place.  See the archives for more info:
+	 http://cygwin.com/ml/cygwin-developers/2012-02/msg00018.html */
+      JOBOBJECT_BASIC_LIMIT_INFORMATION jobinfo;
+      BOOL is_in_job;
+
+      if (IsProcessInJob (GetCurrentProcess (), NULL, &is_in_job)
+	  && is_in_job
+	  && QueryInformationJobObject (NULL, JobObjectBasicLimitInformation,
+				     &jobinfo, sizeof jobinfo, NULL)
+	  && (jobinfo.LimitFlags & (JOB_OBJECT_LIMIT_BREAKAWAY_OK
+				    | JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK)))
 	{
-	  /* We're adding the CREATE_BREAKAWAY_FROM_JOB flag here to workaround
-	     issues with the "Program Compatibility Assistant (PCA) Service"
-	     starting with Windows Vista.  For some reason, when starting long
-	     running sessions from mintty(*), the affected svchost.exe process
-	     takes more and more memory and at one point takes over the CPU.  At
-	     this point the machine becomes unresponsive.  The only way to get
-	     back to normal is to stop the entire mintty session, or to stop the
-	     PCA service.  However, a process which is controlled by PCA is part
-	     of a compatibility job, which allows child processes to break away
-	     from the job.  This helps to avoid this issue.
-
-	     First we call IsProcessInJob.  It fetches the information whether or
-	     not we're part of a job 20 times faster than QueryInformationJobObject.
-
-	     (*) Note that this is not mintty's fault.  It has just been observed
-	     with mintty in the first place.  See the archives for more info:
-	     http://cygwin.com/ml/cygwin-developers/2012-02/msg00018.html */
-
-	  JOBOBJECT_BASIC_LIMIT_INFORMATION jobinfo;
-	  BOOL is_in_job;
-
-	  if (IsProcessInJob (GetCurrentProcess (), NULL, &is_in_job)
-	      && is_in_job
-	      && QueryInformationJobObject (NULL, JobObjectBasicLimitInformation,
-					 &jobinfo, sizeof jobinfo, NULL)
-	      && (jobinfo.LimitFlags & (JOB_OBJECT_LIMIT_BREAKAWAY_OK
-					| JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK)))
-	    {
-	      debug_printf ("Add CREATE_BREAKAWAY_FROM_JOB");
-	      c_flags |= CREATE_BREAKAWAY_FROM_JOB;
-	    }
+	  debug_printf ("Add CREATE_BREAKAWAY_FROM_JOB");
+	  c_flags |= CREATE_BREAKAWAY_FROM_JOB;
 	}
 
       if (mode == _P_DETACH)
@@ -609,31 +602,22 @@ child_info_spawn::worker (const char *prog_arg, const char *const *argv,
 	  if (mode == _P_OVERLAY)
 	    myself.set_acl();
 
-	  WCHAR wstname[1024] = { L'\0' };
-	  HWINSTA hwst_orig = NULL, hwst = NULL;
-	  HDESK hdsk_orig = NULL, hdsk = NULL;
-	  PSECURITY_ATTRIBUTES sa;
-	  DWORD n;
-
-	  hwst_orig = GetProcessWindowStation ();
-	  hdsk_orig = GetThreadDesktop (GetCurrentThreadId ());
-	  GetUserObjectInformationW (hwst_orig, UOI_NAME, wstname, 1024, &n);
-	  /* Prior to Vista it was possible to start a service with the
-	     "Interact with desktop" flag.  This started the service in the
-	     interactive window station of the console.  A big security
-	     risk, but we don't want to disable this behaviour for older
-	     OSes because it's still heavily used by some users.  They have
-	     been warned. */
-	  if (!::cygheap->user.setuid_to_restricted
-	      && wcscasecmp (wstname, L"WinSta0") != 0)
+	  HWINSTA hwst = NULL;
+	  HWINSTA hwst_orig = GetProcessWindowStation ();
+	  HDESK hdsk = NULL;
+	  HDESK hdsk_orig = GetThreadDesktop (GetCurrentThreadId ());
+	  /* Don't create WindowStation and Desktop for restricted child. */
+	  if (!::cygheap->user.setuid_to_restricted)
 	    {
+	      PSECURITY_ATTRIBUTES sa;
 	      WCHAR sid[128];
+	      WCHAR wstname[1024] = { L'\0' };
 
 	      sa = sec_user ((PSECURITY_ATTRIBUTES) alloca (1024),
 			     ::cygheap->user.sid ());
-	      /* We're creating a window station per user, not per logon session.
-		 First of all we might not have a valid logon session for
-		 the user (logon by create_token), and second, it doesn't
+	      /* We're creating a window station per user, not per logon
+		 session First of all we might not have a valid logon session
+		 for the user (logon by create_token), and second, it doesn't
 		 make sense in terms of security to create a new window
 		 station for every logon of the same user.  It just fills up
 		 the system with window stations for no good reason. */
@@ -695,15 +679,16 @@ child_info_spawn::worker (const char *prog_arg, const char *const *argv,
 	      myself->exec_sendsig = NULL;
 	    }
 	  myself->process_state &= ~PID_NOTCYGWIN;
-	  /* Reset handle inheritance to default when the execution of a non-Cygwin
-	     process fails.  Only need to do this for _P_OVERLAY since the handle will
-	     be closed otherwise.  Don't need to do this for 'parent' since it will
-	     be closed in every case.  See FIXME above. */
+	  /* Reset handle inheritance to default when the execution of a'
+	     non-Cygwin process fails.  Only need to do this for _P_OVERLAY
+	     since the handle will be closed otherwise.  Don't need to do
+	     this for 'parent' since it will be closed in every case.
+	     See FIXME above. */
 	  if (!iscygwin () && mode == _P_OVERLAY)
 	    SetHandleInformation (wr_proc_pipe, HANDLE_FLAG_INHERIT,
 				  HANDLE_FLAG_INHERIT);
 	  if (wr_proc_pipe == my_wr_proc_pipe)
-	    wr_proc_pipe = NULL;	/* We still own it: don't nuke in destructor */
+	    wr_proc_pipe = NULL; /* We still own it: don't nuke in destructor */
 
 	  /* Restore impersonation. In case of _P_OVERLAY this isn't
 	     allowed since it would overwrite child data. */
@@ -728,7 +713,7 @@ child_info_spawn::worker (const char *prog_arg, const char *const *argv,
       else
 	cygpid = myself->pid;
 
-      /* We print the original program name here so the user can see that too.  */
+      /* Print the original program name here so the user can see that too.  */
       syscall_printf ("pid %d, prog_arg %s, cmd line %.9500s)",
 		      rc ? cygpid : (unsigned int) -1, prog_arg, (const char *) cmd);
 
@@ -765,8 +750,8 @@ child_info_spawn::worker (const char *prog_arg, const char *const *argv,
 	  real_path.get_wide_win32_path (child->progname);
 	  /* FIXME: This introduces an unreferenced, open handle into the child.
 	     The purpose is to keep the pid shared memory open so that all of
-	     the fields filled out by child.remember do not disappear and so there
-	     is not a brief period during which the pid is not available.
+	     the fields filled out by child.remember do not disappear and so
+	     there is not a brief period during which the pid is not available.
 	     However, we should try to find another way to do this eventually. */
 	  DuplicateHandle (GetCurrentProcess (), child.shared_handle (),
 			   pi.hProcess, NULL, 0, 0, DUPLICATE_SAME_ACCESS);
@@ -882,14 +867,6 @@ spawnve (int mode, const char *path, const char *const *argv,
   static char *const empty_env[] = { NULL };
 
   int ret;
-#ifdef NEWVFORK
-  vfork_save *vf = vfork_storage.val ();
-
-  if (vf != NULL && (vf->pid < 0) && mode == _P_OVERLAY)
-    mode = _P_NOWAIT;
-  else
-    vf = NULL;
-#endif
 
   syscall_printf ("spawnve (%s, %s, %p)", path, argv[0], envp);
 
@@ -910,16 +887,6 @@ spawnve (int mode, const char *path, const char *const *argv,
     case _P_DETACH:
     case _P_SYSTEM:
       ret = ch_spawn.worker (path, argv, envp, mode);
-#ifdef NEWVFORK
-      if (vf)
-	{
-	  if (ret > 0)
-	    {
-	      debug_printf ("longjmping due to vfork");
-	      vf->restore_pid (ret);
-	    }
-	}
-#endif
       break;
     default:
       set_errno (EINVAL);

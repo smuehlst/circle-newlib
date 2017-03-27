@@ -1,8 +1,5 @@
 /* strace.cc
 
-   Copyright 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010, 2011, 2012, 2013, 2015 Red Hat Inc.
-
    Written by Chris Faylor <cgf@redhat.com>
 
 This file is part of Cygwin.
@@ -16,6 +13,7 @@ details. */
 #define cygwin_internal cygwin_internal_dontuse
 #include <stdio.h>
 #include <fcntl.h>
+#include <io.h>
 #include <getopt.h>
 #include <stdarg.h>
 #include <string.h>
@@ -91,6 +89,7 @@ warn (int geterrno, const char *fmt, ...)
       fputs (buf, stderr);
       fputs ("\n", stderr);
     }
+  va_end (args);
 }
 
 static void __attribute__ ((noreturn))
@@ -318,7 +317,6 @@ attach_process (pid_t pid)
       if (h)
 	{
 	  /* Try to turn off DEBUG_ONLY_THIS_PROCESS so we can follow forks */
-	  /* This is only supported on XP and later */
 	  ULONG DebugFlags = DEBUG_PROCESS_DETACH_ON_EXIT;
 	  NTSTATUS status = NtSetInformationProcess (h, ProcessDebugFlags, &DebugFlags, sizeof (DebugFlags));
 	  if (!NT_SUCCESS (status))
@@ -355,13 +353,16 @@ create_child (char **argv)
   make_command_line (one_line, argv);
 
   SetConsoleCtrlHandler (NULL, 0);
+
   const char *cygwin_env = getenv ("CYGWIN");
   const char *space;
-  if (cygwin_env)
+
+  if (cygwin_env && strlen (cygwin_env) <= 256) /* sanity check */
     space = " ";
   else
     space = cygwin_env = "";
-  char *newenv = (char *) malloc (sizeof ("CYGWIN=noglob") + strlen (space) + strlen (cygwin_env));
+  char *newenv = (char *) malloc (sizeof ("CYGWIN=noglob")
+				  + strlen (space) + strlen (cygwin_env));
   sprintf (newenv, "CYGWIN=noglob%s%s", space, cygwin_env);
   _putenv (newenv);
   ret = CreateProcess (0, one_line.buf,	/* command line */
@@ -476,6 +477,12 @@ handle_output_debug_string (DWORD id, LPVOID p, unsigned mask, FILE *ofile)
 	len = 17;
     }
 
+  /* Note that the following code deliberately points buf 20 bytes into the
+     allocated area.  The subsequent code then overwrites the usecs value
+     given in the application's debug string, which potentially prepends
+     characters to the string.  If that sounds confusing and dangerous, well...
+
+     TODO: This needs a cleanup. */
   char *buf;
   buf = (char *) alloca (len + 85) + 20;
 
@@ -755,15 +762,19 @@ proc_child (unsigned mask, FILE *ofile, pid_t pid)
 	  break;
 
 	case EXCEPTION_DEBUG_EVENT:
-	  if (ev.u.Exception.ExceptionRecord.ExceptionCode
-	      != (DWORD) STATUS_BREAKPOINT)
+	  switch (ev.u.Exception.ExceptionRecord.ExceptionCode)
 	    {
+	    case STATUS_BREAKPOINT:
+	    case 0x406d1388:		/* SetThreadName exception. */
+	      break;
+	    default:
 	      status = DBG_EXCEPTION_NOT_HANDLED;
 	      if (ev.u.Exception.dwFirstChance)
 		fprintf (ofile, "--- Process %lu, exception %08lx at %p\n",
 			 ev.dwProcessId,
 			 ev.u.Exception.ExceptionRecord.ExceptionCode,
 			 ev.u.Exception.ExceptionRecord.ExceptionAddress);
+	      break;
 	    }
 	  break;
 	}
@@ -1016,7 +1027,7 @@ print_version ()
 {
   printf ("strace (cygwin) %d.%d.%d\n"
 	  "System Trace\n"
-	  "Copyright (C) 2000 - %s Red Hat, Inc.\n"
+	  "Copyright (C) 2000 - %s Cygwin Authors\n"
 	  "This is free software; see the source for copying conditions.  There is NO\n"
 	  "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n",
 	  CYGWIN_VERSION_DLL_MAJOR / 1000,
@@ -1043,6 +1054,9 @@ main2 (int argc, char **argv)
 	for (argc = 0, argv = av; *av; av++)
 	  argc++;
     }
+
+  _setmode (1, _O_BINARY);
+  _setmode (2, _O_BINARY);
 
   if (!(pgm = strrchr (*argv, '\\')) && !(pgm = strrchr (*argv, '/')))
     pgm = *argv;

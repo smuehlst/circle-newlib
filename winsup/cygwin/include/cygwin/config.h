@@ -3,8 +3,6 @@
    This wraps Cygwin configuration setting which were in newlib's
    sys/config.h before.  This way we can manaage our configuration
    setting without bothering newlib.
-
-   Copyright 2003, 2007, 2008, 2009, 2010, 2012, 2013, 2014 Red Hat, Inc.
    Written by C. Vinschen.
 
 This file is part of Cygwin.
@@ -37,7 +35,7 @@ extern "C" {
    compute these offsets already exists for the sake of gendef so
    we might as well just use it here.  */
 
-#ifdef _COMPILING_NEWLIB
+#if defined (_COMPILING_NEWLIB) || defined (__INSIDE_CYGWIN__)
 #ifdef __x86_64__
 #include "../tlsoffsets64.h"
 #else
@@ -54,7 +52,7 @@ extern inline struct _reent *__getreent (void)
 #endif
   return (struct _reent *) (ret + tls_local_clib);
 }
-#endif  /* _COMPILING_NEWLIB */
+#endif /* _COMPILING_NEWLIB || __INSIDE_CYGWIN__ */
 
 #ifdef __x86_64__
 # define __SYMBOL_PREFIX

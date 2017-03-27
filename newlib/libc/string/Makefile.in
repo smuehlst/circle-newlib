@@ -124,8 +124,16 @@ am__objects_1 = lib_a-bcopy.$(OBJEXT) lib_a-bzero.$(OBJEXT) \
 @ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	lib_a-memmem.$(OBJEXT) \
 @ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	lib_a-memrchr.$(OBJEXT) \
 @ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	lib_a-rawmemchr.$(OBJEXT) \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	lib_a-strcasecmp_l.$(OBJEXT) \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	lib_a-strcoll_l.$(OBJEXT) \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	lib_a-strncasecmp_l.$(OBJEXT) \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	lib_a-strxfrm_l.$(OBJEXT) \
 @ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	lib_a-wcscasecmp.$(OBJEXT) \
-@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	lib_a-wcsncasecmp.$(OBJEXT)
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	lib_a-wcscasecmp_l.$(OBJEXT) \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	lib_a-wcscoll_l.$(OBJEXT) \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	lib_a-wcsncasecmp.$(OBJEXT) \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	lib_a-wcsncasecmp_l.$(OBJEXT) \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	lib_a-wcsxfrm_l.$(OBJEXT)
 @USE_LIBTOOL_FALSE@am_lib_a_OBJECTS = $(am__objects_1) \
 @USE_LIBTOOL_FALSE@	$(am__objects_2) $(am__objects_3)
 lib_a_OBJECTS = $(am_lib_a_OBJECTS)
@@ -153,8 +161,16 @@ am__objects_4 = bcopy.lo bzero.lo explicit_bzero.lo index.lo memchr.lo \
 @ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	memmem.lo \
 @ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	memrchr.lo \
 @ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	rawmemchr.lo \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	strcasecmp_l.lo \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	strcoll_l.lo \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	strncasecmp_l.lo \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	strxfrm_l.lo \
 @ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	wcscasecmp.lo \
-@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	wcsncasecmp.lo
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	wcscasecmp_l.lo \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	wcscoll_l.lo \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	wcsncasecmp.lo \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	wcsncasecmp_l.lo \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	wcsxfrm_l.lo
 @USE_LIBTOOL_TRUE@am_libstring_la_OBJECTS = $(am__objects_4) \
 @USE_LIBTOOL_TRUE@	$(am__objects_5) $(am__objects_6)
 libstring_la_OBJECTS = $(am_libstring_la_OBJECTS)
@@ -422,8 +438,16 @@ GENERAL_SOURCES = \
 @ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	memmem.c \
 @ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	memrchr.c \
 @ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	rawmemchr.c \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	strcasecmp_l.c \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	strcoll_l.c \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	strncasecmp_l.c \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	strxfrm_l.c \
 @ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	wcscasecmp.c \
-@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	wcsncasecmp.c
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	wcscasecmp_l.c \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	wcscoll_l.c \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	wcsncasecmp.c \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	wcsncasecmp_l.c \
+@ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_FALSE@	wcsxfrm_l.c
 
 @ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_FALSE@@ELIX_LEVEL_3_TRUE@ELIX_4_SOURCES = 
 @ELIX_LEVEL_1_FALSE@@ELIX_LEVEL_2_TRUE@ELIX_4_SOURCES = 
@@ -440,9 +464,12 @@ libstring_la_LDFLAGS = -Xcompiler -nostdlib
 #
 # documentation rules
 #
-SUFFIXES = .def
+SUFFIXES = .def .xml
 CHEW = ${top_builddir}/../doc/makedoc -f $(top_srcdir)/../doc/doc.str
-CLEANFILES = $(CHEWOUT_FILES) *.ref
+DOCBOOK_CHEW = ${top_srcdir}/../doc/makedocbook.py
+DOCBOOK_OUT_FILES = $(CHEWOUT_FILES:.def=.xml)
+DOCBOOK_CHAPTERS = $(CHAPTERS:.tex=.xml)
+CLEANFILES = $(CHEWOUT_FILES) $(CHEWOUT_FILES:.def=.ref) $(DOCBOOK_OUT_FILES)
 CHEWOUT_FILES = \
 bcmp.def	memcpy.def	strcmp.def	strncat.def strstr.def \
 bcopy.def	memmove.def	strcoll.def	strncmp.def strtok.def \
@@ -459,13 +486,15 @@ wcsncmp.def	wcsncpy.def	wcsnlen.def	wcspbrk.def \
 wcsrchr.def	wcsspn.def	wcsstr.def 	wcstok.def  \
 wcswidth.def	wcsxfrm.def	wcwidth.def	wmemchr.def \
 wmemcmp.def	wmemcpy.def	wmemmove.def	wmemset.def \
-memmem.def	memrchr.def	rawmemchr.def	strchrnul.def
+memmem.def	memrchr.def	rawmemchr.def	strchrnul.def \
+strcasecmp_l.def strcoll_l.def	strncasecmp_l.def strxfrm_l.def \
+wcscasecmp_l.def wcscoll_l.def	wcsncasecmp_l.def wcsxfrm_l.def
 
 CHAPTERS = strings.tex wcstrings.tex
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .def .c .lo .o .obj
+.SUFFIXES: .def .xml .c .lo .o .obj
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/../../Makefile.shared $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -1053,17 +1082,65 @@ lib_a-rawmemchr.o: rawmemchr.c
 lib_a-rawmemchr.obj: rawmemchr.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-rawmemchr.obj `if test -f 'rawmemchr.c'; then $(CYGPATH_W) 'rawmemchr.c'; else $(CYGPATH_W) '$(srcdir)/rawmemchr.c'; fi`
 
+lib_a-strcasecmp_l.o: strcasecmp_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-strcasecmp_l.o `test -f 'strcasecmp_l.c' || echo '$(srcdir)/'`strcasecmp_l.c
+
+lib_a-strcasecmp_l.obj: strcasecmp_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-strcasecmp_l.obj `if test -f 'strcasecmp_l.c'; then $(CYGPATH_W) 'strcasecmp_l.c'; else $(CYGPATH_W) '$(srcdir)/strcasecmp_l.c'; fi`
+
+lib_a-strcoll_l.o: strcoll_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-strcoll_l.o `test -f 'strcoll_l.c' || echo '$(srcdir)/'`strcoll_l.c
+
+lib_a-strcoll_l.obj: strcoll_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-strcoll_l.obj `if test -f 'strcoll_l.c'; then $(CYGPATH_W) 'strcoll_l.c'; else $(CYGPATH_W) '$(srcdir)/strcoll_l.c'; fi`
+
+lib_a-strncasecmp_l.o: strncasecmp_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-strncasecmp_l.o `test -f 'strncasecmp_l.c' || echo '$(srcdir)/'`strncasecmp_l.c
+
+lib_a-strncasecmp_l.obj: strncasecmp_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-strncasecmp_l.obj `if test -f 'strncasecmp_l.c'; then $(CYGPATH_W) 'strncasecmp_l.c'; else $(CYGPATH_W) '$(srcdir)/strncasecmp_l.c'; fi`
+
+lib_a-strxfrm_l.o: strxfrm_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-strxfrm_l.o `test -f 'strxfrm_l.c' || echo '$(srcdir)/'`strxfrm_l.c
+
+lib_a-strxfrm_l.obj: strxfrm_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-strxfrm_l.obj `if test -f 'strxfrm_l.c'; then $(CYGPATH_W) 'strxfrm_l.c'; else $(CYGPATH_W) '$(srcdir)/strxfrm_l.c'; fi`
+
 lib_a-wcscasecmp.o: wcscasecmp.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-wcscasecmp.o `test -f 'wcscasecmp.c' || echo '$(srcdir)/'`wcscasecmp.c
 
 lib_a-wcscasecmp.obj: wcscasecmp.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-wcscasecmp.obj `if test -f 'wcscasecmp.c'; then $(CYGPATH_W) 'wcscasecmp.c'; else $(CYGPATH_W) '$(srcdir)/wcscasecmp.c'; fi`
 
+lib_a-wcscasecmp_l.o: wcscasecmp_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-wcscasecmp_l.o `test -f 'wcscasecmp_l.c' || echo '$(srcdir)/'`wcscasecmp_l.c
+
+lib_a-wcscasecmp_l.obj: wcscasecmp_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-wcscasecmp_l.obj `if test -f 'wcscasecmp_l.c'; then $(CYGPATH_W) 'wcscasecmp_l.c'; else $(CYGPATH_W) '$(srcdir)/wcscasecmp_l.c'; fi`
+
+lib_a-wcscoll_l.o: wcscoll_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-wcscoll_l.o `test -f 'wcscoll_l.c' || echo '$(srcdir)/'`wcscoll_l.c
+
+lib_a-wcscoll_l.obj: wcscoll_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-wcscoll_l.obj `if test -f 'wcscoll_l.c'; then $(CYGPATH_W) 'wcscoll_l.c'; else $(CYGPATH_W) '$(srcdir)/wcscoll_l.c'; fi`
+
 lib_a-wcsncasecmp.o: wcsncasecmp.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-wcsncasecmp.o `test -f 'wcsncasecmp.c' || echo '$(srcdir)/'`wcsncasecmp.c
 
 lib_a-wcsncasecmp.obj: wcsncasecmp.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-wcsncasecmp.obj `if test -f 'wcsncasecmp.c'; then $(CYGPATH_W) 'wcsncasecmp.c'; else $(CYGPATH_W) '$(srcdir)/wcsncasecmp.c'; fi`
+
+lib_a-wcsncasecmp_l.o: wcsncasecmp_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-wcsncasecmp_l.o `test -f 'wcsncasecmp_l.c' || echo '$(srcdir)/'`wcsncasecmp_l.c
+
+lib_a-wcsncasecmp_l.obj: wcsncasecmp_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-wcsncasecmp_l.obj `if test -f 'wcsncasecmp_l.c'; then $(CYGPATH_W) 'wcsncasecmp_l.c'; else $(CYGPATH_W) '$(srcdir)/wcsncasecmp_l.c'; fi`
+
+lib_a-wcsxfrm_l.o: wcsxfrm_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-wcsxfrm_l.o `test -f 'wcsxfrm_l.c' || echo '$(srcdir)/'`wcsxfrm_l.c
+
+lib_a-wcsxfrm_l.obj: wcsxfrm_l.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-wcsxfrm_l.obj `if test -f 'wcsxfrm_l.c'; then $(CYGPATH_W) 'wcsxfrm_l.c'; else $(CYGPATH_W) '$(srcdir)/wcsxfrm_l.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -1259,6 +1336,16 @@ doc: $(CHEWOUT_FILES)
 	for chapter in $(CHAPTERS) ; \
 	do \
 	  cat $(srcdir)/$$chapter >> $(TARGETDOC) ; \
+	done
+
+.c.xml:
+	$(DOCBOOK_CHEW) < $< > $*.xml || ( rm $*.xml && false )
+	@touch stmp-xml
+
+docbook: $(DOCBOOK_OUT_FILES)
+	for chapter in $(DOCBOOK_CHAPTERS) ; \
+	do \
+	  ${top_srcdir}/../doc/chapter-texi2docbook.py <$(srcdir)/$${chapter%.xml}.tex >../$$chapter ; \
 	done
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

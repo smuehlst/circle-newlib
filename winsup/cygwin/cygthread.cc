@@ -1,8 +1,5 @@
 /* cygthread.cc
 
-   Copyright 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009,
-   2010, 2011, 2012, 2013, 2015 Red Hat, Inc.
-
 This software is a copyrighted work licensed under the terms of the
 Cygwin license.  Please consult the file "CYGWIN_LICENSE" for
 details. */
@@ -216,6 +213,8 @@ cygthread::create ()
 			    this, 0, &id);
       if (!htobe)
 	api_fatal ("CreateThread failed for %s - %p<%y>, %E", __name, h, id);
+      else
+	SetThreadName (GetThreadId (htobe), __name);
       thread_printf ("created name '%s', thread %p, id %y", __name, h, id);
 #ifdef DEBUGGING
       terminated = false;
@@ -312,19 +311,6 @@ cygthread::terminate_thread ()
 
   if (ev && !(terminated = !IsEventSignalled (ev)))
     ResetEvent (ev);
-
-  if (!wincap.terminate_thread_frees_stack ())
-    {
-      MEMORY_BASIC_INFORMATION m;
-      memset (&m, 0, sizeof (m));
-      VirtualQuery (stack_ptr, &m, sizeof m);
-
-      if (!m.RegionSize)
-	system_printf ("m.RegionSize 0?  stack_ptr %p", stack_ptr);
-      else if (!VirtualFree (m.AllocationBase, 0, MEM_RELEASE))
-	debug_printf ("VirtualFree of allocation base %p<%p> failed, %E",
-		       stack_ptr, m.AllocationBase);
-    }
 
   if (is_freerange)
     free (this);

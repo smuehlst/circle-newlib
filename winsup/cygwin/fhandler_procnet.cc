@@ -1,7 +1,5 @@
 /* fhandler_procnet.cc: fhandler for /proc/net virtual filesystem
 
-   Copyright 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -34,8 +32,6 @@ details. */
 #include <stdio.h>
 #include <stdlib.h>
 
-extern "C" int ip_addr_prefix (PIP_ADAPTER_UNICAST_ADDRESS pua,
-			       PIP_ADAPTER_PREFIX pap);
 bool get_adapters_addresses (PIP_ADAPTER_ADDRESSES *pa0, ULONG family);
 
 static off_t format_procnet_ifinet6 (void *, char *&);
@@ -264,7 +260,7 @@ format_procnet_ifinet6 (void *, char *&filebuf)
 	filesize += sprintf (filebuf + filesize,
 			     "%02lx %02x %02x %02x %s\n",
 			     (long) pap->Ipv6IfIndex,
-			     ip_addr_prefix (pua, pap->FirstPrefix),
+			     pua->OnLinkPrefixLength,
 			     get_scope (&((struct sockaddr_in6 *)
 					pua->Address.lpSockaddr)->sin6_addr),
 			     dad_to_flags [pua->DadState],

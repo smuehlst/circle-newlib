@@ -1,8 +1,5 @@
 /* select.h
 
-   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009, 2010, 2011, 2012 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -78,7 +75,6 @@ public:
   enum wait_states
   {
     select_signalled = -3,
-    select_loop = -2,
     select_error = -1,
     select_ok = 0,
     select_set_zero = 1
@@ -96,7 +92,7 @@ public:
 
   bool test_and_set (int, fd_set *, fd_set *, fd_set *);
   int poll (fd_set *, fd_set *, fd_set *);
-  wait_states wait (fd_set *, fd_set *, fd_set *, DWORD);
+  wait_states wait (fd_set *, fd_set *, fd_set *, LONGLONG);
   void cleanup ();
   void destroy ();
 

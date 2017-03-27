@@ -1,8 +1,5 @@
 /* path.cc: path support.
 
-     Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-     2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
   This file is part of Cygwin.
 
   This software is a copyrighted work licensed under the terms of the
@@ -97,7 +94,7 @@ struct symlink_info
   bool isdevice;
   _major_t major;
   _minor_t minor;
-  _mode_t mode;
+  __mode_t mode;
   int check (char *path, const suffix_info *suffixes, fs_info &fs,
 	     path_conv_handle &conv_hdl);
   int set (char *path);
@@ -450,10 +447,13 @@ get_nt_native_path (const char *path, UNICODE_STRING& upath, bool dos)
 	  str2uni_cat (upath, path);
 	  /* The drive letter must be upper case. */
 	  upath.Buffer[4] = towupper (upath.Buffer[4]);
+	  transform_chars (&upath, 7);
 	}
-      else
-	str2uni_cat (upath, path);
-      transform_chars (&upath, 7);
+      else			/* relative path */
+	{
+	  str2uni_cat (upath, path);
+	  transform_chars (&upath, 0);
+	}
     }
   else if (path[1] != '\\')	/* \Device\... */
     str2uni_cat (upath, path);
@@ -690,7 +690,6 @@ path_conv::check (const char *src, unsigned opt,
 	  path = NULL;
 	}
       close_conv_handle ();
-      memset (&dev, 0, sizeof (dev));
       fs.clear ();
       if (posix_path)
 	{
@@ -711,7 +710,6 @@ path_conv::check (const char *src, unsigned opt,
       /* This loop handles symlink expansion.  */
       for (;;)
 	{
-	  MALLOC_CHECK;
 	  assert (src);
 
 	  is_relpath = !isabspath (src);
@@ -948,7 +946,7 @@ path_conv::check (const char *src, unsigned opt,
 		    }
 		  dev.parse (sym.major, sym.minor);
 		  dev.setfs (1);
-		  dev.mode = sym.mode;
+		  dev.mode (sym.mode);
 		  fileattr = sym.fileattr;
 		  goto out;
 		}
@@ -1066,9 +1064,6 @@ path_conv::check (const char *src, unsigned opt,
 	      error = ELOOP;   // Eep.
 	      return;
 	    }
-
-	  MALLOC_CHECK;
-
 
 	  /* Place the link content, possibly with head and/or tail,
 	     in tmp_buf */
@@ -1310,8 +1305,31 @@ file_get_fai (HANDLE h, PFILE_ALL_INFORMATION pfai)
   /* Some FSes (Netapps) don't implement FileNetworkOpenInformation. */
   status = NtQueryInformationFile (h, &io, pfai, sizeof *pfai,
 				   FileAllInformation);
-  if (status == STATUS_BUFFER_OVERFLOW)
+  if (likely (status == STATUS_BUFFER_OVERFLOW))
     status = STATUS_SUCCESS;
+  /* Filesystems with broken FileAllInformation exist, too.  See the thread
+     starting with https://cygwin.com/ml/cygwin/2016-07/msg00350.html. */
+  else if (!NT_SUCCESS (status) && status != STATUS_ACCESS_DENIED)
+    {
+      memset (pfai, 0, sizeof *pfai);
+      status = NtQueryInformationFile (h, &io, &pfai->BasicInformation,
+				       sizeof pfai->BasicInformation,
+				       FileBasicInformation);
+      if (NT_SUCCESS (status))
+	{
+	  /* The return value of FileInternalInformation is largely ignored.
+	     We only make absolutely sure the inode number is set to 0 in
+	     case it fails. */
+	  status = NtQueryInformationFile (h, &io, &pfai->InternalInformation,
+					   sizeof pfai->InternalInformation,
+					   FileInternalInformation);
+	  if (!NT_SUCCESS (status))
+	    pfai->InternalInformation.IndexNumber.QuadPart = 0LL;
+	  status = NtQueryInformationFile (h, &io, &pfai->StandardInformation,
+					   sizeof pfai->StandardInformation,
+					   FileStandardInformation);
+	}
+    }
   return status;
 }
 
@@ -1388,7 +1406,12 @@ normalize_win32_path (const char *src, char *dst, char *&tail)
       /* Ignore "./".  */
       else if (src[0] == '.' && isdirsep (src[1])
 	       && (src == src_start || isdirsep (src[-1])))
-	src += 2;
+	{
+	  src += 2;
+	  /* Skip /'s to the next path component. */
+	  while (isdirsep (*src))
+	    src++;
+	}
 
       /* Backup if "..".  */
       else if (src[0] == '.' && src[1] == '.'
@@ -1686,10 +1709,9 @@ symlink_native (const char *oldpath, path_conv &win32_newpath)
      to Win32 paths. */
   if (final_oldpath->Buffer[0] == L'\\')
     {
-      /* Workaround Windows 8.1 bug.  On Windows 8.1, the ShellExecuteW
-	 function does not handle the long path prefix correctly for symlink
-	 targets.  Thus, we create simple short paths < MAX_PATH without
-	 long path prefix. */
+      /* Starting with Windows 8.1, the ShellExecuteW function does not
+	 handle the long path prefix correctly for symlink targets.  Thus,
+	 we create simple short paths < MAX_PATH without long path prefix. */
       if (RtlEqualUnicodePathPrefix (final_oldpath, &ro_u_uncp, TRUE)
 	  && final_oldpath->Length < (MAX_PATH + 6) * sizeof (WCHAR))
 	{
@@ -1767,15 +1789,7 @@ symlink_worker (const char *oldpath, const char *newpath, bool isdevice)
 	wsym_type = WSYM_lnk;
       /* AFS only supports native symlinks. */
       else if (win32_newpath.fs_is_afs ())
-	{
-	  /* Bail out if OS doesn't support native symlinks. */
-	  if (wincap.max_sys_priv () < SE_CREATE_SYMBOLIC_LINK_PRIVILEGE)
-	    {
-	      set_errno (EPERM);
-	      __leave;
-	    }
-	  wsym_type = WSYM_nativestrict;
-	}
+	wsym_type = WSYM_nativestrict;
       /* Don't try native symlinks on FSes not supporting reparse points. */
       else if ((wsym_type == WSYM_native || wsym_type == WSYM_nativestrict)
 	       && !(win32_newpath.fs_flags () & FILE_SUPPORTS_REPARSE_POINTS))
@@ -2569,7 +2583,7 @@ symlink_info::parse_device (const char *contents)
   char *endptr;
   _major_t mymajor;
   _major_t myminor;
-  _mode_t mymode;
+  __mode_t mymode;
 
   mymajor = strtol (contents += 2, &endptr, 16);
   if (endptr == contents)
@@ -2711,32 +2725,6 @@ restart:
 	}
       if (status == STATUS_OBJECT_NAME_NOT_FOUND)
 	{
-	  if (ci_flag == 0 && wincap.has_broken_udf ()
-	      && (!fs.inited () || fs.is_udf ()))
-	    {
-	      /* On NT 5.x UDF is broken (at least) in terms of case
-		 sensitivity.  When trying to open a file case sensitive,
-		 the file appears to be non-existant.  Another bug is
-		 described in fs_info::update. */
-	      attr.Attributes = OBJ_CASE_INSENSITIVE;
-	      status = NtOpenFile (&h, READ_CONTROL | FILE_READ_ATTRIBUTES,
-				   &attr, &io, FILE_SHARE_VALID_FLAGS,
-				   FILE_OPEN_REPARSE_POINT
-				   | FILE_OPEN_FOR_BACKUP_INTENT);
-	      debug_printf ("%y = NtOpenFile (broken-UDF, %S)", status, &upath);
-	      attr.Attributes = 0;
-	      if (NT_SUCCESS (status))
-		{
-		  if (!fs.inited ())
-		    fs.update (&upath, h);
-		  if (!fs.is_udf ())
-		    {
-		      NtClose (h);
-		      h = NULL;
-		      status = STATUS_OBJECT_NAME_NOT_FOUND;
-		    }
-		}
-	    }
 	  /* There are filesystems out in the wild (Netapp, NWFS, and others)
 	     which are uncapable of generating pathnames outside the Win32
 	     rules.  That means, filenames on these FSes must not have a
@@ -2744,9 +2732,8 @@ restart:
 	     manages them.  I really hope it's streamlined enough not to
 	     slow down normal operation.  This extra check only kicks in if
 	     we encountered a STATUS_OBJECT_NAME_NOT_FOUND *and* we didn't
-	     already attach a suffix *and* the above special case for UDF
-	     on XP didn't succeeed. */
-	  if (!restarted && !*ext_here && !(pflags & PATH_DOS) && !fs.inited ())
+	     already attach a suffix. */
+	  if (!restarted && !*ext_here && !(pflags & PATH_DOS))
 	    {
 	      /* Check for trailing dot or space or leading space in
 		 last component. */
@@ -2762,8 +2749,7 @@ restart:
 		{
 		  /* If so, check if file resides on one of the known broken
 		     FSes only supporting filenames following DOS rules. */
-		  if (!fs.inited ())
-		    fs.update (&upath, NULL);
+		  fs.update (&upath, NULL);
 		  if (fs.has_dos_filenames_only ())
 		    {
 		      /* If so, try again.  Since we now know the FS, the
@@ -2798,19 +2784,9 @@ restart:
 	     This speeds up path_conv noticably (~10%). */
 	  && (fs.inited () || fs.update (&upath, h)))
 	{
-	  if (fs.is_nfs ())
-	    {
-	      status = nfs_fetch_fattr3 (h, conv_hdl.nfsattr ());
-	      if (NT_SUCCESS (status))
-		fileattr = ((conv_hdl.nfsattr ()->type & 7) == NF3DIR)
-			    ? FILE_ATTRIBUTE_DIRECTORY : 0;
-	    }
-	  else
-	    {
-	      status = file_get_fai (h, conv_hdl.fai ());
-	      if (NT_SUCCESS (status))
-		fileattr = conv_hdl.fai ()->BasicInformation.FileAttributes;
-	    }
+	  status = conv_hdl.get_finfo (h, fs.is_nfs ());
+	  if (NT_SUCCESS (status))
+	    fileattr = conv_hdl.get_dosattr (fs.is_nfs ());
 	}
       if (!NT_SUCCESS (status))
 	{
@@ -2834,6 +2810,13 @@ restart:
 	      || status == STATUS_NO_MEDIA_IN_DEVICE)
 	    {
 	      set_error (ENOENT);
+	      if (ext_tacked_on && !had_ext)
+		{
+		  *ext_here = '\0';
+		  ext_tacked_on = false;
+		  ext_here = NULL;
+		  extn = 0;
+		}
 	      goto file_not_symlink;
 	    }
 	  if (status != STATUS_OBJECT_NAME_NOT_FOUND
@@ -2943,9 +2926,7 @@ restart:
 
       /* Reparse points are potentially symlinks.  This check must be
 	 performed before checking the SYSTEM attribute for sysfile
-	 symlinks, since reparse points can have this flag set, too.
-	 For instance, Vista starts to create a couple of reparse points
-	 with SYSTEM and HIDDEN flags set. */
+	 symlinks, since reparse points can have this flag set, too. */
       if ((fileattr & FILE_ATTRIBUTE_REPARSE_POINT))
 	{
 	  res = check_reparse_point (h, fs.is_remote_drive ());
@@ -3276,7 +3257,6 @@ chdir (const char *in_dir)
       res = -1;
     }
   __endtry
-  MALLOC_CHECK;
   return res;
 }
 
@@ -3337,7 +3317,7 @@ cygwin_conv_path (cygwin_conv_path_t what, const void *from, void *to,
 	    p.check ((const char *) from,
 		     PC_POSIX | PC_SYM_FOLLOW | PC_SYM_NOFOLLOW_REP
 		     | PC_NO_ACCESS_CHECK | PC_NOWARN
-		     | ((how & CCP_RELATIVE) ? PC_NOFULL : 0));
+		     | ((how & CCP_RELATIVE) ? PC_NOFULL : 0), stat_suffixes);
 	    if (p.error)
 	      {
 	        set_errno (p.error);
@@ -3382,7 +3362,7 @@ cygwin_conv_path (cygwin_conv_path_t what, const void *from, void *to,
 	  p.check ((const char *) from,
 		   PC_POSIX | PC_SYM_FOLLOW | PC_SYM_NOFOLLOW_REP
 		   | PC_NO_ACCESS_CHECK | PC_NOWARN
-		   | ((how & CCP_RELATIVE) ? PC_NOFULL : 0));
+		   | ((how & CCP_RELATIVE) ? PC_NOFULL : 0), stat_suffixes);
 	  if (p.error)
 	    {
 	      set_errno (p.error);
@@ -3565,10 +3545,12 @@ realpath (const char *__restrict path, char *__restrict resolved)
      potentially invalid resolved. */
   __try
     {
-      /* Win32 drive letter paths have to be converted to a POSIX path first,
-	 because path_conv leaves the incoming path untouched except for
-	 converting backslashes to forward slashes. */
-      if (isdrive (path))
+      /* Win32 drive letter paths and, generally, any path starting with a
+	 backslash, have to be converted to a POSIX path first, because
+	 path_conv leaves the incoming path untouched except for converting
+	 backslashes to forward slashes.  This also covers '\\?\ and '\??\'
+	 path prefixes. */
+      if (isdrive (path) || path[0] == '\\')
 	{
 	  tpath = tp.c_get ();
 	  mount_table->conv_to_posix_path (path, tpath, 0);
@@ -3937,12 +3919,11 @@ fcwd_access_t::Free (PVOID heap)
 {
   /* Decrement the reference count.  If it's down to 0, free
      structure from heap. */
-  if (this && InterlockedDecrement (&ReferenceCount ()) == 0)
+  if (InterlockedDecrement (&ReferenceCount ()) == 0)
     {
-      /* In contrast to pre-Vista, the handle on init is always a
-	 fresh one and not the handle inherited from the parent
-	 process.  So we always have to close it here.  However, the
-	 handle could be NULL, if we cd'ed into a virtual dir. */
+      /* The handle on init is always a fresh one, not the handle inherited
+	 from the parent process.  We always have to close it here.
+	 Note: The handle could be NULL, if we cd'ed into a virtual dir. */
       HANDLE h = DirectoryHandle ();
       if (h)
 	NtClose (h);
@@ -3997,12 +3978,15 @@ fcwd_access_t::SetDirHandleFromBufferPointer (PWCHAR buf_p, HANDLE dir)
     default:
       f_cwd = (fcwd_access_t *)
 	((PBYTE) buf_p - __builtin_offsetof (FAST_CWD_OLD, Buffer));
+      break;
     case FCWD_W7:
       f_cwd = (fcwd_access_t *)
 	((PBYTE) buf_p - __builtin_offsetof (FAST_CWD_7, Buffer));
+      break;
     case FCWD_W8:
       f_cwd = (fcwd_access_t *)
 	((PBYTE) buf_p - __builtin_offsetof (FAST_CWD_8, Buffer));
+      break;
     }
   f_cwd->DirectoryHandle () = dir;
 }
@@ -4028,13 +4012,9 @@ fcwd_access_t::SetVersionFromPointer (PBYTE buf_p, bool is_buffer)
 }
 
 /* This function scans the code in ntdll.dll to find the address of the
-   global variable used to access the CWD starting with Vista.  While the
-   pointer is global, it's not exported from the DLL, unfortunately.
-   Therefore we have to use some knowledge to figure out the address.
-
-   This code has been tested on Vista 32/64 bit, Server 2008 32/64 bit,
-   Windows 7 32/64 bit, Server 2008 R2 (which is only 64 bit anyway),
-   Windows 8 32/64 bit, Windows 8.1 32/64 bit, and Server 2012 R2. */
+   global variable used to access the CWD.  While the pointer is global,
+   it's not exported from the DLL, unfortunately.  Therefore we have to
+   use some knowledge to figure out the address. */
 
 #ifdef __x86_64__
 
@@ -4054,7 +4034,7 @@ find_fast_cwd_pointer ()
   if (!get_dir || !ent_crit)
     return NULL;
   /* Search first relative call instruction in RtlGetCurrentDirectory_U. */
-  const uint8_t *rcall = (const uint8_t *) memchr (get_dir, 0xe8, 40);
+  const uint8_t *rcall = (const uint8_t *) memchr (get_dir, 0xe8, 80);
   if (!rcall)
     return NULL;
   /* Fetch offset from instruction and compute address of called function.
@@ -4153,7 +4133,7 @@ find_fast_cwd_pointer ()
   if (!get_dir || !ent_crit)
     return NULL;
   /* Search first relative call instruction in RtlGetCurrentDirectory_U. */
-  const uint8_t *rcall = (const uint8_t *) memchr (get_dir, 0xe8, 32);
+  const uint8_t *rcall = (const uint8_t *) memchr (get_dir, 0xe8, 64);
   if (!rcall)
     return NULL;
   /* Fetch offset from instruction and compute address of called function.
@@ -4290,113 +4270,87 @@ cwdstuff::override_win32_cwd (bool init, ULONG old_dismount_count)
   UNICODE_STRING &upp_cwd_str = peb.ProcessParameters->CurrentDirectoryName;
   HANDLE &upp_cwd_hdl = peb.ProcessParameters->CurrentDirectoryHandle;
 
-  if (wincap.has_fast_cwd ())
+  if (fast_cwd_ptr == (fcwd_access_t **) -1)
+    fast_cwd_ptr = find_fast_cwd ();
+  if (fast_cwd_ptr)
     {
-      if (fast_cwd_ptr == (fcwd_access_t **) -1)
-	fast_cwd_ptr = find_fast_cwd ();
-      if (fast_cwd_ptr)
+      /* If we got a valid value for fast_cwd_ptr, we can simply replace
+	 the RtlSetCurrentDirectory_U function entirely. */
+      PVOID heap = peb.ProcessHeap;
+      /* First allocate a new fcwd_access_t structure on the heap.
+	 The new fcwd_access_t structure is 4 byte bigger than the old one,
+	 but we simply don't care, so we allocate always room for the
+	 new one. */
+      fcwd_access_t *f_cwd = (fcwd_access_t *)
+			RtlAllocateHeap (heap, 0, sizeof (fcwd_access_t));
+      if (!f_cwd)
 	{
-	  /* Default method starting with Vista.  If we got a valid value for
-	     fast_cwd_ptr, we can simply replace the RtlSetCurrentDirectory_U
-	     function entirely, just as on pre-Vista. */
-	  PVOID heap = peb.ProcessHeap;
-	  /* First allocate a new fcwd_access_t structure on the heap.
-	     The new fcwd_access_t structure is 4 byte bigger than the old one,
-	     but we simply don't care, so we allocate always room for the
-	     new one. */
-	  fcwd_access_t *f_cwd = (fcwd_access_t *)
-			    RtlAllocateHeap (heap, 0, sizeof (fcwd_access_t));
-	  if (!f_cwd)
-	    {
-	      debug_printf ("RtlAllocateHeap failed");
-	      return;
-	    }
-	  /* Fill in the values. */
-	  f_cwd->FillIn (dir, error ? &ro_u_pipedir : &win32,
-			 old_dismount_count);
-	  /* Use PEB lock when switching fast_cwd_ptr to the new FAST_CWD
-	     structure and writing the CWD to the user process parameter
-	     block.  This is equivalent to calling RtlAcquirePebLock/
-	     RtlReleasePebLock, but without having to go through the FS
-	     selector again. */
-	  RtlEnterCriticalSection (peb.FastPebLock);
-	  fcwd_access_t *old_cwd = *fast_cwd_ptr;
-	  *fast_cwd_ptr = f_cwd;
-	  f_cwd->CopyPath (upp_cwd_str);
-	  upp_cwd_hdl = dir;
-	  RtlLeaveCriticalSection (peb.FastPebLock);
-	  old_cwd->Free (heap);
+	  debug_printf ("RtlAllocateHeap failed");
+	  return;
 	}
-      else
-	{
-	  /* This is more a hack, and it's only used on Vista and later if we
-	     failed to find the fast_cwd_ptr value.  What we do here is to call
-	     RtlSetCurrentDirectory_U and let it set up a new FAST_CWD
-	     structure.  Afterwards, compute the address of that structure
-	     utilizing the fact that the buffer address in the user process
-	     parameter block is actually pointing to the buffer in that
-	     FAST_CWD structure.  Then replace the directory handle in that
-	     structure with our own handle and close the original one.
-
-	     Note that the call to RtlSetCurrentDirectory_U also closes our
-	     old dir handle, so there won't be any handle left open.
-
-	     This method is prone to two race conditions:
-
-	     - Due to the way RtlSetCurrentDirectory_U opens the directory
-	       handle, the directory is locked against deletion or renaming
-	       between the RtlSetCurrentDirectory_U and the subsequent NtClose
-	       call.
-
-	     - When another thread calls SetCurrentDirectory at exactly the
-	       same time, a crash might occur, or worse, unrelated data could
-	       be overwritten or NtClose could be called on an unrelated handle.
-
-	     Therefore, use this *only* as a fallback. */
-	  if (!init)
-	    {
-	      NTSTATUS status =
-		RtlSetCurrentDirectory_U (error ? &ro_u_pipedir : &win32);
-	      if (!NT_SUCCESS (status))
-		{
-		  debug_printf ("RtlSetCurrentDirectory_U(%S) failed, %y",
-				error ? &ro_u_pipedir : &win32, status);
-		  return;
-		}
-	    }
-	  else if (upp_cwd_hdl == NULL)
-	    return;
-	  RtlEnterCriticalSection (peb.FastPebLock);
-	  fcwd_access_t::SetDirHandleFromBufferPointer(upp_cwd_str.Buffer, dir);
-	  h = upp_cwd_hdl;
-	  upp_cwd_hdl = dir;
-	  RtlLeaveCriticalSection (peb.FastPebLock);
-	  /* In contrast to pre-Vista, the handle on init is always a fresh one
-	     and not the handle inherited from the parent process.  So we always
-	     have to close it here. */
-	  NtClose (h);
-	}
+      /* Fill in the values. */
+      f_cwd->FillIn (dir, error ? &ro_u_pipedir : &win32,
+		     old_dismount_count);
+      /* Use PEB lock when switching fast_cwd_ptr to the new FAST_CWD
+	 structure and writing the CWD to the user process parameter
+	 block.  This is equivalent to calling RtlAcquirePebLock/
+	 RtlReleasePebLock, but without having to go through the FS
+	 selector again. */
+      RtlEnterCriticalSection (peb.FastPebLock);
+      fcwd_access_t *old_cwd = *fast_cwd_ptr;
+      *fast_cwd_ptr = f_cwd;
+      f_cwd->CopyPath (upp_cwd_str);
+      upp_cwd_hdl = dir;
+      RtlLeaveCriticalSection (peb.FastPebLock);
+      if (old_cwd)
+	old_cwd->Free (heap);
     }
   else
     {
-      /* This method is used for all pre-Vista OSes.  We simply set the values
-	 for the CWD in the user process parameter block entirely by ourselves
-	 under PEB lock condition.  This is how RtlSetCurrentDirectory_U worked
-	 in these older OSes, so we're safe.
+      /* This is more a hack, and it's only used if we failed to find the
+	 fast_cwd_ptr value.  We call RtlSetCurrentDirectory_U and let it
+	 set up a new FAST_CWD structure.  Afterwards, compute the address
+	 of that structure utilizing the fact that the buffer address in
+	 the user process parameter block is actually pointing to the buffer
+	 in that FAST_CWD structure.  Then replace the directory handle in
+	 that structure with our own handle and close the original one.
 
-	 Note that we can't just RtlEnterCriticalSection (peb.FastPebLock)
-	 on pre-Vista.  RtlAcquirePebLock was way more complicated back then. */
-      RtlAcquirePebLock ();
+	 Note that the call to RtlSetCurrentDirectory_U also closes our
+	 old dir handle, so there won't be any handle left open.
+
+	 This method is prone to two race conditions:
+
+	 - Due to the way RtlSetCurrentDirectory_U opens the directory
+	   handle, the directory is locked against deletion or renaming
+	   between the RtlSetCurrentDirectory_U and the subsequent NtClose
+	   call.
+
+	 - When another thread calls SetCurrentDirectory at exactly the
+	   same time, a crash might occur, or worse, unrelated data could
+	   be overwritten or NtClose could be called on an unrelated handle.
+
+	 Therefore, use this *only* as a fallback. */
       if (!init)
-	copy_cwd_str (&upp_cwd_str, error ? &ro_u_pipedir : &win32);
+	{
+	  NTSTATUS status =
+	    RtlSetCurrentDirectory_U (error ? &ro_u_pipedir : &win32);
+	  if (!NT_SUCCESS (status))
+	    {
+	      debug_printf ("RtlSetCurrentDirectory_U(%S) failed, %y",
+			    error ? &ro_u_pipedir : &win32, status);
+	      return;
+	    }
+	}
+      else if (upp_cwd_hdl == NULL)
+	return;
+      RtlEnterCriticalSection (peb.FastPebLock);
+      fcwd_access_t::SetDirHandleFromBufferPointer(upp_cwd_str.Buffer, dir);
       h = upp_cwd_hdl;
       upp_cwd_hdl = dir;
-      RtlReleasePebLock ();
-      /* Only on init, the handle is potentially a native handle.  However,
-	 if it's identical to dir, it's the inherited handle from a Cygwin
-	 parent process and must not be closed. */
-      if (h && h != dir)
-	NtClose (h);
+      RtlLeaveCriticalSection (peb.FastPebLock);
+      /* The handle on init is always a fresh one, not the handle inherited
+	 from the parent process.  We always have to close it here. */
+      NtClose (h);
     }
 }
 
@@ -4452,13 +4406,6 @@ cwdstuff::set (path_conv *nat_cwd, const char *posix_cwd)
      - SetCurrentDirectory can naturally not work on virtual Cygwin paths
        like /proc or /cygdrive.
 
-     Unfortunately, even though we have access to the Win32 process parameter
-     block, we can't just replace the directory handle.  Starting with Vista,
-     the handle is used elsewhere, and just replacing the handle in the process
-     parameter block shows quite surprising results.
-     FIXME: If we ever find a *safe* way to replace the directory handle in
-     the process parameter block, we're back in business.
-
      Nevertheless, doing entirely without SetCurrentDirectory is not really
      feasible, because it breaks too many mixed applications using the Win32
      API.
@@ -4479,11 +4426,11 @@ cwdstuff::set (path_conv *nat_cwd, const char *posix_cwd)
     }
 
   /* Memorize old DismountCount before opening the dir.  This value is
-     stored in the FAST_CWD structure on Vista and later.  It would be
-     simpler to fetch the old DismountCount in override_win32_cwd, but
-     Windows also fetches it before opening the directory handle.  It's
-     not quite clear if that's really required, but since we don't know
-     the side effects of this action, we better follow Windows' lead. */
+     stored in the FAST_CWD structure.  It would be simpler to fetch the
+     old DismountCount in override_win32_cwd, but Windows also fetches
+     it before opening the directory handle.  It's not quite clear if
+     that's really required, but since we don't know the side effects of
+     this action, we better follow Windows' lead. */
   ULONG old_dismount_count = SharedUserData.DismountCount;
   /* Open a directory handle with FILE_OPEN_FOR_BACKUP_INTENT and with all
      sharing flags set.  The handle is right now used in exceptions.cc only,
@@ -4498,11 +4445,23 @@ cwdstuff::set (path_conv *nat_cwd, const char *posix_cwd)
 	{
 	  /* On init, just reopen Win32 CWD with desired access flags.
 	     We can access the PEB without lock, because no other thread
-	     can change the CWD. */
-	  RtlInitUnicodeString (&upath, L"");
-	  InitializeObjectAttributes (&attr, &upath,
-			OBJ_CASE_INSENSITIVE | OBJ_INHERIT,
-			peb.ProcessParameters->CurrentDirectoryHandle, NULL);
+	     can change the CWD.  However, there's a chance that the handle
+	     is NULL, even though CurrentDirectoryName isn't so we have to
+	     be careful. */
+	  if (!peb.ProcessParameters->CurrentDirectoryHandle)
+	    {
+	      InitializeObjectAttributes (&attr,
+			    &peb.ProcessParameters->CurrentDirectoryName,
+			    OBJ_CASE_INSENSITIVE | OBJ_INHERIT, NULL, NULL);
+	    }
+	  else
+	    {
+	      RtlInitUnicodeString (&upath, L"");
+	      InitializeObjectAttributes (&attr,
+			    &upath, OBJ_CASE_INSENSITIVE | OBJ_INHERIT,
+			    peb.ProcessParameters->CurrentDirectoryHandle,
+			    NULL);
+	    }
 	}
       else
 	InitializeObjectAttributes (&attr, &upath,
@@ -4527,9 +4486,31 @@ cwdstuff::set (path_conv *nat_cwd, const char *posix_cwd)
 	}
       if (!NT_SUCCESS (status))
 	{
-	  cwd_lock.release ();
-	  __seterrno_from_nt_status (status);
-	  return -1;
+	  /* Called from chdir?  Just fail. */
+	  if (nat_cwd)
+	    {
+	      cwd_lock.release ();
+	      __seterrno_from_nt_status (status);
+	      return -1;
+	    }
+	  /* Otherwise we're in init and posix hasn't been set yet.  Try to
+	     duplicate the handle instead.  If that fails, too, set dir to NULL
+	     and carry on.  This will at least set posix to some valid path at
+	     process startup, and subsequent getcwd calls don't EFAULT. */
+	  debug_printf ("WARNING: Can't reopen CWD %y '%S', status %y",
+			peb.ProcessParameters->CurrentDirectoryHandle,
+			&peb.ProcessParameters->CurrentDirectoryName,
+			status);
+	  if (!peb.ProcessParameters->CurrentDirectoryHandle
+	      || !DuplicateHandle (GetCurrentProcess (),
+			peb.ProcessParameters->CurrentDirectoryHandle,
+			GetCurrentProcess (), &h, 0, TRUE, 0))
+	    {
+	      cwd_lock.release ();
+	      if (peb.ProcessParameters->CurrentDirectoryHandle)
+		debug_printf ("...and DuplicateHandle failed with %E.");
+	      dir = NULL;
+	    }
 	}
     }
   /* Set new handle.  Note that we simply overwrite the old handle here
@@ -4686,8 +4667,6 @@ cwdstuff::reset_posix (wchar_t *w_cwd)
 char *
 cwdstuff::get (char *buf, int need_posix, int with_chroot, unsigned ulen)
 {
-  MALLOC_CHECK;
-
   tmp_pathbuf tp;
   if (ulen)
     /* nothing */;
@@ -4731,7 +4710,6 @@ cwdstuff::get (char *buf, int need_posix, int with_chroot, unsigned ulen)
 out:
   syscall_printf ("(%s) = cwdstuff::get (%p, %u, %d, %d), errno %d",
 		  buf, buf, ulen, need_posix, with_chroot, errno);
-  MALLOC_CHECK;
   return buf;
 }
 

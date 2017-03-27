@@ -73,7 +73,7 @@ int	_EXFUN(pthread_mutex_destroy, (pthread_mutex_t *__mutex));
     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
  */
 
-#define PTHREAD_MUTEX_INITIALIZER  ((pthread_mutex_t) 0xFFFFFFFF)
+#define PTHREAD_MUTEX_INITIALIZER _PTHREAD_MUTEX_INITIALIZER
 
 /*  Locking and Unlocking a Mutex, P1003.1c/Draft 10, p. 93
     NOTE: P1003.4b/D8 adds pthread_mutex_timedlock(), p. 29 */
@@ -116,7 +116,7 @@ int	_EXFUN(pthread_cond_destroy, (pthread_cond_t *__mutex));
     pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
  */
  
-#define PTHREAD_COND_INITIALIZER  ((pthread_cond_t) 0xFFFFFFFF)
+#define PTHREAD_COND_INITIALIZER _PTHREAD_COND_INITIALIZER
  
 /* Broadcasting and Signaling a Condition, P1003.1c/Draft 10, p. 101 */
  
@@ -169,6 +169,12 @@ int	_EXFUN(pthread_setschedparam,
 int	_EXFUN(pthread_setschedprio, (pthread_t thread, int prio));
 
 #endif /* defined(_POSIX_THREAD_PRIORITY_SCHEDULING) */
+
+#if __GNU_VISIBLE
+int	pthread_getname_np(pthread_t, char *, size_t) __nonnull(2);
+
+int	pthread_setname_np(pthread_t, const char *) __nonnull(2);
+#endif
 
 #if defined(_POSIX_THREAD_PRIO_INHERIT) || defined(_POSIX_THREAD_PRIO_PROTECT)
 
@@ -225,7 +231,7 @@ int	_EXFUN(pthread_attr_setguardsize,
  * in GNU/Linux. They may be provided by other OSes for
  * compatibility.
  */
-#if defined(__GNU_VISIBLE)
+#if __GNU_VISIBLE
 #if defined(__rtems__) 
 int	_EXFUN(pthread_attr_setaffinity_np,
 	(pthread_attr_t *__attr, size_t __cpusetsize, 
@@ -242,7 +248,7 @@ int	_EXFUN(pthread_getaffinity_np,
 int	_EXFUN(pthread_getattr_np,
 	(pthread_t __id, pthread_attr_t *__attr));
 #endif /* defined(__rtems__) */
-#endif /* defined(__GNU_VISIBLE) */
+#endif /* __GNU_VISIBLE */
 
 /* Thread Creation, P1003.1c/Draft 10, p. 144 */
 
@@ -278,6 +284,10 @@ int	_EXFUN(pthread_getcpuclockid,
 int	_EXFUN(pthread_setconcurrency, (int new_level));
 int	_EXFUN(pthread_getconcurrency, (void));
 
+#if __BSD_VISIBLE || __GNU_VISIBLE
+void	_EXFUN(pthread_yield, (void));
+#endif
+
 /* Dynamic Package Initialization */
 
 /* This is used to statically initialize a pthread_once_t. Example:
@@ -286,7 +296,7 @@ int	_EXFUN(pthread_getconcurrency, (void));
   
     NOTE:  This is named inconsistently -- it should be INITIALIZER.  */
  
-#define PTHREAD_ONCE_INIT  { 1, 0 }  /* is initialized and not run */
+#define PTHREAD_ONCE_INIT _PTHREAD_ONCE_INIT
  
 int	_EXFUN(pthread_once,
 	(pthread_once_t *__once_control, void (*__init_routine)(void)));
@@ -413,7 +423,7 @@ int	_EXFUN(pthread_spin_unlock, (pthread_spinlock_t *__spinlock));
     pthread_mutex_t mutex = PTHREAD_RWLOCK_INITIALIZER;
  */
 
-#define PTHREAD_RWLOCK_INITIALIZER  ((pthread_rwlock_t) 0xFFFFFFFF)
+#define PTHREAD_RWLOCK_INITIALIZER _PTHREAD_RWLOCK_INITIALIZER
 
 int	_EXFUN(pthread_rwlockattr_init, (pthread_rwlockattr_t *__attr));
 int	_EXFUN(pthread_rwlockattr_destroy, (pthread_rwlockattr_t *__attr));

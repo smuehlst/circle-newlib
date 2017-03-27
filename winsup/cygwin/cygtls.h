@@ -1,8 +1,5 @@
 /* cygtls.h
 
-   Copyright 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013,
-   2014, 2015 Red Hat, Inc.
-
 This software is a copyrighted work licensed under the terms of the
 Cygwin license.  Please consult the file "CYGWIN_LICENSE" for
 details. */
@@ -439,6 +436,4 @@ public:
      _cygtls::call_signal_handler. */
   ~wait_signal_arrived () { _my_tls.unwait_signal_arrived (); }
 };
-
-#define __getreent() (&_my_tls.local_clib)
 /*gentls_offsets*/

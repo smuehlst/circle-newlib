@@ -1,8 +1,5 @@
 /* limits.h
 
-   Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2011, 2012, 2013 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -131,9 +128,17 @@ details. */
 #undef ULLONG_MAX
 #define ULLONG_MAX (LLONG_MAX * 2ULL + 1)
 
-/* Maximum size of ssize_t */
+/* Maximum size of ssize_t. Sadly, gcc doesn't give us __SSIZE_MAX__
+   the way it does for __SIZE_MAX__.  On the other hand, we happen to
+   know that for Cygwin, ssize_t is 'int' on 32-bit and 'long' on
+   64-bit, and this particular header is specific to Cygwin, so we
+   don't have to jump through hoops. */
 #undef SSIZE_MAX
+#if __WORDSIZE == 64
 #define SSIZE_MAX (__LONG_MAX__)
+#else
+#define SSIZE_MAX (__INT_MAX__)
+#endif
 
 
 /* Runtime Invariant Values */

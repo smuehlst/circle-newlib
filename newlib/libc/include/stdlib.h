@@ -26,6 +26,10 @@
 #include <cygwin/stdlib.h>
 #endif
 
+#if __GNU_VISIBLE
+#include <xlocale.h>
+#endif
+
 _BEGIN_STD_C
 
 typedef struct 
@@ -144,6 +148,9 @@ char *	_EXFUN(realpath, (const char *__restrict path, char *__restrict resolved_
 #if __BSD_VISIBLE
 int	_EXFUN(rpmatch, (const char *response));
 #endif
+#if __XSI_VISIBLE
+_VOID	_EXFUN(setkey, (const char *__key));
+#endif
 _VOID	_EXFUN(srand,(unsigned __seed));
 double	_EXFUN(strtod,(const char *__restrict __n, char **__restrict __end_PTR));
 double	_EXFUN(_strtod_r,(struct _reent *,const char *__restrict __n, char **__restrict __end_PTR));
@@ -160,6 +167,21 @@ long	_EXFUN(strtol,(const char *__restrict __n, char **__restrict __end_PTR, int
 long	_EXFUN(_strtol_r,(struct _reent *,const char *__restrict __n, char **__restrict __end_PTR, int __base));
 unsigned long _EXFUN(strtoul,(const char *__restrict __n, char **__restrict __end_PTR, int __base));
 unsigned long _EXFUN(_strtoul_r,(struct _reent *,const char *__restrict __n, char **__restrict __end_PTR, int __base));
+
+#if __GNU_VISIBLE
+double	strtod_l (const char *__restrict, char **__restrict, locale_t);
+float	strtof_l (const char *__restrict, char **__restrict, locale_t);
+#ifdef _HAVE_LONG_DOUBLE
+extern long double strtold_l (const char *__restrict, char **__restrict,
+			      locale_t);
+#endif /* _HAVE_LONG_DOUBLE */
+long	strtol_l (const char *__restrict, char **__restrict, int, locale_t);
+unsigned long strtoul_l (const char *__restrict, char **__restrict, int,
+			 locale_t __loc);
+long long strtoll_l (const char *__restrict, char **__restrict, int, locale_t);
+unsigned long long strtoull_l (const char *__restrict, char **__restrict, int,
+			       locale_t __loc);
+#endif
 
 int	_EXFUN(system,(const char *__string));
 

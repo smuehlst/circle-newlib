@@ -1,8 +1,5 @@
 /* fhandler_termios.cc
 
-   Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2010,
-   2011, 2012, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -33,7 +30,7 @@ fhandler_termios::tcinit (bool is_pty_master)
 
   if (is_pty_master || !tc ()->initialized ())
     {
-      tc ()->ti.c_iflag = BRKINT | ICRNL | IXON;
+      tc ()->ti.c_iflag = BRKINT | ICRNL | IXON | IUTF8;
       tc ()->ti.c_oflag = OPOST | ONLCR;
       tc ()->ti.c_cflag = B38400 | CS8 | CREAD;
       tc ()->ti.c_lflag = ISIG | ICANON | ECHO | IEXTEN;
@@ -169,14 +166,43 @@ tty_min::is_orphaned_process_group (int pgid)
   return 1;
 }
 
+/*
+  bg_check: check that this process is either in the foreground process group,
+  or if the terminal operation is allowed for processes which are in a
+  background process group.
+
+  If the operation is not permitted by the terminal configuration for processes
+  which are a member of a background process group, return an error or raise a
+  signal as appropriate.
+
+  This handles the following terminal operations:
+
+  write:                             sig = SIGTTOU
+  read:                              sig = SIGTTIN
+  change terminal settings:          sig = -SIGTTOU
+  (tcsetattr, tcsetpgrp, etc.)
+  peek (poll, select):               sig = SIGTTIN, dontsignal = TRUE
+*/
 bg_check_types
-fhandler_termios::bg_check (int sig)
+fhandler_termios::bg_check (int sig, bool dontsignal)
 {
+  /* Ignore errors:
+     - this process isn't in a process group
+     - tty is invalid
+
+     Everything is ok if:
+     - this process is in the foreground process group, or
+     - this tty is not the controlling tty for this process (???), or
+     - writing, when TOSTOP TTY mode is not set on this tty
+  */
   if (!myself->pgid || !tc () || tc ()->getpgid () == myself->pgid ||
 	myself->ctty != tc ()->ntty ||
 	((sig == SIGTTOU) && !(tc ()->ti.c_lflag & TOSTOP)))
     return bg_ok;
 
+  /* sig -SIGTTOU is used to indicate a change to terminal settings, where
+     TOSTOP TTY mode isn't considered when determining if we need to send a
+     signal. */
   if (sig < 0)
     sig = -sig;
 
@@ -200,19 +226,20 @@ fhandler_termios::bg_check (int sig)
     (_main_tls->sigmask & SIGTOMASK (sig));
   cygheap->unlock_tls (tl_entry);
 
-  /* If the process is ignoring SIGTT*, then background IO is OK.  If
-     the process is not ignoring SIGTT*, then the sig is to be sent to
-     all processes in the process group (unless the process group of the
-     process is orphaned, in which case we return EIO). */
+  /* If the process is blocking or ignoring SIGTT*, then signals are not sent
+     and background IO is allowed */
   if (sigs_ignored)
     return bg_ok;   /* Just allow the IO */
+  /* If the process group of the process is orphaned, return EIO */
   else if (tc ()->is_orphaned_process_group (myself->pgid))
     {
       termios_printf ("process group is orphaned");
       set_errno (EIO);   /* This is an IO error */
       return bg_error;
     }
-  else
+  /* Otherwise, if signalling is desired, the signal is sent to all processes in
+     the process group */
+  else if (!dontsignal)
     {
       /* Don't raise a SIGTT* signal if we have already been
 	 interrupted by another signal. */
@@ -225,9 +252,37 @@ fhandler_termios::bg_check (int sig)
 	}
       return bg_signalled;
     }
+  return bg_ok;
 }
 
 #define set_input_done(x) input_done = input_done || (x)
+
+int
+fhandler_termios::eat_readahead (int n)
+{
+  int oralen = ralen;
+  if (n < 0)
+    n = ralen;
+  if (n > 0 && ralen > 0)
+    {
+      if ((int) (ralen -= n) < 0)
+	ralen = 0;
+      /* If IUTF8 is set, the terminal is in UTF-8 mode.  If so, we erase
+	 a complete UTF-8 multibyte sequence on VERASE/VWERASE.  Otherwise,
+	 if we only erase a single byte, invalid unicode chars are left in
+	 the input. */
+      if (tc ()->ti.c_iflag & IUTF8)
+	while (ralen > 0 && ((unsigned char) rabuf[ralen] & 0xc0) == 0x80)
+	  --ralen;
+
+      if (raixget >= ralen)
+	raixget = raixput = ralen = 0;
+      else if (raixput > ralen)
+	raixput = ralen;
+    }
+
+  return oralen;
+}
 
 inline void
 fhandler_termios::echo_erase (int force)

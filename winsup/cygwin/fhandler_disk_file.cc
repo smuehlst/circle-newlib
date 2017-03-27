@@ -1,8 +1,5 @@
 /* fhandler_disk_file.cc
 
-   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -254,7 +251,7 @@ fhandler_base::fstat_by_nfs_ea (struct stat *buf)
 	 NFS client. */
       if (get_access () & GENERIC_WRITE)
 	FlushFileBuffers (get_io_handle ());
-      nfs_fetch_fattr3 (get_io_handle (), nfs_attr);
+      pc.get_finfo (get_io_handle ());
     }
   buf->st_dev = nfs_attr->fsid;
   buf->st_ino = nfs_attr->fileid;
@@ -326,7 +323,7 @@ fhandler_base::fstat_by_handle (struct stat *buf)
      on the information stored in pc.fai.  So we overwrite them here. */
   if (get_io_handle ())
     {
-      status = file_get_fai (h, pc.fai ());
+      status = pc.get_finfo (h);
       if (!NT_SUCCESS (status))
        {
 	 debug_printf ("%y = NtQueryInformationFile(%S, FileAllInformation)",
@@ -334,8 +331,7 @@ fhandler_base::fstat_by_handle (struct stat *buf)
 	 return -1;
        }
     }
-  if (pc.hasgood_inode ()
-      && pc.isgood_inode (pc.fai ()->InternalInformation.IndexNumber.QuadPart))
+  if (pc.isgood_inode (pc.fai ()->InternalInformation.IndexNumber.QuadPart))
     ino = pc.fai ()->InternalInformation.IndexNumber.QuadPart;
   return fstat_helper (buf);
 }
@@ -463,10 +459,7 @@ fhandler_base::fstat_helper (struct stat *buf)
   buf->st_nlink = pc.fai()->StandardInformation.NumberOfLinks;
 
   /* Enforce namehash as inode number on untrusted file systems. */
-  if (ino && pc.isgood_inode (ino))
-    buf->st_ino = (ino_t) ino;
-  else
-    buf->st_ino = get_ino ();
+  buf->st_ino = ino ?: get_ino ();
 
   buf->st_blksize = PREFERRED_IO_BLKSIZE;
 
@@ -520,7 +513,7 @@ fhandler_base::fstat_helper (struct stat *buf)
       else
 	{
 	  buf->st_dev = buf->st_rdev = dev ();
-	  buf->st_mode = dev ().mode;
+	  buf->st_mode = dev ().mode ();
 	  buf->st_size = 0;
 	}
     }
@@ -539,7 +532,7 @@ fhandler_base::fstat_helper (struct stat *buf)
       else if (is_fs_special ())
 	{
 	  buf->st_dev = buf->st_rdev = dev ();
-	  buf->st_mode = dev ().mode;
+	  buf->st_mode = dev ().mode ();
 	  buf->st_size = 0;
 	}
       else
@@ -1461,29 +1454,20 @@ fhandler_base::open_fs (int flags, mode_t mode)
       return 0;
     }
 
-  int res = fhandler_base::open (flags | O_DIROPEN, mode);
-  if (!res)
-    goto out;
+  bool new_file = !exists ();
 
-  /* This is for file systems known for having a buggy CreateFile call
-     which might return a valid HANDLE without having actually opened
-     the file.
-     The only known file system to date is the SUN NFS Solstice Client 3.1
-     which returns a valid handle when trying to open a file in a nonexistent
-     directory. */
-  if (pc.has_buggy_open () && !pc.exists ())
+  int res = fhandler_base::open (flags | O_DIROPEN, mode);
+  if (res)
     {
-      debug_printf ("Buggy open detected.");
-      close_fs ();
-      set_errno (ENOENT);
-      return 0;
+      /* The file info in pc is wrong at this point for newly created files.
+	 Refresh it before fetching any file info. */
+      if (new_file)
+	pc.get_finfo (get_io_handle ());
+
+      if (pc.isgood_inode (pc.get_ino ()))
+	ino = pc.get_ino ();
     }
 
-  if (pc.hasgood_inode ()
-      && pc.isgood_inode (pc.fai ()->InternalInformation.IndexNumber.QuadPart))
-    ino = pc.fai ()->InternalInformation.IndexNumber.QuadPart;
-
-out:
   syscall_printf ("%d = fhandler_disk_file::open(%S, %y)", res,
 		  pc.get_nt_native_path (), flags);
   return res;
@@ -1896,22 +1880,19 @@ fhandler_disk_file::opendir (int fd)
 	      while (!NT_SUCCESS (status));
 	    }
 
-	  /* FileIdBothDirectoryInformation is apparently unsupported on
-	     XP when accessing directories on UDF.  When trying to use it
-	     so, NtQueryDirectoryFile returns with STATUS_ACCESS_VIOLATION.
-	     It's not clear if the call isn't also unsupported on other
-	     OS/FS combinations.  Instead of testing for yet another error
-	     code, let's use FileIdBothDirectoryInformation only on FSes
-	     supporting persistent ACLs, FileBothDirectoryInformation otherwise.
+	  /* FileIdBothDirectoryInformation was unsupported on XP when
+	     accessing UDF.  It's not clear if the call isn't also unsupported
+	     on other OS/FS combinations.  Instead of testing for yet another
+	     error code, use FileIdBothDirectoryInformation only on FSes
+	     supporting persistent ACLs.
 
 	     NFS clients hide dangling symlinks from directory queries,
 	     unless you use the FileNamesInformation info class.
-	     On newer NFS clients (>=Vista) FileIdBothDirectoryInformation
-	     works fine, but only if the NFS share is mounted to a drive
-	     letter.  TODO: We don't test that here for now, but it might
-	     be worth to test if there's a speed gain in using
-	     FileIdBothDirectoryInformation, because it doesn't require to
-	     open the file to read the inode number. */
+	     FileIdBothDirectoryInformation works fine, but only if the NFS
+	     share is mounted to a drive letter.  TODO: We don't test that
+	     here for now, but it might be worth to test if there's a speed
+	     gain in using FileIdBothDirectoryInformation, because it doesn't
+	     require to open the file to read the inode number. */
 	  if (pc.hasgood_inode ())
 	    {
 	      dir->__flags |= dirent_set_d_ino;
@@ -2092,7 +2073,7 @@ fhandler_disk_file::readdir_helper (DIR *dir, dirent *de, DWORD w32_err,
 	  else if (fpath.is_fs_special ())
 	    {
 	      fname->Length -= 4 * sizeof (WCHAR);
-	      de->d_type = S_ISCHR (fpath.dev.mode) ? DT_CHR : DT_BLK;
+	      de->d_type = S_ISCHR (fpath.dev.mode ()) ? DT_CHR : DT_BLK;
 	    }
 	}
     }

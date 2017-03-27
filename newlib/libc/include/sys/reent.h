@@ -37,6 +37,8 @@ typedef __uint32_t __ULong;
 
 struct _reent;
 
+struct __locale_t;
+
 /*
  * If _REENT_SMALL is defined, we make struct _reent as small as possible,
  * by having nearly everything possible allocated at first use.
@@ -384,8 +386,8 @@ struct _reent
 
   int __sdidinit;		/* 1 means stdio has been init'd */
 
-  int _current_category;	/* unused */
-  _CONST char *_current_locale;	/* unused */
+  int _unspecified_locale_info;	/* unused, reserved for locale stuff */
+  struct __locale_t *_locale;/* per-thread locale */
 
   struct _mprec *_mp;
 
@@ -429,7 +431,7 @@ extern const struct __sFILE_fake __sf_fake_stderr;
     _NULL, \
     0, \
     0, \
-    "C", \
+    _NULL, \
     _NULL, \
     _NULL, \
     0, \
@@ -450,11 +452,10 @@ extern const struct __sFILE_fake __sf_fake_stderr;
   { (var)->_stdin = (__FILE *)&__sf_fake_stdin; \
     (var)->_stdout = (__FILE *)&__sf_fake_stdout; \
     (var)->_stderr = (__FILE *)&__sf_fake_stderr; \
-    (var)->_current_locale = "C"; \
   }
 
-/* Only built the assert() calls if we are built with debugging.  */
-#if DEBUG
+/* Only add assert() calls if we are specified to debug.  */
+#ifdef _REENT_CHECK_DEBUG
 #include <assert.h>
 #define __reent_assert(x) assert(x)
 #else
@@ -577,8 +578,9 @@ struct _reent
   int  _inc;			/* used by tmpnam */
   char _emergency[_REENT_EMERGENCY_SIZE];
 
-  int _current_category;	/* used by setlocale */
-  _CONST char *_current_locale;
+  /* TODO */
+  int _unspecified_locale_info;	/* unused, reserved for locale stuff */
+  struct __locale_t *_locale;/* per-thread locale */
 
   int __sdidinit;		/* 1 means stdio has been init'd */
 
@@ -653,7 +655,7 @@ struct _reent
     0, \
     "", \
     0, \
-    "C", \
+    _NULL, \
     0, \
     _NULL, \
     _NULL, \
@@ -697,7 +699,6 @@ struct _reent
   { (var)->_stdin = &(var)->__sf[0]; \
     (var)->_stdout = &(var)->__sf[1]; \
     (var)->_stderr = &(var)->__sf[2]; \
-    (var)->_current_locale = "C"; \
     (var)->_new._reent._rand_next = 1; \
     (var)->_new._reent._r48._seed[0] = _RAND48_SEED_0; \
     (var)->_new._reent._r48._seed[1] = _RAND48_SEED_1; \

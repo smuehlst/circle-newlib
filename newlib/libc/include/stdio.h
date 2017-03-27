@@ -35,8 +35,21 @@
 #include <sys/cdefs.h>
 #include <stddef.h>
 
+/* typedef only __gnuc_va_list, used throughout the header */
 #define __need___va_list
 #include <stdarg.h>
+
+/* typedef va_list only when required */
+#if __POSIX_VISIBLE >= 200809 || __XSI_VISIBLE
+#ifdef __GNUC__
+#ifndef _VA_LIST_DEFINED
+typedef __gnuc_va_list va_list;
+#define _VA_LIST_DEFINED
+#endif
+#else /* !__GNUC__ */
+#include <stdarg.h>
+#endif
+#endif /* __POSIX_VISIBLE >= 200809 || __XSI_VISIBLE */
 
 /*
  * <sys/reent.h> defines __FILE, _fpos_t.
@@ -164,6 +177,12 @@ typedef _fpos64_t fpos64_t;
 #endif
 #endif
 
+#if __POSIX_VISIBLE
+char *	_EXFUN(ctermid, (char *));
+#endif
+#if __XSI_VISIBLE && __XSI_VISIBLE < 600
+char *	_EXFUN(cuserid, (char *));
+#endif
 FILE *	_EXFUN(tmpfile, (void));
 char *	_EXFUN(tmpnam, (char *));
 #if __BSD_VISIBLE || __XSI_VISIBLE || __POSIX_VISIBLE >= 200112
@@ -728,11 +747,11 @@ _ELIDABLE_INLINE int __sputc_r(struct _reent *_ptr, int _c, FILE *_p) {
 	__swbuf_r(_REENT, (int)(x), p) == EOF : (*(p)->_p = (x), (p)->_p++, 0))
 #endif
 
-#if __XSI_VISIBLE
+#if __GNU_VISIBLE || (__XSI_VISIBLE && __XSI_VISIBLE < 600)
 #define	L_cuserid	9		/* posix says it goes in stdio.h :( */
-#ifdef __CYGWIN__
-#define L_ctermid       16
 #endif
+#if __POSIX_VISIBLE
+#define L_ctermid       16
 #endif
 
 #endif /* !__CUSTOM_FILE_IO__ */

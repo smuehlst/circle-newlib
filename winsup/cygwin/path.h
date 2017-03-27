@@ -1,8 +1,5 @@
 /* path.h: path data structures
 
-   Copyright 1996, 1997, 1998, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015 Red Hat, Inc.
-
 This file is part of Cygwin.
 
 This software is a copyrighted work licensed under the terms of the
@@ -90,6 +87,8 @@ enum path_types
   PATH_SOCKET		= 0x40000000
 };
 
+NTSTATUS file_get_fai (HANDLE, PFILE_ALL_INFORMATION);
+
 class symlink_info;
 
 class path_conv_handle
@@ -117,10 +116,25 @@ public:
       hdl = NULL;
   }
   inline HANDLE handle () const { return hdl; }
-  inline PFILE_ALL_INFORMATION fai ()
+  inline PFILE_ALL_INFORMATION fai () const
   { return (PFILE_ALL_INFORMATION) &attribs._fai; }
-  inline struct fattr3 *nfsattr ()
+  inline struct fattr3 *nfsattr () const
   { return (struct fattr3 *) &attribs._fattr3; }
+  inline NTSTATUS get_finfo (HANDLE h, bool nfs)
+  {
+    return nfs ? nfs_fetch_fattr3 (h, nfsattr ()) : file_get_fai (h, fai ());
+  }
+  inline ino_t get_ino (bool nfs) const
+  {
+    return nfs ? nfsattr ()->fileid
+	       : fai ()->InternalInformation.IndexNumber.QuadPart;
+  }
+  inline DWORD get_dosattr (bool nfs) const
+  {
+    if (nfs)
+      return (nfsattr ()->type & 7) == NF3DIR ? FILE_ATTRIBUTE_DIRECTORY : 0;
+    return fai ()->BasicInformation.FileAttributes;
+  }
 };
 
 class path_conv
@@ -154,7 +168,6 @@ class path_conv
   }
   int has_symlinks () const {return path_flags & PATH_HAS_SYMLINKS;}
   int has_dos_filenames_only () const {return path_flags & PATH_DOS;}
-  int has_buggy_open () const {return fs.has_buggy_open ();}
   int has_buggy_reopen () const {return fs.has_buggy_reopen ();}
   int has_buggy_fileid_dirinfo () const {return fs.has_buggy_fileid_dirinfo ();}
   int has_buggy_basic_info () const {return fs.has_buggy_basic_info ();}
@@ -225,7 +238,7 @@ class path_conv
     path_flags (0), suffix (NULL), posix_path (NULL), error (0),
     dev (in_dev)
   {
-    set_path (in_dev.native);
+    set_path (in_dev.native ());
   }
 
   path_conv (int, const char *src, unsigned opt = PC_SYM_FOLLOW,
@@ -303,11 +316,14 @@ class path_conv
     cfree_and_null (posix_path);
     cfree_and_null (wide_path);
   }
-  path_conv& eq_worker (const path_conv& pc, const char *in_path,
-			const char *in_posix_path)
+  path_conv& eq_worker (const path_conv& pc, const char *in_path)
   {
     free_strings ();
     memcpy (this, &pc, sizeof pc);
+    /* The device info might contain pointers to allocated strings, in
+       contrast to statically allocated strings.  Calling device::dup()
+       will duplicate the string if the source was allocated. */
+    dev.dup ();
     path = cstrdup (in_path);
     conv_handle.dup (pc.conv_handle);
     posix_path = cstrdup(pc.posix_path);
@@ -324,7 +340,7 @@ class path_conv
   path_conv &operator << (const path_conv& pc)
   {
     const char *save_path;
-    const char *save_posix_path;
+
     if (!path)
       save_path = pc.path;
     else
@@ -332,19 +348,12 @@ class path_conv
 	save_path = (char *) alloca (strlen (path) + 1);
 	strcpy ((char *) save_path, path);
       }
-    if (!posix_path)
-      save_posix_path = pc.posix_path;
-    else
-      {
-	save_posix_path = (char *) alloca (strlen (posix_path) + 1);
-	strcpy ((char *) save_posix_path, path);
-      }
-    return eq_worker (pc, save_path, save_posix_path);
+    return eq_worker (pc, save_path);
   }
 
   path_conv &operator =(const path_conv& pc)
   {
-    return eq_worker (pc, pc.path, pc.posix_path);
+    return eq_worker (pc, pc.path);
   }
   dev_t get_device () {return dev.get_device ();}
   DWORD file_attributes () const {return fileattr;}
@@ -380,6 +389,11 @@ class path_conv
   HANDLE handle () const { return conv_handle.handle (); }
   PFILE_ALL_INFORMATION fai () { return conv_handle.fai (); }
   struct fattr3 *nfsattr () { return conv_handle.nfsattr (); }
+  inline NTSTATUS get_finfo (HANDLE h)
+  {
+    return conv_handle.get_finfo (h, fs.is_nfs ());
+  }
+  inline ino_t get_ino () const { return conv_handle.get_ino (fs.is_nfs ()); }
   void reset_conv_handle () { conv_handle.set (NULL); }
   void close_conv_handle () { conv_handle.close (); }
 
@@ -432,7 +446,6 @@ bool __reg2 has_dot_last_component (const char *dir, bool test_dot_dot);
 int __reg3 path_prefix_p (const char *path1, const char *path2, int len1,
 		   bool caseinsensitive);
 
-NTSTATUS file_get_fai (HANDLE, PFILE_ALL_INFORMATION);
 int normalize_win32_path (const char *, char *, char *&);
 int normalize_posix_path (const char *, char *, char *&);
 PUNICODE_STRING __reg3 get_nt_native_path (const char *, UNICODE_STRING&, bool);
