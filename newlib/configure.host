@@ -400,7 +400,7 @@ case "${host}" in
 	;;
   arm*-*-circleraspi1)
 	sys_dir=arm
-    have_crt0="yes"
+    have_crt0="no"
     posix_dir=""
     unix_dir=""
 	signal_dir=""
