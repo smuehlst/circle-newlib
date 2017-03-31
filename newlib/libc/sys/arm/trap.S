@@ -85,12 +85,7 @@ __rt_stkovf_split_big:
         @        protects the data against any events that may try and use
         @        the stack.
 
-		@ Commented out the following instruction as it triggers a compilation error:
-        @ SUB     ip, sp, ip      @ extra stack required for function
-        @ ../../../../../../../newlib-circle/newlib/libc/sys/arm/trap.S:88: Error: lo register required -- `sub ip,sp,ip'
-        @ None of the symbols __rt_stkovf_split_small and __rt_stkovf_split_big seem to be
-        @ called anywhere
-
+        SUB     ip, sp, ip      @ extra stack required for function
         @ Add stack extension code here.  If desired a new stack chunk
         @ can be allocated, and the register state updated suitably.
 
