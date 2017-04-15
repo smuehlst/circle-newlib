@@ -403,16 +403,6 @@ case "${host}" in
 	sys_dir=a29khif
 	signal_dir=
 	;;
-  # arm*-*-circleraspi1)
-	# sys_dir=arm
-    # have_crt0="no"
-    # posix_dir=""
-    # unix_dir=""
-	# signal_dir=""
-	# stdio64_dir=""
-	# syscall_dir=""
-	# newlib_cflags="${newlib_cflags} -marm -march=armv6j -mtune=arm1176jzf-s -mfloat-abi=hard -DMALLOC_PROVIDED"
-	# ;;
   arm*-*-*)
 	sys_dir=arm
 	if [ "x${newlib_may_supply_syscalls}" = "xno" ] ; then
@@ -637,10 +627,10 @@ case "${host}" in
 	syscall_dir=syscalls
 	default_newlib_io_long_long="yes"
 	;;
-  arm*-*-circleraspi1)
+  arm*-*-circleraspi0)
     syscall_dir=syscalls
     # newlib_cflags="${newlib_cflags} -marm -march=armv6j -mtune=arm1176jzf-s -mfloat-abi=hard -DMALLOC_PROVIDED"
-    newlib_cflags="${newlib_cflags} -DMALLOC_PROVIDED"
+    # newlib_cflags="${newlib_cflags} -DMALLOC_PROVIDED"
     ;;
   arm*-*-pe)
 	syscall_dir=syscalls
