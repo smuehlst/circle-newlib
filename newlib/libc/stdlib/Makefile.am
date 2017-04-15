@@ -52,6 +52,7 @@ GENERAL_SOURCES = \
 	rand_r.c	\
 	random.c	\
 	realloc.c	\
+	reallocarray.c	\
 	reallocf.c	\
 	sb_charsets.c	\
 	strtod.c	\
@@ -307,8 +308,6 @@ $(lpfx)dtoa.$(oext): dtoa.c mprec.h
 $(lpfx)ldtoa.$(oext): ldtoa.c mprec.h
 $(lpfx)ecvtbuf.$(oext): ecvtbuf.c mprec.h
 $(lpfx)mbtowc_r.$(oext): mbtowc_r.c mbctype.h
-	$(LIB_COMPILE) -c -fshort-enums $(srcdir)/mbtowc_r.c -o $@
-
 $(lpfx)mprec.$(oext): mprec.c mprec.h
 $(lpfx)strtod.$(oext): strtod.c mprec.h
 $(lpfx)gdtoa-gethex.$(oext): gdtoa-gethex.c mprec.h

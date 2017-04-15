@@ -11,7 +11,7 @@ details. */
    changes to the DLL and is mainly informative in nature. */
 
 #define CYGWIN_VERSION_DLL_MAJOR 2008
-#define CYGWIN_VERSION_DLL_MINOR 0
+#define CYGWIN_VERSION_DLL_MINOR 1
 
 /* Major numbers before CYGWIN_VERSION_DLL_EPOCH are incompatible. */
 
@@ -473,12 +473,14 @@ details. */
   306: Export getentropy, getrandom.
   307: Export timingsafe_bcmp, timingsafe_memcmp.
   308: Export dladdr.
+  309: Export getloadavg.
+  310: Export reallocarray.
 
   Note that we forgot to bump the api for ualarm, strtoll, strtoull,
   sigaltstack, sethostname. */
 
 #define CYGWIN_VERSION_API_MAJOR 0
-#define CYGWIN_VERSION_API_MINOR 308
+#define CYGWIN_VERSION_API_MINOR 310
 
 /* There is also a compatibity version number associated with the shared memory
    regions.  It is incremented when incompatible changes are made to the shared
