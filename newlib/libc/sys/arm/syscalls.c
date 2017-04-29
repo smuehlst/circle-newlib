@@ -451,6 +451,8 @@ _getpid (int n)
   n = n;
 }
 
+#if 0
+// Circle support: no support for sbrk system call().
 caddr_t __attribute__((weak))
 _sbrk (int incr)
 {
@@ -483,6 +485,7 @@ _sbrk (int incr)
 
   return (caddr_t) prev_heap_end;
 }
+#endif
 
 extern void memset (struct stat *, int, unsigned int);
 
