@@ -40,6 +40,9 @@ QUICKREF
 #define UNALIGNED(X)   ((long)X & (LBLOCKSIZE - 1))
 #define TOO_SMALL(LEN) ((LEN) < LBLOCKSIZE)
 
+#if 0
+// Circle support: must use implementation from libcircle.a,
+// as gcc insists to auto-generate calls to memset().
 _PTR
 __inhibit_loop_to_libcall
 _DEFUN (memset, (m, c, n),
@@ -102,3 +105,6 @@ _DEFUN (memset, (m, c, n),
 
   return m;
 }
+#else
+static const void * const avoid_empty_module = &avoid_empty_module;
+#endif

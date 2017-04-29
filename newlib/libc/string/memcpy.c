@@ -50,6 +50,9 @@ QUICKREF
 /* Threshhold for punting to the byte copier.  */
 #define TOO_SMALL(LEN)  ((LEN) < BIGBLOCKSIZE)
 
+#if 0
+// Circle support: must use implementation from libcircle.a,
+// as gcc insists to auto-generate calls to memcpy().
 _PTR
 _DEFUN (memcpy, (dst0, src0, len0),
 	_PTR __restrict dst0 _AND
@@ -109,3 +112,6 @@ _DEFUN (memcpy, (dst0, src0, len0),
   return dst0;
 #endif /* not PREFER_SIZE_OVER_SPEED */
 }
+#else
+static const void * const avoid_empty_module = &avoid_empty_module;
+#endif
