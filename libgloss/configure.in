@@ -155,6 +155,9 @@ case "${target}" in
   rx*-*-elf)
 	AC_CONFIG_SUBDIRS([rx])
 	;;
+  arm-*-circle*)
+    AC_CONFIG_SUBDIRS([circle])
+    ;;
   arm*-*-elf | arm*-*-coff | arm*-*-*)
 	AC_CONFIG_SUBDIRS([arm])
 	;;
