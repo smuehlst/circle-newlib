@@ -629,6 +629,7 @@ case "${host}" in
 	;;
   arm*-*-circleraspi0)
     syscall_dir=syscalls
+    sys_dir=
     newlib_cflags="${newlib_cflags} -DMALLOC_PROVIDED"
     ;;
   arm*-*-pe)
