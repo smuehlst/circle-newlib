@@ -627,7 +627,7 @@ case "${host}" in
 	syscall_dir=syscalls
 	default_newlib_io_long_long="yes"
 	;;
-  arm*-*-circleraspi0)
+  arm*-*-circle)
     syscall_dir=syscalls
     sys_dir=
     newlib_cflags="${newlib_cflags} -DMALLOC_PROVIDED"
