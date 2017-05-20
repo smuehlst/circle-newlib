@@ -11,9 +11,11 @@ AR_FLAGS = rc
 .c.o:
 	$(CC) $(CFLAGS_FOR_TARGET) -O2 $(INCLUDES) -c $(CFLAGS) $<
 
-# Circle needs a C++ compiler
+# Circle needs a C++ compiler and the Circle include path.
+# Must be compiled without exception support. In lack of a better way to pass this via the configure options
+# this is currently hardcoded here.
 .cpp.o:
-	$(CXX) $(CFLAGS_FOR_TARGET) -O2 $(INCLUDES) -c $(CFLAGS) $<
+	$(CXX) $(CFLAGS_FOR_TARGET) $(CPPFLAGS) -O2 $(INCLUDES) -c $(CFLAGS) -fno-exceptions $<
 
 .C.o:
 	$(CC) $(CFLAGS_FOR_TARGET) -O2 $(INCLUDES) -c $(CFLAGS) $<

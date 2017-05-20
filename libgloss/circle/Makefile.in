@@ -43,6 +43,7 @@ SHELL =	/bin/sh
 
 CC = @CC@
 CXX = @CXX@
+CPPFLAGS = @CPPFLAGS@
 
 #AS = @AS@
 AS = `if [ -f ${objroot}/../gas/as-new ] ; \

@@ -585,6 +585,7 @@ ac_unique_file="chown.c"
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
 host_makefile_frag_path
+CPPFLAGS
 am__fastdepCXX_FALSE
 am__fastdepCXX_TRUE
 CXXDEPMODE
@@ -2929,6 +2930,7 @@ fi
 
   test -z "$CXX" && as_fn_error $? "no acceptable c++ found in \$PATH" "$LINENO" 5
 fi
+
 
 
 

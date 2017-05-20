@@ -173,6 +173,7 @@ AC_PROG_RANLIB
 LIB_AM_PROG_AS
 
 LIB_AC_PROG_CXX
+AC_SUBST(CPPFLAGS)
 
 host_makefile_frag=${srcdir}/../config/circle.mh
 
