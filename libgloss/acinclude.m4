@@ -60,3 +60,36 @@ else
 fi
 ])
 
+AC_DEFUN([LIB_AC_PROG_CXX],
+[AC_BEFORE([$0], [AC_PROG_CPP])dnl
+AC_CHECK_PROG(CXX, g++, g++)
+_AM_DEPENDENCIES(CXX)
+if test -z "$CC"; then
+  AC_CHECK_PROG(CXX, c++, c++, , , /usr/ucb/c++)
+  test -z "$CXX" && AC_MSG_ERROR([no acceptable c++ found in \$PATH])
+fi
+
+dnl LIB_AC_PROG_CC_GNU
+
+dnl if test $ac_cv_prog_gcc = yes; then
+  dnl GCC=yes
+dnl Check whether -g works, even if CFLAGS is set, in case the package
+dnl plays around with CFLAGS (such as to build both debugging and
+dnl normal versions of a library), tasteless as that idea is.
+  dnl ac_test_CFLAGS="${CFLAGS+set}"
+  dnl ac_save_CFLAGS="$CFLAGS"
+  dnl CFLAGS=
+  dnl _AC_PROG_CC_G
+  dnl if test "$ac_test_CFLAGS" = set; then
+    dnl CFLAGS="$ac_save_CFLAGS"
+  dnl elif test $ac_cv_prog_cc_g = yes; then
+    dnl CFLAGS="-g -O2"
+  dnl else
+    dnl CFLAGS="-O2"
+  dnl fi
+dnl else
+  dnl GCC=
+  dnl test "${CFLAGS+set}" = set || CFLAGS="-g"
+dnl fi
+])
+

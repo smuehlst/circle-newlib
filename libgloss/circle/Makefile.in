@@ -42,6 +42,7 @@ INSTALL_DATA = @INSTALL_DATA@
 SHELL =	/bin/sh
 
 CC = @CC@
+CXX = @CXX@
 
 #AS = @AS@
 AS = `if [ -f ${objroot}/../gas/as-new ] ; \
@@ -66,7 +67,7 @@ OBJCOPY = `if [ -f ${objroot}/../binutils/objcopy ] ; \
 
 # object files needed
 OBJS = chown.o close.o environ.o errno.o execve.o fork.o fstat.o \
-	getpid.o gettod.o isatty.o kill.o link.o lseek.o open.o \
+	getpid.o gettod.o io.o isatty.o kill.o link.o lseek.o open.o \
 	read.o readlink.o sbrk.o stat.o symlink.o times.o unlink.o \
 	wait.o write.o _exit.o mem.o
 
