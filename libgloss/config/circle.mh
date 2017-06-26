@@ -15,7 +15,7 @@ AR_FLAGS = rc
 # Must be compiled without exception support. In lack of a better way to pass this via the configure options
 # this is currently hardcoded here.
 .cpp.o:
-	$(CXX) $(CFLAGS_FOR_TARGET) $(CPPFLAGS) -O2 $(INCLUDES) -c $(CFLAGS) -fno-exceptions $<
+	$(CXX) $(CFLAGS_FOR_TARGET) $(CPPFLAGS) -O2 $(INCLUDES) -c $(CFLAGS) -fno-exceptions -fno-rtti $<
 
 .C.o:
 	$(CC) $(CFLAGS_FOR_TARGET) -O2 $(INCLUDES) -c $(CFLAGS) $<
