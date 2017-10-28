@@ -15,13 +15,13 @@ extern int errno;
 
 namespace
 {
-	struct CircleFile
+    struct CircleFile
     {
     	CircleFile() : mCGlueIO(nullptr) {}
     	CGlueIO *mCGlueIO;
     };
 
-    unsigned int const MAX_OPEN_FILES = 20;
+    constexpr unsigned int MAX_OPEN_FILES = 20;
 
     CFATFileSystem *circle_fat_fs = nullptr;
 
