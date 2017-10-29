@@ -10,6 +10,7 @@ extern int errno;
 #include "warning.h"
 
 #include <circle/fs/fat/fatfs.h>
+#include <circle/input/console.h>
 #include <circle_glue.h>
 #include <assert.h>
 
@@ -24,6 +25,7 @@ namespace
     constexpr unsigned int MAX_OPEN_FILES = 20;
 
     CFATFileSystem *circle_fat_fs = nullptr;
+    CConsole *circle_console = nullptr;
 
     CircleFile fileTab[MAX_OPEN_FILES];
 
@@ -44,12 +46,23 @@ namespace
     }
 }
 
-void CGlueStdioInit(CFATFileSystem& rFATFileSystem)
+void CGlueStdioInit(CFATFileSystem& rFATFileSystem, CConsole& rConsole)
 {
     // Must only be called once
     assert(!circle_fat_fs);
+    assert(!circle_console);
 
     circle_fat_fs = &rFATFileSystem;
+    circle_console = &rConsole;
+
+    // Initialize slots for stdin, stdout and stderr
+    CircleFile &stdin = fileTab[0];
+    CircleFile &stdout = fileTab[1];
+    CircleFile &stderr = fileTab[2];
+
+    stdin.mCGlueIO = new CGlueConsole (rConsole, CGlueConsole::ConsoleModeRead);
+    stdout.mCGlueIO = new CGlueConsole (rConsole, CGlueConsole::ConsoleModeWrite);
+    stderr.mCGlueIO = new CGlueConsole (rConsole, CGlueConsole::ConsoleModeWrite);
 }
 
 extern "C"
