@@ -9,16 +9,14 @@ LDFLAGS_FOR_TARGET = ${MULTILIB} ${NEWLIB_LDFLAGS}
 AR_FLAGS = rc
 
 .c.o:
-	$(CC) $(CFLAGS_FOR_TARGET) -O2 $(INCLUDES) -c $(CFLAGS) $<
+	$(CC) $(CFLAGS_FOR_TARGET) $(INCLUDES) -c $(CFLAGS) $<
 
-# Circle needs a C++ compiler and the Circle include path.
-# Must be compiled without exception support. In lack of a better way to pass this via the configure options
-# this is currently hardcoded here.
+# Circle needs a C++ compiler and the Circle include path via CPPFLAGS.
 .cpp.o:
-	$(CXX) $(CFLAGS_FOR_TARGET) $(CPPFLAGS) -O2 $(INCLUDES) -c $(CFLAGS) -fno-exceptions -fno-rtti $<
+	$(CXX) $(CFLAGS_FOR_TARGET) $(CPPFLAGS) $(INCLUDES) -c $(CFLAGS) $<
 
 .C.o:
-	$(CC) $(CFLAGS_FOR_TARGET) -O2 $(INCLUDES) -c $(CFLAGS) $<
+	$(CC) $(CFLAGS_FOR_TARGET) $(INCLUDES) -c $(CFLAGS) $<
 .s.o:
 	$(AS) $(ASFLAGS_FOR_TARGET) $(INCLUDES) $(ASFLAGS) -o $*.o $<
 
