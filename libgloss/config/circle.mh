@@ -13,7 +13,7 @@ AR_FLAGS = rc
 
 # Circle needs a C++ compiler and the Circle include path via CPPFLAGS.
 .cpp.o:
-	$(CXX) $(CFLAGS_FOR_TARGET) $(CPPFLAGS) $(INCLUDES) -c $(CFLAGS) $<
+	$(CXX) $(CFLAGS_FOR_TARGET) $(CPPFLAGS) $(INCLUDES) -c $(CFLAGS) -fno-exceptions -fno-rtti $<
 
 .C.o:
 	$(CC) $(CFLAGS_FOR_TARGET) $(INCLUDES) -c $(CFLAGS) $<
