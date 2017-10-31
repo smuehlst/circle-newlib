@@ -171,7 +171,7 @@ _DEFUN (_read, (fildes, ptr, len),
 
 	unsigned const read_result = file.mCGlueIO->Read(ptr, static_cast<unsigned>(len));
 
-	if (read_result == static_cast<unsigned>(-1))
+	if (read_result == CGlueIO::GeneralFailure)
 	{
 		errno = EIO;
 		return -1;
@@ -202,7 +202,7 @@ _DEFUN (_write, (fildes, ptr, len),
 
 	unsigned const write_result = file.mCGlueIO->Write(ptr, static_cast<unsigned>(len));
 
-	if (write_result == static_cast<unsigned>(-1))
+	if (write_result == CGlueIO::GeneralFailure)
 	{
 		errno = EIO;
 		return -1;
