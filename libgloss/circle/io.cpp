@@ -11,7 +11,7 @@ extern int errno;
 
 #include <circle/fs/fat/fatfs.h>
 #include <circle/input/console.h>
-#include <circle_glue.h>
+#include "circle_glue.h"
 #include <assert.h>
 
 namespace
@@ -25,7 +25,6 @@ namespace
     constexpr unsigned int MAX_OPEN_FILES = 20;
 
     CFATFileSystem *circle_fat_fs = nullptr;
-    CConsole *circle_console = nullptr;
 
     CircleFile fileTab[MAX_OPEN_FILES];
 
@@ -44,25 +43,48 @@ namespace
 
     	return slotNr;
     }
+
+    void
+    CGlueInitFileSystem (CFATFileSystem& rFATFileSystem)
+    {
+            // Must only be called once
+            assert (!circle_fat_fs);
+
+            circle_fat_fs = &rFATFileSystem;
+    }
+
+    void
+    CGlueInitConsole (CConsole& rConsole)
+    {
+            CircleFile &stdin = fileTab[0];
+            CircleFile &stdout = fileTab[1];
+            CircleFile &stderr = fileTab[2];
+
+            // Must only be called once and not be called after a file has already been opened
+            assert (!stdin.mCGlueIO);
+            assert (!stdout.mCGlueIO);
+            assert (!stderr.mCGlueIO);
+
+            stdin.mCGlueIO = new CGlueConsole (rConsole, CGlueConsole::ConsoleModeRead);
+            stdout.mCGlueIO = new CGlueConsole (rConsole, CGlueConsole::ConsoleModeWrite);
+            stderr.mCGlueIO = new CGlueConsole (rConsole, CGlueConsole::ConsoleModeWrite);
+    }
 }
 
 void CGlueStdioInit(CFATFileSystem& rFATFileSystem, CConsole& rConsole)
 {
-    // Must only be called once
-    assert(!circle_fat_fs);
-    assert(!circle_console);
+        CGlueInitConsole (rConsole);
+        CGlueInitFileSystem (rFATFileSystem);
+}
 
-    circle_fat_fs = &rFATFileSystem;
-    circle_console = &rConsole;
+void CGlueStdioInit (CFATFileSystem& rFATFileSystem)
+{
+        CGlueInitFileSystem (rFATFileSystem);
+}
 
-    // Initialize slots for stdin, stdout and stderr
-    CircleFile &stdin = fileTab[0];
-    CircleFile &stdout = fileTab[1];
-    CircleFile &stderr = fileTab[2];
-
-    stdin.mCGlueIO = new CGlueConsole (rConsole, CGlueConsole::ConsoleModeRead);
-    stdout.mCGlueIO = new CGlueConsole (rConsole, CGlueConsole::ConsoleModeWrite);
-    stderr.mCGlueIO = new CGlueConsole (rConsole, CGlueConsole::ConsoleModeWrite);
+void CGlueStdioInit (CConsole& rConsole)
+{
+        CGlueInitConsole (rConsole);
 }
 
 extern "C"
