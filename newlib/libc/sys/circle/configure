@@ -581,7 +581,7 @@ PACKAGE_STRING='newlib 2.5.0'
 PACKAGE_BUGREPORT=''
 PACKAGE_URL=''
 
-ac_unique_file=""
+ac_unique_file="dummy.c"
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
 sys_dir
