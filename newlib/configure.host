@@ -630,7 +630,7 @@ case "${host}" in
   arm*-*-circle)
     syscall_dir=syscalls
     sys_dir=
-    newlib_cflags="${newlib_cflags} -DMALLOC_PROVIDED"
+    newlib_cflags="${newlib_cflags} -DMALLOC_PROVIDED -DHAVE_OPENDIR"
     ;;
   arm*-*-pe)
 	syscall_dir=syscalls
