@@ -1,25 +1,18 @@
-/* libc/sys/linux/sys/dirent.h - Directory entry as returned by readdir */
-
-/* Written 2000 by Werner Almesberger */
-
+/* Directory entry as returned by readdir */
 
 #ifndef _SYS_DIRENT_H
 #define _SYS_DIRENT_H
 
 #include <sys/types.h>
-#include <bits/dirent.h>
-#define _LIBC 1
-#define  NOT_IN_libc 1
-#include <sys/lock.h>
-#undef _LIBC
 
-#define HAVE_NO_D_NAMLEN	/* no struct dirent->d_namlen */
-#define HAVE_DD_LOCK  		/* have locking mechanism */
-
-#define MAXNAMLEN 255		/* sizeof(struct dirent.d_name)-1 */
-
+#include <circle/fs/fsdef.h>
 
 typedef struct _CIRCLE_DIR DIR;
+
+struct dirent {
+        ino_t  d_ino;
+        char   d_name[FS_TITLE_LEN + 1];
+};
 
 #if 0
 {

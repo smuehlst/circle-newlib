@@ -3,16 +3,34 @@
 #include <_syslist.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/dirent.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <string.h>
 #undef errno
 extern int errno;
 #include "warning.h"
 
 #include <circle/fs/fat/fatfs.h>
 #include <circle/input/console.h>
+#include <circle/string.h>
 #include "circle_glue.h"
 #include <assert.h>
+
+struct _CIRCLE_DIR {
+        _CIRCLE_DIR() :
+                mFirstRead(0), mOpen(0)
+        {
+                mEntry.d_ino = 0;
+                mEntry.d_name[0] = 0;
+        }
+
+        TFindCurrentEntry mCurrentEntry;
+        struct dirent mEntry;
+        unsigned int mFirstRead : 1;
+        unsigned int mOpen : 1;
+
+};
 
 namespace
 {
@@ -23,12 +41,14 @@ namespace
     };
 
     constexpr unsigned int MAX_OPEN_FILES = 20;
+    constexpr unsigned int MAX_OPEN_DIRS = 20;
 
     CFATFileSystem *circle_fat_fs = nullptr;
 
     CircleFile fileTab[MAX_OPEN_FILES];
+    _CIRCLE_DIR dirTab[MAX_OPEN_DIRS];
 
-    int FindFreeSlot(void)
+    int FindFreeFileSlot(void)
     {
     	int slotNr = -1;
 
@@ -37,6 +57,22 @@ namespace
     		if (slot.mCGlueIO == nullptr)
     		{
     			slotNr = &slot - fileTab;
+    			break;
+    		}
+    	}
+
+    	return slotNr;
+    }
+
+    int FindFreeDirSlot(void)
+    {
+    	int slotNr = -1;
+
+    	for (auto const& slot: dirTab)
+    	{
+    		if (!slot.mOpen)
+    		{
+    			slotNr = &slot - dirTab;
     			break;
     		}
     	}
@@ -98,14 +134,14 @@ _DEFUN (_open, (file, flags, mode),
 
 	// Only supported modes are read and write. The mask is
 	// determined from the newlib header.
-	int  const masked_flags = flags & 7;
+	int const masked_flags = flags & 7;
 	if (masked_flags != O_RDONLY && masked_flags != O_WRONLY)
 	{
 		errno = ENOSYS;
 	}
 	else
 	{
-		slot = FindFreeSlot();
+		slot = FindFreeFileSlot();
 
 		if (slot != -1)
 		{
@@ -231,4 +267,94 @@ _DEFUN (_write, (fildes, ptr, len),
 	}
 
 	return static_cast<int>(write_result);
+}
+
+extern "C"
+DIR *
+opendir (const char *name)
+{
+        assert (circle_fat_fs);
+
+        /* For now only the single root directory and the current directory are supported */
+        if (strcmp(name, "/") != 0 && strcmp(name, ".") != 0)
+        {
+                errno = ENOENT;
+                return 0;
+        }
+
+        int const slotNum = FindFreeDirSlot ();
+        if (slotNum == -1)
+        {
+                errno = ENFILE;
+                return 0;
+        }
+
+        auto &slot = dirTab[slotNum];
+
+        slot.mOpen = 1;
+        slot.mFirstRead = 1;
+
+        return &slot;
+}
+
+extern "C" struct dirent *
+readdir (DIR *dir)
+{
+        if (!dir->mOpen)
+        {
+                errno = EBADF;
+                return nullptr;
+        }
+
+        TDirentry Direntry;
+        bool haveEntry;
+        if (dir->mFirstRead)
+        {
+                haveEntry = circle_fat_fs->RootFindFirst (&Direntry, &dir->mCurrentEntry);
+                dir->mFirstRead = 0;
+        }
+        else
+        {
+                haveEntry = circle_fat_fs->RootFindNext (&Direntry, &dir->mCurrentEntry);
+        }
+
+        struct dirent *result;
+        if (haveEntry)
+        {
+                memcpy (dir->mEntry.d_name, Direntry.chTitle, sizeof(dir->mEntry.d_name));
+                dir->mEntry.d_ino = 0; // TODO: how to determine an inode number in Circle?
+                result = &dir->mEntry;
+        }
+        else
+        {
+                // end of directory does not change errno
+                result = nullptr;
+        }
+
+        return result;
+}
+
+extern "C" int
+readdir_r (DIR *__restrict dir, dirent *__restrict de, dirent **__restrict ode)
+{
+        return ENOENT; // TODO
+}
+
+extern "C" void
+rewinddir (DIR *dir)
+{
+        dir->mFirstRead = 1;
+}
+
+extern "C" int
+closedir (DIR *dir)
+{
+        if (!dir->mOpen)
+        {
+                errno = EBADF;
+                return -1;
+        }
+
+        dir->mOpen = 0;
+        return 0;
 }
