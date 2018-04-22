@@ -297,15 +297,9 @@ opendir (const char *name)
         return &slot;
 }
 
-extern "C" struct dirent *
-readdir (DIR *dir)
+static struct dirent *
+do_readdir (DIR *dir, struct dirent *de)
 {
-        if (!dir->mOpen)
-        {
-                errno = EBADF;
-                return nullptr;
-        }
-
         TDirentry Direntry;
         bool haveEntry;
         if (dir->mFirstRead)
@@ -321,9 +315,9 @@ readdir (DIR *dir)
         struct dirent *result;
         if (haveEntry)
         {
-                memcpy (dir->mEntry.d_name, Direntry.chTitle, sizeof(dir->mEntry.d_name));
-                dir->mEntry.d_ino = 0; // TODO: how to determine an inode number in Circle?
-                result = &dir->mEntry;
+                memcpy (de->d_name, Direntry.chTitle, sizeof(de->d_name));
+                de->d_ino = 0; // TODO: how to determine an inode number in Circle?
+                result = de;
         }
         else
         {
@@ -334,10 +328,41 @@ readdir (DIR *dir)
         return result;
 }
 
+extern "C" struct dirent *
+readdir (DIR *dir)
+{
+        struct dirent *result;
+
+        if (dir->mOpen)
+        {
+                result = do_readdir (dir, &dir->mEntry);
+        }
+        else
+        {
+                errno = EBADF;
+                result = nullptr;
+        }
+
+        return result;
+}
+
 extern "C" int
 readdir_r (DIR *__restrict dir, dirent *__restrict de, dirent **__restrict ode)
 {
-        return ENOENT; // TODO
+        int result;
+
+        if (dir->mOpen)
+        {
+                *ode = do_readdir (dir, de);
+                result = 0;
+        }
+        else
+        {
+                *ode = nullptr;
+                result = EBADF;
+        }
+
+        return result;
 }
 
 extern "C" void
