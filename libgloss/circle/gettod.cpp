@@ -8,19 +8,18 @@
 #include <sys/time.h>
 #include <sys/times.h>
 #include <errno.h>
-#undef errno
-extern int errno;
 #include "warning.h"
 
-struct timeval;
+#include <circle/timer.h>
 
+extern "C"
 int
 _DEFUN (_gettimeofday, (ptimeval, ptimezone),
-        struct timeval  *ptimeval  _AND
+        struct timeval *ptimeval _AND
         void *ptimezone)
 {
-  errno = ENOSYS;
-  return -1;
-}
+        ptimeval->tv_sec = CTimer::Get ()->GetUniversalTime ();
+        ptimeval->tv_usec = 0;
 
-stub_warning(_gettimeofday)
+        return 0;
+}
