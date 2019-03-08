@@ -34,6 +34,9 @@ dnl indicates whether to run configure within the libnosys subdirectory
 config_libnosys=true
 
 case "${target}" in
+  arm-*-circle* | aarch64*-*-circle*)
+    AC_CONFIG_SUBDIRS([circle])
+    ;;
   aarch64*-*-*)
 	AC_CONFIG_SUBDIRS(aarch64)
 	config_testsuite=true
@@ -155,9 +158,6 @@ case "${target}" in
   rx*-*-elf)
 	AC_CONFIG_SUBDIRS([rx])
 	;;
-  arm-*-circle*)
-    AC_CONFIG_SUBDIRS([circle])
-    ;;
   arm*-*-elf | arm*-*-coff | arm*-*-*)
 	AC_CONFIG_SUBDIRS([arm])
 	;;

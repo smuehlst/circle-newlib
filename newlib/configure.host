@@ -619,6 +619,12 @@ case "${host}" in
 	newlib_cflags="${newlib_cflags} -DNO_EXEC"
 	syscall_dir=syscalls
 	;;
+  aarch64*-*-circle | arm*-*-circle)
+    syscall_dir=syscalls
+    sys_dir=circle
+    have_crt0="no"
+    newlib_cflags="${newlib_cflags} -DMALLOC_PROVIDED -DHAVE_OPENDIR"
+    ;;
   aarch64*-*-*)
 	default_newlib_io_long_long="yes"
 	syscall_dir=syscalls
@@ -627,12 +633,6 @@ case "${host}" in
 	syscall_dir=syscalls
 	default_newlib_io_long_long="yes"
 	;;
-  arm*-*-circle)
-    syscall_dir=syscalls
-    sys_dir=circle
-    have_crt0="no"
-    newlib_cflags="${newlib_cflags} -DMALLOC_PROVIDED -DHAVE_OPENDIR"
-    ;;
   arm*-*-pe)
 	syscall_dir=syscalls
 	;;
