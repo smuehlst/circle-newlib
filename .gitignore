@@ -42,3 +42,4 @@ core
 !core/
 
 lost+found
+/Makefile
