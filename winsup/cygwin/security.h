@@ -17,6 +17,7 @@ details. */
 
 /* UID/GID */
 void uinfo_init ();
+bool check_token_membership (PSID);
 
 #define ILLEGAL_UID ((uid_t)-1)
 #define ILLEGAL_GID ((gid_t)-1)
@@ -44,7 +45,7 @@ void uinfo_init ();
 #define MAP_UNIX_TO_CYGWIN_ID(id)	(UNIX_POSIX_OFFSET \
 					 | ((id) & UNIX_POSIX_MASK))
 
-#ifndef __x86_64__
+#ifdef __i386__
 #define ILLEGAL_UID16 ((__uid16_t)-1)
 #define ILLEGAL_GID16 ((__gid16_t)-1)
 #define uid16touid32(u16)  ((u16)==ILLEGAL_UID16?ILLEGAL_UID:(uid_t)(u16))
@@ -478,10 +479,18 @@ HANDLE create_token (cygsid &usersid, user_groups &groups);
 HANDLE lsaauth (cygsid &, user_groups &);
 /* LSA private key storage authentication, same as when using service logons. */
 HANDLE lsaprivkeyauth (struct passwd *pw);
+/* Kerberos or MsV1 S4U logon. */
+HANDLE s4uauth (bool logon, PCWSTR domain, PCWSTR user, NTSTATUS &ret_status);
 /* Verify an existing token */
 bool verify_token (HANDLE token, cygsid &usersid, user_groups &groups, bool *pintern = NULL);
 /* Get groups of a user */
-bool get_server_groups (cygsidlist &grp_list, PSID usersid);
+enum acct_disabled_chk_t {
+  NO_CHK_DISABLED = 0,
+  CHK_DISABLED = 1
+};
+
+bool get_server_groups (cygsidlist &grp_list, PSID usersid,
+			acct_disabled_chk_t check_account_disabled);
 
 /* Extract U-domain\user field from passwd entry. */
 void extract_nt_dom_user (const struct passwd *pw, PWCHAR domain, PWCHAR user);

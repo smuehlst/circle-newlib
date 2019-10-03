@@ -20,6 +20,7 @@ details. */
 #include "cygheap.h"
 #include "ntdll.h"
 #include <sys/queue.h>
+#include "mmap_alloc.h"
 
 /* __PROT_ATTACH indicates an anonymous mapping which is supposed to be
    attached to a file mapping for pages beyond the file's EOF.  The idea
@@ -145,8 +146,7 @@ CreateMapping (HANDLE fhdl, size_t len, off_t off, DWORD openflags,
   ULONG attributes = attached (prot) ? SEC_RESERVE : SEC_COMMIT;
 
   OBJECT_ATTRIBUTES oa;
-  InitializeObjectAttributes (&oa, NULL, OBJ_INHERIT, NULL,
-			      sec_none.lpSecurityDescriptor);
+  InitializeObjectAttributes (&oa, NULL, OBJ_INHERIT, NULL, NULL);
 
   if (fhdl == INVALID_HANDLE_VALUE)
     {
@@ -517,7 +517,7 @@ mmap_record::alloc_fh ()
 {
   if (anonymous ())
     {
-      fh_anonymous.set_io_handle (INVALID_HANDLE_VALUE);
+      fh_anonymous.set_handle (INVALID_HANDLE_VALUE);
       fh_anonymous.set_access (GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE);
       return &fh_anonymous;
     }
@@ -799,92 +799,6 @@ mmap_worker (mmap_list *map_list, fhandler_base *fh, caddr_t base, size_t len,
   return base;
 }
 
-#ifdef __x86_64__
-
-/* The memory region used for memory maps */
-#define MMAP_STORAGE_LOW	0x00800000000L	/* Leave 8 Gigs for heap. */
-#define MMAP_STORAGE_HIGH	0x70000000000L	/* Leave enough room for OS. */
-
-/* FIXME?  Unfortunately the OS doesn't support a top down allocation with
-	   a ceiling value.  The ZeroBits mechanism only works for
-	   NtMapViewOfSection and it only evaluates the high bit of ZeroBits
-	   on 64 bit, so it's pretty much useless for our purposes.
-
-	   If the below simple mechanism to perform top-down allocations
-	   turns out to be too dumb, we need something else.  One idea is to
-	   dived the space in (3835) 4 Gig chunks and simply store the
-	   available free space per slot.  Then we can go top down from slot
-	   to slot and only try slots which are supposed to have enough space.
-	   Bookkeeping would be very simple and fast. */
-class mmap_allocator
-{
-  caddr_t mmap_current_low;
-
-public:
-  mmap_allocator () : mmap_current_low ((caddr_t) MMAP_STORAGE_HIGH) {}
-
-  PVOID alloc (PVOID in_addr, SIZE_T in_size, bool fixed)
-  {
-    MEMORY_BASIC_INFORMATION mbi;
-
-    SIZE_T size = roundup2 (in_size, wincap.allocation_granularity ());
-    /* First check for the given address. */
-    if (in_addr)
-      {
-	/* If it points to a free area, big enough to fulfill the request,
-	   return the address. */
-      	if (VirtualQuery (in_addr, &mbi, sizeof mbi)
-	    && mbi.State == MEM_FREE
-	    && mbi.RegionSize >= size)
-	  return in_addr;
-	/* Otherwise, if MAP_FIXED was given, give up. */
-	if (fixed)
-	  return NULL;
-	/* Otherwise, fall through to the usual free space search mechanism. */
-      }
-    /* Start with the last allocation start address - requested size. */
-    caddr_t addr = mmap_current_low - size;
-    bool merry_go_round = false;
-    do
-      {
-	/* Did we hit the lower ceiling?  If so, restart from the upper
-	   ceiling, but note that we did it. */
-	if (addr < (caddr_t) MMAP_STORAGE_LOW)
-	  {
-	    addr = (caddr_t) MMAP_STORAGE_HIGH - size;
-	    merry_go_round = true;
-	  }
-	/* Shouldn't fail, but better test. */
-	if (!VirtualQuery ((PVOID) addr, &mbi, sizeof mbi))
-	  return NULL;
-	/* If the region is free... */
-	if (mbi.State == MEM_FREE)
-	  {
-	    /* ...and the region is big enough to fulfill the request... */
-	    if (mbi.RegionSize >= size)
-	      {
-		/* ...note the address as next start address for our simple
-		   merry-go-round and return the address. */
-		mmap_current_low = addr;
-		return (PVOID) addr;
-	      }
-	    /* Otherwise, subtract what's missing in size and try again. */
-	    addr -= size - mbi.RegionSize;
-	  }
-	/* If the region isn't free, skip to address below AllocationBase
-	   and try again. */
-	else
-	  addr = (caddr_t) mbi.AllocationBase - size;
-      }
-    /* Repeat until we had a full ride on the merry_go_round. */
-    while (!merry_go_round || addr >= mmap_current_low);
-    return NULL;
-  }
-};
-
-static mmap_allocator mmap_alloc;	/* Inherited by forked child. */
-#endif
-
 extern "C" void *
 mmap64 (void *addr, size_t len, int prot, int flags, int fd, off_t off)
 {
@@ -902,7 +816,7 @@ mmap64 (void *addr, size_t len, int prot, int flags, int fd, off_t off)
 
   size_t pagesize = wincap.allocation_granularity ();
 
-  fh_anonymous.set_io_handle (INVALID_HANDLE_VALUE);
+  fh_anonymous.set_handle (INVALID_HANDLE_VALUE);
   fh_anonymous.set_access (GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE);
 
   /* EINVAL error conditions. */
@@ -917,12 +831,24 @@ mmap64 (void *addr, size_t len, int prot, int flags, int fd, off_t off)
       goto out;
     }
 
+  /* POSIX: When MAP_FIXED is not set, the implementation uses addr in an
+     implementation-defined manner to arrive at pa [the return address].
+     Given that we refuse addr if it's not exactly at a page boundary, we
+     can just make sure addr does so indiscriminately.  Just round down
+     to the next lower page boundary. */
+  addr = (void *) rounddown ((uintptr_t) addr, pagesize);
+
   if (!anonymous (flags) && fd != -1)
     {
       /* Ensure that fd is open */
       cygheap_fdget cfd (fd);
       if (cfd < 0)
 	goto out;
+      if (cfd->get_flags () & O_PATH)
+	{
+	  set_errno (EBADF);
+	  goto out;
+	}
 
       fh = cfd;
 
@@ -1022,7 +948,7 @@ mmap64 (void *addr, size_t len, int prot, int flags, int fd, off_t off)
 	  fh_disk_file = new (ccalloc (HEAP_FHANDLER, 1, sizeof *fh_disk_file))
 			     fhandler_disk_file;
 	  fh_disk_file->set_name (fh->pc);
-	  fh_disk_file->set_io_handle (h);
+	  fh_disk_file->set_handle (h);
 	  fh_disk_file->set_access (fh->get_access () | GENERIC_EXECUTE);
 	  fh = fh_disk_file;
 	}
@@ -1062,14 +988,17 @@ mmap64 (void *addr, size_t len, int prot, int flags, int fd, off_t off)
 	}
       fsiz -= off;
       /* We're creating the pages beyond EOF as reserved, anonymous pages.
-	 Note that this isn't done in 64 bit environments since apparently
-	 64 bit systems don't support the AT_ROUND_TO_PAGE flag, which is
-	 required to get this right.  Too bad. */
-#ifndef __x86_64__
-      if (!wincap.is_wow64 ()
-	  && (((off_t) len > fsiz && !autogrow (flags))
-	      || roundup2 (len, wincap.page_size ())
-		 < roundup2 (len, pagesize)))
+	 Note that 64 bit environments don't support the AT_ROUND_TO_PAGE
+	 flag, which is required to get this right for the remainder of
+	 the first 64K block the file ends in.  We perform the workaround
+	 nevertheless to support expectations that the range mapped beyond
+	 EOF can be safely munmap'ed instead of being taken by another,
+	 totally unrelated mapping. */
+      if ((off_t) len > fsiz && !autogrow (flags))
+	orig_len = len;
+#ifdef __i386__
+      else if (!wincap.is_wow64 () && roundup2 (len, wincap.page_size ())
+				      < roundup2 (len, pagesize))
 	orig_len = len;
 #endif
       if ((off_t) len > fsiz)
@@ -1170,17 +1099,24 @@ go_ahead:
 	 protection as the file's pages, then as much pages as necessary
 	 to accomodate the requested length, but as reserved pages which
 	 raise a SIGBUS when trying to access them.  AT_ROUND_TO_PAGE
-	 and page protection on shared pages is only supported by 32 bit NT,
-	 so don't even try on WOW64.  This is accomplished by not setting
-	 orig_len on WOW64 above. */
-#if 0
-      orig_len = roundup2 (orig_len, pagesize);
+	 and page protection on shared pages is only supported by the
+	 32 bit environment, so don't even try on 64 bit or even WOW64.
+	 This results in an allocation gap in the first 64K block the file
+	 ends in, but there's nothing at all we can do about that. */
+#ifdef __x86_64__
+      len = roundup2 (len, wincap.allocation_granularity ());
+#else
+      len = roundup2 (len, wincap.is_wow64 () ? wincap.allocation_granularity ()
+					      : wincap.page_size ());
 #endif
-      len = roundup2 (len, wincap.page_size ());
       if (orig_len - len)
 	{
 	  orig_len -= len;
-	  size_t valid_page_len = orig_len % pagesize;
+	  size_t valid_page_len = 0;
+#ifndef __x86_64__
+	  if (!wincap.is_wow64 ())
+	    valid_page_len = orig_len % pagesize;
+#endif
 	  size_t sigbus_page_len = orig_len - valid_page_len;
 
 	  caddr_t at_base = base + len;
@@ -1228,14 +1164,14 @@ out:
   return ret;
 }
 
-#ifdef __x86_64__
-EXPORT_ALIAS (mmap64, mmap)
-#else
+#ifdef __i386__
 extern "C" void *
 mmap (void *addr, size_t len, int prot, int flags, int fd, _off_t off)
 {
   return mmap64 (addr, len, prot, flags, fd, (off_t)off);
 }
+#else
+EXPORT_ALIAS (mmap64, mmap)
 #endif
 
 /* munmap () removes all mmapped pages between addr and addr+len. */
@@ -1458,7 +1394,7 @@ mlock (const void *addr, size_t len)
 
   /* Align address and length values to page size. */
   size_t pagesize = wincap.allocation_granularity ();
-  PVOID base = (PVOID) rounddown((uintptr_t) addr, pagesize);
+  PVOID base = (PVOID) rounddown ((uintptr_t) addr, pagesize);
   SIZE_T size = roundup2 (((uintptr_t) addr - (uintptr_t) base) + len,
 			  pagesize);
   NTSTATUS status = 0;
@@ -1516,7 +1452,7 @@ munlock (const void *addr, size_t len)
 
   /* Align address and length values to page size. */
   size_t pagesize = wincap.allocation_granularity ();
-  PVOID base = (PVOID) rounddown((uintptr_t) addr, pagesize);
+  PVOID base = (PVOID) rounddown ((uintptr_t) addr, pagesize);
   SIZE_T size = roundup2 (((uintptr_t) addr - (uintptr_t) base) + len,
 			  pagesize);
   NTSTATUS status = NtUnlockVirtualMemory (NtCurrentProcess (), &base, &size,

@@ -43,9 +43,6 @@ __FBSDID("$FreeBSD: /repoman/r/ncvs/src/sys/kern/sysv_sem.c,v 1.70 2004/05/30 20
 #define __semctl semctl
 #define __semctl_args semctl_args
 #define SEM_DEBUG
-#define _mk_semid(P)		((P) - sema)
-#define msleep(P,m,p,w,t)	_msleep(SEM,_mk_semid(P),(m),(p),(w),(t))
-#define wakeup(P)		_wakeup(SEM,_mk_semid(P))
 #endif /* __CYGWIN__ */
 
 #ifdef SEM_DEBUG
@@ -252,7 +249,7 @@ seminit(void)
 	for (i = 0; i < seminfo.semmni; i++)
 	{
 		char *buf = (char *) sys_malloc(16, M_SEM, M_WAITOK);
-		snprintf(buf, 16, "semid[%d]", i);
+		snprintf(buf, 16, "semid[%d]", (short) i);
 		mtx_init(&sema_mtx[i], buf, NULL, MTX_DEF);
 	}
 	for (i = 0; i < seminfo.semmnu; i++) {

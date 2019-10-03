@@ -31,12 +31,7 @@ details. */
 
 #define X(w, e) {ERROR_##w, #w, e}
 
-static const struct
-{
-  DWORD w;		 /* windows version of error */
-  const char *s;	 /* text of windows version */
-  int e;		 /* errno version of error */
-} errmap[] =
+static const errmap_t errmap[] =
 {
   /* FIXME: Some of these choices are arbitrary! */
   X (ACCESS_DENIED,		EACCES),
@@ -339,7 +334,7 @@ void __reg3
 seterrno_from_win_error (const char *file, int line, DWORD code)
 {
   syscall_printf ("%s:%d windows error %u", file, line, code);
-  errno = geterrno_from_win_error (code, EACCES);
+  errno = _impure_ptr->_errno =  geterrno_from_win_error (code, EACCES);
 }
 
 int __reg2
@@ -357,7 +352,7 @@ seterrno_from_nt_status (const char *file, int line, NTSTATUS status)
   SetLastError (code);
   syscall_printf ("%s:%d status %y -> windows error %u",
 		  file, line, status, code);
-  errno = geterrno_from_win_error (code, EACCES);
+  errno = _impure_ptr->_errno =  geterrno_from_win_error (code, EACCES);
 }
 
 static char *

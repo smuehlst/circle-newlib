@@ -390,7 +390,7 @@ check_sanity_and_sync (per_process *p)
     api_fatal ("cygwin DLL and APP are out of sync -- API version mismatch %u > %u",
 	       p->api_major, cygwin_version.api_major);
 
-#ifndef __x86_64__
+#ifdef __i386__
   /* This is a kludge to work around a version of _cygwin_common_crt0
      which overwrote the cxx_malloc field with the local DLL copy.
      Hilarity ensues if the DLL is not loaded while the process
@@ -601,7 +601,7 @@ child_info_fork::handle_fork ()
   myself->uid = cygheap->user.real_uid;
   myself->gid = cygheap->user.real_gid;
 
-  child_copy (parent, false,
+  child_copy (parent, false, silentfail (),
 	      "dll data", dll_data_start, dll_data_end,
 	      "dll bss", dll_bss_start, dll_bss_end,
 	      "user heap", cygheap->user_heap.base, cygheap->user_heap.ptr,
@@ -625,19 +625,25 @@ child_info_fork::handle_fork ()
 
   /* step 2 now that the dll has its heap filled in, we can fill in the
      user's data and bss since user_data is now filled out. */
-  child_copy (parent, false,
+  child_copy (parent, false, silentfail (),
 	      "data", user_data->data_start, user_data->data_end,
 	      "bss", user_data->bss_start, user_data->bss_end,
 	      NULL);
 
   if (fixup_mmaps_after_fork (parent))
     api_fatal ("recreate_mmaps_after_fork_failed");
+
+  /* We need to occupy the address space for dynamically loaded dlls
+     before we allocate any dynamic object, or we may end up with
+     error "address space needed by <dll> is already occupied"
+     for no good reason (seen with some relocated dll). */
+  dlls.reserve_space ();
 }
 
 bool
 child_info_spawn::get_parent_handle ()
 {
-  parent = OpenProcess (PROCESS_VM_READ, false, parent_winpid);
+  parent = OpenProcess (PROCESS_VM_READ, FALSE, parent_winpid);
   moreinfo->myself_pinfo = NULL;
   return !!parent;
 }
@@ -646,17 +652,22 @@ void
 child_info_spawn::handle_spawn ()
 {
   extern void fixup_lockf_after_exec (bool);
-  HANDLE h;
+  HANDLE h = INVALID_HANDLE_VALUE;
   if (!dynamically_loaded || get_parent_handle ())
       {
 	cygheap_fixup_in_child (true);
 	memory_init ();
       }
+
+  cygheap->pid = cygpid;
+
+  /* Spawned process sets h to INVALID_HANDLE_VALUE to notify
+     pinfo::thisproc not to create another pid. */
   if (!moreinfo->myself_pinfo ||
       !DuplicateHandle (GetCurrentProcess (), moreinfo->myself_pinfo,
 			GetCurrentProcess (), &h, 0,
 			FALSE, DUPLICATE_SAME_ACCESS | DUPLICATE_CLOSE_SOURCE))
-    h = NULL;
+    h = (type == _CH_SPAWN) ? INVALID_HANDLE_VALUE : NULL;
 
   /* Setup our write end of the process pipe.  Clear the one in the structure.
      The destructor should never be called for this but, it can't hurt to be
@@ -685,12 +696,11 @@ child_info_spawn::handle_spawn ()
 
   ready (true);
 
-  /* Keep pointer to parent open if we've execed so that pid will not be reused.
-     Otherwise, we no longer need this handle so close it.
-     Need to do this after debug_fixup_after_fork_exec or DEBUGGING handling of
-     handles might get confused. */
-  if (type != _CH_EXEC && child_proc_info->parent)
+  if (child_proc_info->parent)
     {
+      /* We no longer need this handle so close it.  Need to do
+	 this after debug_fixup_after_fork_exec or DEBUGGING handling of
+	 handles might get confused. */
       CloseHandle (child_proc_info->parent);
       child_proc_info->parent = NULL;
     }
@@ -712,7 +722,7 @@ init_windows_system_directory ()
 	api_fatal ("can't find windows system directory");
       windows_system_directory[windows_system_directory_length++] = L'\\';
       windows_system_directory[windows_system_directory_length] = L'\0';
-#ifndef __x86_64__
+#ifdef __i386__
       system_wow64_directory_length =
 	GetSystemWow64DirectoryW (system_wow64_directory, MAX_PATH);
       if (system_wow64_directory_length)
@@ -720,7 +730,7 @@ init_windows_system_directory ()
 	  system_wow64_directory[system_wow64_directory_length++] = L'\\';
 	  system_wow64_directory[system_wow64_directory_length] = L'\0';
 	}
-#endif /* !__x86_64__ */
+#endif /* __i386__ */
     }
 }
 
@@ -1103,14 +1113,14 @@ dll_crt0 (per_process *uptr)
 extern "C" void
 cygwin_dll_init ()
 {
-#ifndef __x86_64__
+#ifdef __i386__
   static char **envp;
 #endif
   static int _fmode;
 
   user_data->magic_biscuit = sizeof (per_process);
 
-#ifndef __x86_64__
+#ifdef __i386__
   user_data->envptr = &envp;
 #endif
   user_data->fmode_ptr = &_fmode;

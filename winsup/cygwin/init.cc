@@ -22,8 +22,14 @@ static bool dll_finished_loading;
 static void WINAPI
 threadfunc_fe (VOID *arg)
 {
-#ifndef __x86_64__
+#ifdef __i386__
+#if __GNUC_PREREQ(6,0)
+#pragma GCC diagnostic ignored "-Wframe-address"
+#endif
   (void)__builtin_return_address(1);
+#if __GNUC_PREREQ(6,0)
+#pragma GCC diagnostic pop
+#endif
   asm volatile ("andl $-16,%%esp" ::: "%esp");
 #endif
   _cygtls::call ((DWORD (*)  (void *, void *)) TlsGetValue (_my_oldfunc), arg);
@@ -94,6 +100,7 @@ dll_entry (HANDLE h, DWORD reason, void *static_load)
 	 will always fall back to __global_locale, rather then crash due to
 	 _REENT->_locale having an arbitrary value. */
       alloca_dummy = alloca (CYGTLS_PADSIZE);
+      ZeroMemory (alloca_dummy, CYGTLS_PADSIZE);
       memcpy (_REENT, _GLOBAL_REENT, sizeof (struct _reent));
 
       dll_crt0_0 ();

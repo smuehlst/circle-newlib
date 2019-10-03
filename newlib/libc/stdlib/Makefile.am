@@ -32,6 +32,8 @@ GENERAL_SOURCES = \
 	gdtoa-hexnan.c	\
 	getenv.c  	\
 	getenv_r.c	\
+	imaxabs.c	\
+	imaxdiv.c	\
 	itoa.c          \
 	labs.c 		\
 	ldiv.c  	\
@@ -56,14 +58,16 @@ GENERAL_SOURCES = \
 	reallocf.c	\
 	sb_charsets.c	\
 	strtod.c	\
-	strtodg.c	\
+	strtoimax.c	\
 	strtol.c	\
-	strtorx.c	\
 	strtoul.c	\
+	strtoumax.c	\
 	utoa.c          \
 	wcstod.c	\
+	wcstoimax.c	\
 	wcstol.c	\
 	wcstoul.c	\
+	wcstoumax.c	\
 	wcstombs.c	\
 	wcstombs_r.c	\
 	wctomb.c	\
@@ -71,7 +75,9 @@ GENERAL_SOURCES = \
 
 if HAVE_LONG_DOUBLE
 GENERAL_SOURCES += \
-	strtold.c \
+	strtodg.c	\
+	strtold.c	\
+	strtorx.c	\
 	wcstold.c
 endif # HAVE_LONG_DOUBLE
 

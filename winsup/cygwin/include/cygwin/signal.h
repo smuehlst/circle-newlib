@@ -46,7 +46,7 @@ struct _fpstate
   __uint32_t padding[24];
 };
 
-struct __attribute__ ((aligned (16))) __mcontext
+struct __attribute__ ((__aligned__ (16))) __mcontext
 {
   __uint64_t p1home;
   __uint64_t p2home;
@@ -175,7 +175,10 @@ typedef struct sigevent
   pthread_attr_t *sigev_notify_attributes; /* notification attributes */
 } sigevent_t;
 
+#if __POSIX_VISIBLE >= 199309
+
 #pragma pack(push,4)
+
 struct _sigcommune
 {
   __uint32_t _si_code;
@@ -184,7 +187,10 @@ struct _sigcommune
   void *_si_process_handle;
   __extension__ union
   {
-    int _si_fd;
+    struct {
+      int      _si_fd;
+      uint32_t _si_flags;
+    };
     int64_t _si_pipe_unique_id;
     char *_si_str;
   };
@@ -249,7 +255,10 @@ typedef struct
 #endif /*__INSIDE_CYGWIN__*/
   };
 } siginfo_t;
+
 #pragma pack(pop)
+
+#endif /* __POSIX_VISIBLE >= 199309 */
 
 enum
 {
@@ -259,11 +268,10 @@ enum
   SI_MESGQ,				/* sent by real time mesq state change
 					   (currently unimplemented) */
   SI_TIMER,				/* sent by timer expiration */
-  SI_QUEUE,				/* sent by sigqueue (currently
-					   unimplemented) */
+  SI_QUEUE,				/* sent by sigqueue */
   SI_KERNEL,				/* sent by system */
 
-  ILL_ILLOPC,				/* illegal opcode */
+  ILL_ILLOPC = 7,			/* illegal opcode */
   ILL_ILLOPN,				/* illegal operand */
   ILL_ILLADR,				/* illegal addressing mode */
   ILL_ILLTRP,				/* illegal trap*/
@@ -272,7 +280,7 @@ enum
   ILL_COPROC,				/* coprocessor error */
   ILL_BADSTK,				/* internal stack error */
 
-  FPE_INTDIV,				/* integer divide by zero */
+  FPE_INTDIV = 15,			/* integer divide by zero */
   FPE_INTOVF,				/* integer overflow */
   FPE_FLTDIV,				/* floating point divide by zero */
   FPE_FLTOVF,				/* floating point overflow */
@@ -281,20 +289,54 @@ enum
   FPE_FLTINV,				/* floating point invalid operation */
   FPE_FLTSUB,				/* subscript out of range */
 
-  SEGV_MAPERR,				/* address not mapped to object */
+  SEGV_MAPERR = 23,			/* address not mapped to object */
   SEGV_ACCERR,				/* invalid permissions for mapped object */
 
-  BUS_ADRALN,				/* invalid address alignment.  */
+  BUS_ADRALN = 25,			/* invalid address alignment.  */
   BUS_ADRERR,				/* non-existant physical address.  */
   BUS_OBJERR,				/* object specific hardware error.  */
 
-  CLD_EXITED,				/* child has exited */
+  CLD_EXITED = 28,			/* child has exited */
   CLD_KILLED,				/* child was killed */
   CLD_DUMPED,				/* child terminated abnormally */
   CLD_TRAPPED,				/* traced child has trapped */
   CLD_STOPPED,				/* child has stopped */
   CLD_CONTINUED				/* stopped child has continued */
 };
+
+#define SI_USER SI_USER
+#define SI_ASYNCIO SI_ASYNCIO
+#define SI_MESGQ SI_MESGQ
+#define SI_TIMER SI_TIMER
+#define SI_QUEUE SI_QUEUE
+#define SI_KERNEL SI_KERNEL
+#define ILL_ILLOPC ILL_ILLOPC
+#define ILL_ILLOPN ILL_ILLOPN
+#define ILL_ILLADR ILL_ILLADR
+#define ILL_ILLTRP ILL_ILLTRP
+#define ILL_PRVOPC ILL_PRVOPC
+#define ILL_PRVREG ILL_PRVREG
+#define ILL_COPROC ILL_COPROC
+#define ILL_BADSTK ILL_BADSTK
+#define FPE_INTDIV FPE_INTDIV
+#define FPE_INTOVF FPE_INTOVF
+#define FPE_FLTDIV FPE_FLTDIV
+#define FPE_FLTOVF FPE_FLTOVF
+#define FPE_FLTUND FPE_FLTUND
+#define FPE_FLTRES FPE_FLTRES
+#define FPE_FLTINV FPE_FLTINV
+#define FPE_FLTSUB FPE_FLTSUB
+#define SEGV_MAPERR SEGV_MAPERR
+#define SEGV_ACCERR SEGV_ACCERR
+#define BUS_ADRALN BUS_ADRALN
+#define BUS_ADRERR BUS_ADRERR
+#define BUS_OBJERR BUS_OBJERR
+#define CLD_EXITED CLD_EXITED
+#define CLD_KILLED CLD_KILLED
+#define CLD_DUMPED CLD_DUMPED
+#define CLD_TRAPPED CLD_TRAPPED
+#define CLD_STOPPED CLD_STOPPED
+#define CLD_CONTINUED CLD_CONTINUED
 
 enum
 {
@@ -314,12 +356,16 @@ enum
 
 typedef void (*_sig_func_ptr)(int);
 
+#if __POSIX_VISIBLE
+
 struct sigaction
 {
   __extension__ union
   {
     _sig_func_ptr sa_handler;  		/* SIG_DFL, SIG_IGN, or pointer to a function */
+#if __POSIX_VISIBLE >= 199309
     void  (*sa_sigaction) ( int, siginfo_t *, void * );
+#endif
   };
   sigset_t sa_mask;
   int sa_flags;
@@ -344,10 +390,16 @@ struct sigaction
    Do not use.  */
 #define _SA_INTERNAL_MASK 0xf000	/* bits in this range are internal */
 
+#endif /* __POSIX_VISIBLE */
+
+#if __BSD_VISIBLE || __XSI_VISIBLE >= 4 || __POSIX_VISIBLE >= 200809
+
 #undef	MINSIGSTKSZ
 #define	MINSIGSTKSZ	 8192
 #undef	SIGSTKSZ
 #define	SIGSTKSZ	32768
+
+#endif /* __BSD_VISIBLE || __XSI_VISIBLE >= 4 || __POSIX_VISIBLE >= 200809 */
 
 #define	SIGHUP	1	/* hangup */
 #define	SIGINT	2	/* interrupt */
@@ -397,20 +449,32 @@ struct sigaction
 
 #define SIG_HOLD ((_sig_func_ptr)2)	/* Signal in signal mask */
 
+#if __POSIX_VISIBLE >= 200809
 void psiginfo (const siginfo_t *, const char *);
+#endif
+#if __POSIX_VISIBLE
 int sigwait (const sigset_t *, int *);
+#endif
+#if __POSIX_VISIBLE >= 199309
 int sigwaitinfo (const sigset_t *, siginfo_t *);
+#endif
+#if __XSI_VISIBLE >= 4
 int sighold (int);
 int sigignore (int);
 int sigrelse (int);
 _sig_func_ptr sigset (int, _sig_func_ptr);
+#endif
 
+#if __POSIX_VISIBLE >= 199309
 int sigqueue(pid_t, int, const union sigval);
+#endif
+#if __BSD_VISIBLE || __XSI_VISIBLE >= 4 || __POSIX_VISIBLE >= 200809
 int siginterrupt (int, int);
+#endif
 #ifdef __INSIDE_CYGWIN__
 extern const char *sys_sigabbrev[];
 extern const char *sys_siglist[];
-#else
+#elif __BSD_VISIBLE
 extern const char __declspec(dllimport) *sys_sigabbrev[];
 extern const char __declspec(dllimport) *sys_siglist[];
 #endif

@@ -69,6 +69,11 @@ fhandler_termios::tcsetpgrp (const pid_t pgid)
       set_errno (EPERM);
       return -1;
     }
+  else if (pgid < 0)
+    {
+      set_errno (EINVAL);
+      return -1;
+    }
   int res;
   while (1)
     {
@@ -131,7 +136,7 @@ tty_min::kill_pgrp (int sig)
   for (unsigned i = 0; i < pids.npids; i++)
     {
       _pinfo *p = pids[i];
-      if (!p->exists () || p->ctty != ntty || p->pgid != pgid)
+      if (!p || !p->exists () || p->ctty != ntty || p->pgid != pgid)
 	continue;
       if (p == myself)
 	killself = sig != __SIGSETPGRP && !exit_state;

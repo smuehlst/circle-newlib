@@ -75,8 +75,8 @@ since it only slows down reading and writing files.  Additionally many
 Windows applications can deal with POSIX \n line endings just fine
 (unfortunate exception: Notepad).  So we suggest to use binary mode
 as much as possible and only convert files from or to DOS text mode
-using tools specifically created to do that job, for instance, d2u and
-u2d from the cygutils package.
+using tools specifically created to do that job, for instance, dos2unix and
+unix2dos from the dos2unix package.
 </para>
 <para>It is rather easy for the porter of a Unix package to fix the source
 code by supplying the appropriate file processing mode switches to the
@@ -154,6 +154,11 @@ notices child is in safe area, copies stack and heap from itself into
 child, releases the mutex the child is waiting on and returns from the
 fork call.  Child wakes from blocking on mutex, recreates any mmapped
 areas passed to it via shared area and then returns from fork itself.
+</para>
+<para>When the executable or any dll in use by the parent was renamed or
+moved into the hidden recycle bin, fork retries with creating hardlinks
+for the old executable and any dll into per-user subdirectories in the
+/var/run/cygfork/ directory, when that one exists and resides on NTFS.
 </para>
 </answer></qandaentry>
 

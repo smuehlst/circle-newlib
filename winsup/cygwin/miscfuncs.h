@@ -20,8 +20,14 @@ details. */
 static inline bool
 is_alt_numpad_key (PINPUT_RECORD pirec)
 {
+  /* Remove lock key state from ControlKeyState.  Do not remove enhanced key
+     state since it helps to distinguish between cursor (EK) and numpad keys
+     (non-EK). */
+  DWORD ctrl_state = pirec->Event.KeyEvent.dwControlKeyState
+		     & ~(CAPSLOCK_ON | NUMLOCK_ON | SCROLLLOCK_ON);
+
   return pirec->Event.KeyEvent.uChar.UnicodeChar == 0
-	 && pirec->Event.KeyEvent.dwControlKeyState == LEFT_ALT_PRESSED
+	 && ctrl_state == LEFT_ALT_PRESSED
 	 && pirec->Event.KeyEvent.wVirtualScanCode >= DIK_NUMPAD7
 	 && pirec->Event.KeyEvent.wVirtualScanCode <= DIK_NUMPAD0
 	 && pirec->Event.KeyEvent.wVirtualScanCode != DIK_SUBTRACT;
@@ -90,6 +96,8 @@ transform_chars (PUNICODE_STRING upath, USHORT start_idx)
 		   upath->Buffer + upath->Length / sizeof (WCHAR) - 1);
 }
 
+PWCHAR transform_chars_af_unix (PWCHAR, const char *, __socklen_t);
+
 /* Memory checking */
 int __reg2 check_invalid_virtual_addr (const void *s, unsigned sz);
 
@@ -110,5 +118,8 @@ extern "C" HANDLE WINAPI CygwinCreateThread (LPTHREAD_START_ROUTINE thread_func,
 					     LPDWORD thread_id);
 
 void SetThreadName (DWORD dwThreadID, const char* threadName);
+
+WORD __get_cpus_per_group (void);
+WORD __get_group_count (void);
 
 #endif /*_MISCFUNCS_H*/

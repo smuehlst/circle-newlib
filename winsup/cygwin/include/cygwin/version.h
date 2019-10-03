@@ -10,8 +10,8 @@ details. */
    the Cygwin shared library".  This version is used to track important
    changes to the DLL and is mainly informative in nature. */
 
-#define CYGWIN_VERSION_DLL_MAJOR 2008
-#define CYGWIN_VERSION_DLL_MINOR 1
+#define CYGWIN_VERSION_DLL_MAJOR 3001
+#define CYGWIN_VERSION_DLL_MINOR 0
 
 /* Major numbers before CYGWIN_VERSION_DLL_EPOCH are incompatible. */
 
@@ -475,12 +475,50 @@ details. */
   308: Export dladdr.
   309: Export getloadavg.
   310: Export reallocarray.
+  311: Export __xpg_sigpause.
+  312: Export strverscmp, versionsort.
+  313: Export fls, flsl, flsll.
+  314: Export explicit_bzero.
+  315: Export pthread_mutex_timedlock.
+  316: Export pthread_rwlock_timedrdlock, pthread_rwlock_timedwrlock.
+  317: Export renameat2.
+  318: Export strnstr.
+  319: Define O_TMPFILE, O_NOATIME.
+  320: Export __chk_fail, __gets_chk, __memcpy_chk, __memmove_chk,
+       __mempcpy_chk, __memset_chk, __snprintf_chk, __sprintf_chk,
+       __stack_chk_fail, __stack_chk_guard, __stpcpy_chk, __stpncpy_chk,
+       __strcat_chk, __strcpy_chk, __strncat_chk, __strncpy_chk,
+       __vsnprintf_chk, __vsprintf_chk.
+  321: Export wmempcpy.
+  322: [w]scanf %m modifier.
+  323: scanf %l[ conversion.
+  324: Export sigtimedwait.
+  325: Export catclose, catgets, catopen.
+  326: Export clearenv.
+  327: Export pthread_tryjoin_np, pthread_timedjoin_np.
+  328: Export aio_cancel, aio_error, aio_fsync, aio_read, aio_return,
+       aio_suspend, aio_write, lio_listio.
+  329: Export sched_getcpu.
+  330: Add CLOCK_REALTIME_COARSE, CLOCK_MONOTONIC_RAW, CLOCK_MONOTONIC_COARSE,
+       CLOCK_BOOTTIME.
+  331: Add timer_getoverrun, DELAYTIMER_MAX.
+  332: Add signalfd.
+  333: Add timerfd_create, timerfd_gettime, timerfd_settime.
+  334: Remove matherr.
+  335: Change size of utsname, change uname output.
+  336: New Cygwin PID algorithm (yeah, not really an API change)
+  337: MOUNT_BINARY -> MOUNT_TEXT
+  338: Export secure_getenv.
+  339: Export sched_getaffinity, sched_setaffinity, pthread_getaffinity_np,
+       pthread_setaffinity_np, __sched_getaffinity_sys.
+  340: Export dbm_clearerr, dbm_close, dbm_delete, dbm_dirfno, dbm_error,
+       dbm_fetch, dbm_firstkey, dbm_nextkey, dbm_open, dbm_store.
 
   Note that we forgot to bump the api for ualarm, strtoll, strtoull,
   sigaltstack, sethostname. */
 
 #define CYGWIN_VERSION_API_MAJOR 0
-#define CYGWIN_VERSION_API_MINOR 310
+#define CYGWIN_VERSION_API_MINOR 340
 
 /* There is also a compatibity version number associated with the shared memory
    regions.  It is incremented when incompatible changes are made to the shared

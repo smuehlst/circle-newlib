@@ -384,9 +384,12 @@ fhandler_dev_floppy::dup (fhandler_base *child, int flags)
 inline off_t
 fhandler_dev_floppy::get_current_position ()
 {
-  LARGE_INTEGER off = { QuadPart: 0LL };
-  off.LowPart = SetFilePointer (get_handle (), 0, &off.HighPart, FILE_CURRENT);
-  return off.QuadPart;
+  IO_STATUS_BLOCK io;
+  FILE_POSITION_INFORMATION fpi = { { QuadPart : 0LL } };
+
+  NtQueryInformationFile (get_handle (), &io, &fpi, sizeof fpi,
+			  FilePositionInformation);
+  return fpi.CurrentByteOffset.QuadPart;
 }
 
 void __reg3
@@ -566,11 +569,11 @@ fhandler_dev_floppy::raw_write (const void *ptr, size_t len)
 	  /* Align pointers, lengths, etc. */
 	  cplen = MIN (cplen, written);
 	  devbufstart += cplen;
+	  if (devbufstart >= devbufend)
+	    devbufstart = devbufend = 0;
 	  p += cplen;
 	  len -= cplen;
 	  bytes_written += cplen;
-	  if (len)
-	    devbufstart = devbufend = 0;
 	}
       /* As long as there's still something left in the input buffer ... */
       while (len)
@@ -607,6 +610,14 @@ fhandler_dev_floppy::raw_write (const void *ptr, size_t len)
 	  p += cplen;
 	  len -= cplen;
 	  bytes_written += cplen;
+	  /* If we overwrote, revalidate devbuf.  It still contains the
+	     content from the above read/modify/write.  Revalidating makes
+	     sure lseek reports the correct position. */
+	  if (cplen < bytes_per_sector)
+	    {
+	      devbufstart = cplen;
+	      devbufend = bytes_per_sector;
+	    }
 	}
       return bytes_written;
     }

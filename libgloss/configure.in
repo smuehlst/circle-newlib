@@ -81,6 +81,9 @@ case "${target}" in
   mips*-*-*)
 	AC_CONFIG_SUBDIRS([mips])
 	;;
+  riscv*-*-*)
+	AC_CONFIG_SUBDIRS([riscv])
+	;;
   powerpc-*-*|powerpcle-*-*)
 	AC_CONFIG_SUBDIRS([rs6000])
 	;;
@@ -175,6 +178,9 @@ case "${target}" in
 	;;
   or1k-*-* | or1knd-*-* )
 	AC_CONFIG_SUBDIRS([or1k])
+	;;
+  nios2-*-*)
+	AC_CONFIG_SUBDIRS([nios2])
 	;;
 esac
 

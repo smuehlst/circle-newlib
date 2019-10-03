@@ -43,6 +43,7 @@ static char sccsid[] = "@(#)hash.c	8.9 (Berkeley) 6/16/94";
 
 #include <sys/stat.h>
 
+#include <reent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -104,11 +105,10 @@ int hash_accesses, hash_collisions, hash_expansions, hash_overflows;
 /* OPEN/CLOSE */
 
 extern DB *
-_DEFUN(__hash_open, (file, flags, mode, info, dflags),
-	const char *file _AND
-	int flags _AND
-	int mode _AND
-	int dflags _AND
+__hash_open (const char *file,
+	int flags,
+	int mode,
+	int dflags,
 	const HASHINFO *info)	/* Special directives for create */
 {
 	HTAB *hashp;
@@ -141,9 +141,9 @@ _DEFUN(__hash_open, (file, flags, mode, info, dflags),
 	new_table = 0;
 	if (!file || (flags & O_TRUNC) ||
 #ifdef __USE_INTERNAL_STAT64
-	    (_stat64(file, &statbuf) && (errno == ENOENT))) {
+	    (_stat64_r(_REENT, file, &statbuf) && (errno == ENOENT))) {
 #else
-	    (stat(file, &statbuf) && (errno == ENOENT))) {
+	    (_stat_r(_REENT, file, &statbuf) && (errno == ENOENT))) {
 #endif
 		if (errno == ENOENT)
 			errno = 0; /* Just in case someone looks at errno */
@@ -157,9 +157,9 @@ _DEFUN(__hash_open, (file, flags, mode, info, dflags),
 		   a new .db file, then reinitialize the database */
 		if ((flags & O_CREAT) &&
 #ifdef __USE_INTERNAL_STAT64
-		     _fstat64(hashp->fp, &statbuf) == 0 && statbuf.st_size == 0)
+		     _fstat64_r(_REENT, hashp->fp, &statbuf) == 0 && statbuf.st_size == 0)
 #else
-		     fstat(hashp->fp, &statbuf) == 0 && statbuf.st_size == 0)
+		     _fstat_r(_REENT, hashp->fp, &statbuf) == 0 && statbuf.st_size == 0)
 #endif
 			new_table = 1;
 
@@ -194,6 +194,9 @@ _DEFUN(__hash_open, (file, flags, mode, info, dflags),
 			RETURN_ERROR(EFTYPE, error1);
 		if (hashp->hash(CHARKEY, sizeof(CHARKEY)) != hashp->H_CHARKEY)
 			RETURN_ERROR(EFTYPE, error1);
+                /* Check bucket size isn't too big for target int. */
+                if (hashp->BSIZE > INT_MAX)
+                        RETURN_ERROR(EFTYPE, error1);
 		/*
 		 * Figure out how many segments we need.  Max_Bucket is the
 		 * maximum bucket number, so the number of buckets is
@@ -339,12 +342,12 @@ init_hash(hashp, file, info)
 	/* Fix bucket size to be optimal for file system */
 	if (file != NULL) {
 #ifdef __USE_INTERNAL_STAT64
-		if (_stat64(file, &statbuf))
+		if (_stat64_r(_REENT, file, &statbuf))
 #else
-		if (stat(file, &statbuf))
+		if (_stat_r(_REENT, file, &statbuf))
 #endif
 			return (NULL);
-		hashp->BSIZE = statbuf.st_blksize;
+		hashp->BSIZE = MIN(statbuf.st_blksize, MAX_BSIZE);
 		hashp->BSHIFT = __log2(hashp->BSIZE);
 	}
 

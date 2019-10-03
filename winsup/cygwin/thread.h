@@ -17,6 +17,9 @@ details. */
 /* resource.cc */
 extern size_t get_rlimit_stack (void);
 
+/* thread.cc */
+char *mythreadname (void);
+
 #include <pthread.h>
 #include <limits.h>
 #include "security.h"
@@ -267,7 +270,7 @@ public:
   static bool is_initializer_or_object (pthread_mutex_t const *);
   static bool is_initializer_or_bad_object (pthread_mutex_t const *);
 
-  int lock ();
+  int lock (PLARGE_INTEGER timeout = NULL);
   int trylock ();
   int unlock ();
   int destroy ();
@@ -372,7 +375,7 @@ public:
 
   /* API calls */
   static int cancel (pthread_t);
-  static int join (pthread_t * thread, void **return_val);
+  static int join (pthread_t * thread, void **return_val, PLARGE_INTEGER);
   static int detach (pthread_t * thread);
   static int create (pthread_t * thread, const pthread_attr_t * attr,
 			      void *(*start_routine) (void *), void *arg);
@@ -587,10 +590,10 @@ public:
   } *readers;
   fast_mutex readers_mx;
 
-  int rdlock ();
+  int rdlock (PLARGE_INTEGER timeout = NULL);
   int tryrdlock ();
 
-  int wrlock ();
+  int wrlock (PLARGE_INTEGER timeout = NULL);
   int trywrlock ();
 
   int unlock ();
@@ -693,11 +696,10 @@ public:
   }
 
 private:
-  int _wait ();
   void _post ();
   int _getvalue (int *sval);
   int _trywait ();
-  int _timedwait (const struct timespec *abstime);
+  int _wait (PLARGE_INTEGER timeout = NULL);
 
   void _fixup_before_fork ();
   void _fixup_after_fork ();

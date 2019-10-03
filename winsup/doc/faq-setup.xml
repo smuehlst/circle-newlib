@@ -53,45 +53,59 @@ For other options, search the mailing lists with terms such as
 <question><para>Does Setup accept command-line arguments?</para></question>
 <answer>
 
-<para>Yes, the full listing is written to the <literal>setup.log</literal> file 
-when you run <literal>setup-x86.exe --help</literal> or
-<literal>setup-x86_64.exe --help</literal>. The current options are:
+<para>Yes, run <literal>setup-x86.exe --help</literal> or
+<literal>setup-x86_64.exe --help</literal> for a list.
+</para>
+
 <screen>
-Command Line Options:
- -D --download                     Download from internet
- -L --local-install                Install from local directory
- -s --site                         Download site
- -O --only-site                    Ignore all sites except for -s
- -R --root                         Root installation directory
- -x --remove-packages              Specify packages to uninstall
- -c --remove-categories            Specify categories to uninstall
- -P --packages                     Specify packages to install
- -C --categories                   Specify entire categories to install
- -p --proxy                        HTTP/FTP proxy (host:port)
+    --allow-unsupported-windows    Allow old, unsupported Windows versions
  -a --arch                         architecture to install (x86_64 or x86)
- -q --quiet-mode                   Unattended setup mode
- -M --package-manager              Semi-attended chooser-only mode
- -B --no-admin                     Do not check for and enforce running as
-                                   Administrator
- -h --help                         print help
- -l --local-package-dir            Local package directory
- -r --no-replaceonreboot           Disable replacing in-use files on next
-                                   reboot.
- -X --no-verify                    Don't verify setup.ini signatures
- -n --no-shortcuts                 Disable creation of desktop and start menu
-                                   shortcuts
- -N --no-startmenu                 Disable creation of start menu shortcut
- -d --no-desktop                   Disable creation of desktop shortcut
- -K --pubkey                       URL of extra public key file (gpg format)
- -S --sexpr-pubkey                 Extra public key in s-expr format
- -u --untrusted-keys               Use untrusted keys from last-extrakeys
- -U --keep-untrusted-keys          Use untrusted keys and retain all
- -g --upgrade-also                 also upgrade installed packages
+ -C --categories                   Specify entire categories to install
  -o --delete-orphans               remove orphaned packages
  -A --disable-buggy-antivirus      Disable known or suspected buggy anti virus
                                    software packages during execution.
+ -D --download                     Download from internet
+ -f --force-current                select the current version for all packages
+ -h --help                         print help
+ -I --include-source               Automatically include source download
+ -i --ini-basename                 Use a different basename, e.g. "foo",
+                                   instead of "setup"
+ -U --keep-untrusted-keys          Use untrusted keys and retain all
+ -L --local-install                Install from local directory
+ -l --local-package-dir            Local package directory
+ -m --mirror-mode                  Skip availability check when installing from
+                                   local directory (requires local directory to
+                                   be clean mirror!)
+ -B --no-admin                     Do not check for and enforce running as
+                                   Administrator
+ -d --no-desktop                   Disable creation of desktop shortcut
+ -r --no-replaceonreboot           Disable replacing in-use files on next
+                                   reboot.
+ -n --no-shortcuts                 Disable creation of desktop and start menu
+                                   shortcuts
+ -N --no-startmenu                 Disable creation of start menu shortcut
+ -X --no-verify                    Don't verify setup.ini signatures
+ -O --only-site                    Ignore all sites except for -s
+ -M --package-manager              Semi-attended chooser-only mode
+ -P --packages                     Specify packages to install
+ -p --proxy                        HTTP/FTP proxy (host:port)
+ -Y --prune-install                prune the installation to only the requested
+                                   packages
+ -K --pubkey                       URL of extra public key file (gpg format)
+ -q --quiet-mode                   Unattended setup mode
+ -c --remove-categories            Specify categories to uninstall
+ -x --remove-packages              Specify packages to uninstall
+ -R --root                         Root installation directory
+ -S --sexpr-pubkey                 Extra public key in s-expr format
+ -s --site                         Download site
+ -u --untrusted-keys               Use untrusted keys from last-extrakeys
+ -g --upgrade-also                 also upgrade installed packages
+    --user-agent                   User agent string for HTTP requests
+ -v --verbose                      Verbose output
+ -W --wait                         When elevating, wait for elevated child
+                                   process
 </screen>
-</para>
+
 </answer></qandaentry>
 
 <qandaentry id="faq.setup.noroot">
@@ -596,16 +610,20 @@ folders that are causing the error.  For example, sometimes files used by
 system services end up owned by the SYSTEM account and not writable by regular
 users.</para>
 <para>The quickest way to delete the entire tree if you run into this problem
-is to change the ownership of all files and folders to your account.  To do
+is to take ownership of all files and folders to your account.  To do
 this in Windows Explorer, right click on the root Cygwin folder, choose
 Properties, then the Security tab.  If you are using Simple File Sharing, you
 will need to boot into Safe Mode to access the Security tab.  Select Advanced,
 then go to the Owner tab and make sure your account is listed as the owner.
 Select the 'Replace owner on subcontainers and objects' checkbox and press Ok.
 After Explorer applies the changes you should be able to delete the entire tree
-in one operation.  Note that you can also achieve this in Cygwin by typing
-<literal>chown -R user /</literal> or by using other tools such as
-<literal>icacls.exe</literal>. 
+in one operation.  Note that you can also achieve by using other tools such as
+<literal>icacls.exe</literal> or directly from Cygwin by using
+<literal>chown</literal>.  Please note that you shouldn't use the
+recursive form of chown on directories that have other file systems
+mounted under them (specifically you must avoid
+<literal>/proc</literal>) since you'd change ownership of the files under those
+mount points as well.
 </para>
 </listitem>
 <listitem><para>Delete the Cygwin shortcuts on the Desktop and Start Menu, and

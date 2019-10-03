@@ -5,10 +5,15 @@ What's new:
 
 - New API: reallocarray
 
+- New API: strverscmp, versionsort.
+
 
 What changed:
 -------------
 
+- The XSI form of sigpause, which removes the given signal from the process's
+  signal mask, is made available when compiling with _XOPEN_SOURCE or
+  _GNU_SOURCE.
 
 Bug Fixes
 ---------
@@ -27,3 +32,15 @@ Bug Fixes
 
 - Fix ldd potentially looping on non-continuable exception
   Addresses: https://cygwin.com/ml/cygwin-patches/2017-q2/msg00002.html
+
+- Fix buffer overflow problem in wcsxfrm/wcsxfrm_l.
+  Addresses: https://cygwin.com/ml/cygwin/2017-05/msg00149.html
+
+- Fix crash if env var name starts with non-ASCII char
+  Addresses: https://cygwin.com/ml/cygwin/2017-05/msg00330.html
+
+- Fix return value of lrint{f,l} on x86_64 Cygwin.
+  Addresses: https://cygwin.com/ml/cygwin/2017-05/msg00388.html
+
+- Fix native language support in regtool(1).
+  Addresses: https://cygwin.com/ml/cygwin/2017-05/msg00245.html

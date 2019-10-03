@@ -11,6 +11,13 @@ details. */
 #include <errno.h>
 #include "regparm.h"
 
+struct errmap_t
+{
+  DWORD w;		 /* windows version of error */
+  const char *s;	 /* text of windows version */
+  int e;		 /* errno version of error */
+};
+
 void __reg3 seterrno_from_win_error (const char *file, int line, DWORD code);
 void __reg3 seterrno_from_nt_status (const char *file, int line, NTSTATUS status);
 int __reg2 geterrno_from_win_error (DWORD code = GetLastError (), int deferrno = 13 /*EACCESS*/);
@@ -30,9 +37,13 @@ extern inline int
 __set_errno (const char *fn, int ln, int val)
 {
   debug_printf ("%s:%d setting errno %d", fn, ln, val);
-  return errno = val;
+  return errno = _impure_ptr->_errno = val;
 }
 #define set_errno(val) __set_errno (__PRETTY_FUNCTION__, __LINE__, (val))
+
+int find_winsock_errno (DWORD why);
+void __reg2 __set_winsock_errno (const char *fn, int ln);
+#define set_winsock_errno() __set_winsock_errno (__FUNCTION__, __LINE__)
 
 #define get_errno()  (errno)
 extern "C" void __stdcall set_sig_errno (int e);
@@ -45,7 +56,7 @@ class save_errno
     save_errno (int what) {saved = get_errno (); set_errno (what); }
     void set (int what) {set_errno (what); saved = what;}
     void reset () {saved = get_errno ();}
-    ~save_errno () {errno = saved;}
+    ~save_errno () {errno = _impure_ptr->_errno = saved;}
   };
 
 extern const char *__sp_fn;

@@ -23,10 +23,10 @@ HMODULE NO_COPY hntdll;
 int NO_COPY sigExeced;
 WCHAR windows_system_directory[MAX_PATH];
 UINT windows_system_directory_length;
-#ifndef __x86_64__
+#ifdef __i386__
 WCHAR system_wow64_directory[MAX_PATH];
 UINT system_wow64_directory_length;
-#endif /* !__x86_64__ */
+#endif /* __i386__ */
 WCHAR global_progname[NT_MAX_PATH];
 
 /* program exit the program */
@@ -130,6 +130,7 @@ const int __collate_load_error = 0;
   extern UNICODE_STRING _RDATA ro_u_mtx = _ROU (L"mtx");
   extern UNICODE_STRING _RDATA ro_u_csc = _ROU (L"CSC-CACHE");
   extern UNICODE_STRING _RDATA ro_u_fat = _ROU (L"FAT");
+  extern UNICODE_STRING _RDATA ro_u_exfat = _ROU (L"exFAT");
   extern UNICODE_STRING _RDATA ro_u_mvfs = _ROU (L"MVFS");
   extern UNICODE_STRING _RDATA ro_u_nfs = _ROU (L"NFS");
   extern UNICODE_STRING _RDATA ro_u_ntfs = _ROU (L"NTFS");
@@ -149,12 +150,13 @@ const int __collate_load_error = 0;
   extern UNICODE_STRING _RDATA ro_u_natdir = _ROU (L"Directory");
   extern UNICODE_STRING _RDATA ro_u_natsyml = _ROU (L"SymbolicLink");
   extern UNICODE_STRING _RDATA ro_u_natdev = _ROU (L"Device");
+  extern UNICODE_STRING _RDATA ro_u_npfs = _ROU (L"\\Device\\NamedPipe\\");
   #undef _ROU
 
   /* This is an exported copy of environ which can be used by DLLs
      which use cygwin.dll.  */
   char **__cygwin_environ;
-#ifndef __x86_64__
+#ifdef __i386__
   char ***main_environ = &__cygwin_environ;
 #endif
   /* __progname used in getopt error message */
@@ -167,7 +169,7 @@ const int __collate_load_error = 0;
    /* dll_major */ CYGWIN_VERSION_DLL_MAJOR,
    /* dll_major */ CYGWIN_VERSION_DLL_MINOR,
    /* impure_ptr_ptr */ NULL,
-#ifndef __x86_64__
+#ifdef __i386__
    /* envptr */ NULL,
 #endif
    /* malloc */ malloc, /* free */ free,
