@@ -11,9 +11,7 @@ extern int errno;
 #include "warning.h"
 
 int
-_DEFUN (_link, (existing, new),
-        char *existing _AND
-        char *new)
+_link(char *existing, char *new)
 {
   errno = ENOSYS;
   return -1;

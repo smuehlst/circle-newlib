@@ -11,10 +11,7 @@ extern int errno;
 #include "warning.h"
 
 int
-_DEFUN (_lseek, (file, ptr, dir),
-        int   file  _AND
-        int   ptr   _AND
-        int   dir)
+_lseek(int file, int ptr, int dir)
 {
   errno = ENOSYS;
   return -1;

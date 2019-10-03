@@ -10,28 +10,28 @@
 #include "config.h"
 #include <malloc.h>
 
-_PTR _malloc_r _PARAMS ((struct _reent *r, size_t size))
+void *_malloc_r(struct _reent *r, size_t size)
 {
 	(void) r;
 
 	return malloc(size);
 }
 
-_VOID _free_r _PARAMS ((struct _reent *r, _PTR p))
+void _free_r(struct _reent *r, void *p)
 {
 	(void) r;
 
 	free(p);
 }
 
-_PTR _realloc_r _PARAMS ((struct _reent *r, _PTR p, size_t size))
+void *_realloc_r(struct _reent *r, void *p, size_t size)
 {
 	(void) r;
 
 	return realloc(p, size);
 }
 
-_PTR _calloc_r _PARAMS ((struct _reent *r, size_t nelem, size_t elsize))
+void *_calloc_r(struct _reent *r, size_t nelem, size_t elsize)
 {
 	(void) r;
 

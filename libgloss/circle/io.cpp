@@ -125,10 +125,7 @@ void CGlueStdioInit (CConsole& rConsole)
 
 extern "C"
 int
-_DEFUN (_open, (file, flags, mode),
-		char *file _AND
-		int flags _AND
-		int mode)
+_open(char *file, int flags, int mode)
 {
 	int slot = -1;
 
@@ -177,8 +174,7 @@ _DEFUN (_open, (file, flags, mode),
 
 extern "C"
 int
-_DEFUN (_close, (fildes),
-        int fildes)
+_close(int fildes)
 {
 	if (fildes < 0 || static_cast<unsigned int>(fildes) >= MAX_OPEN_FILES)
 	{
@@ -209,10 +205,7 @@ _DEFUN (_close, (fildes),
 
 extern "C"
 int
-_DEFUN (_read, (fildes, ptr, len),
-        int   fildes  _AND
-        char *ptr   _AND
-        int   len)
+_read(int fildes, char *ptr, int len)
 {
 	if (fildes < 0 || static_cast<unsigned int>(fildes) >= MAX_OPEN_FILES)
 	{
@@ -240,10 +233,7 @@ _DEFUN (_read, (fildes, ptr, len),
 
 extern "C"
 int
-_DEFUN (_write, (fildes, ptr, len),
-        int   fildes  _AND
-        char *ptr   _AND
-        int   len)
+_write(int fildes, char *ptr, int len)
 {
 	if (fildes < 0 || static_cast<unsigned int>(fildes) >= MAX_OPEN_FILES)
 	{

@@ -11,10 +11,7 @@ extern int errno;
 #include "warning.h"
 
 int
-_DEFUN (_execve, (name, argv, env),
-        char  *name  _AND
-        char **argv  _AND
-        char **env)
+_execve(char *name, char **argv, char **env)
 {
   errno = ENOSYS;
   return -1;

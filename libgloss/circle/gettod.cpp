@@ -16,9 +16,7 @@ extern int errno;
 
 extern "C"
 int
-_DEFUN (_gettimeofday, (ptimeval, ptimezone),
-        struct timeval *ptimeval _AND
-        void *ptimezone)
+_gettimeofday(struct timeval *ptimeval, void *ptimezone)
 {
         (void) ptimezone;
 
