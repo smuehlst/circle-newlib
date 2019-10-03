@@ -1363,7 +1363,7 @@ case $os in
 	     | powermax* | dnix* | nx6 | nx7 | sei* | dragonfly* \
 	     | skyos* | haiku* | rdos* | toppers* | drops* | es* \
 	     | onefs* | tirtos* | phoenix* | fuchsia* | redox* | bme* \
-	     | -circle* \
+	     | circle* \
 	     | midnightbsd* | amdhsa* | unleashed* | emscripten*)
 	# Remember, each alternative MUST END IN *, to match a version number.
 		;;
