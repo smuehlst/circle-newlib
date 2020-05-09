@@ -1,4 +1,7 @@
 #include "config.h"
+
+#include "wrap_fatfs.h"
+
 #include <_ansi.h>
 #include <_syslist.h>
 #include <sys/types.h>
@@ -11,365 +14,737 @@
 extern int errno;
 #include "warning.h"
 
-#include <circle/fs/fat/fatfs.h>
 #include <circle/input/console.h>
+#include <circle/sched/scheduler.h>
 #include <circle/string.h>
 #include "circle_glue.h"
 #include <assert.h>
 
-struct _CIRCLE_DIR {
-        _CIRCLE_DIR() :
-                mFirstRead(0), mOpen(0)
-        {
-                mEntry.d_ino = 0;
-                mEntry.d_name[0] = 0;
-        }
+struct _CIRCLE_DIR
+{
+    _CIRCLE_DIR ()
+        :
+        mFirstRead (0), mOpen (0)
+    {
+        mEntry.d_ino = 0;
+        mEntry.d_name[0] = 0;
+    }
 
-        TFindCurrentEntry mCurrentEntry;
-        struct dirent mEntry;
-        unsigned int mFirstRead : 1;
-        unsigned int mOpen : 1;
-
+    FATFS_DIR mCurrentEntry;
+    struct dirent mEntry;
+    unsigned int mFirstRead :1;
+    unsigned int mOpen :1;
 };
 
 namespace
 {
-    struct CircleFile
-    {
-    	CircleFile() : mCGlueIO(nullptr) {}
-    	CGlueIO *mCGlueIO;
-    };
+    FATFS *circle_fat_fs = nullptr;
 
     constexpr unsigned int MAX_OPEN_FILES = 20;
     constexpr unsigned int MAX_OPEN_DIRS = 20;
 
-    CFATFileSystem *circle_fat_fs = nullptr;
+    class CGlueIO;
+    struct CircleFile
+    {
+        CircleFile ()
+            :
+            mCGlueIO (nullptr)
+        {
+        }
+        CGlueIO *mCGlueIO;
+    };
 
     CircleFile fileTab[MAX_OPEN_FILES];
     _CIRCLE_DIR dirTab[MAX_OPEN_DIRS];
 
-    int FindFreeFileSlot(void)
+    class CGlueIO
     {
-    	int slotNr = -1;
+    public:
+        virtual
+        ~CGlueIO ()
+        {
+        }
 
-    	for (auto const& slot: fileTab)
-    	{
-    		if (slot.mCGlueIO == nullptr)
-    		{
-    			slotNr = &slot - fileTab;
-    			break;
-    		}
-    	}
+        /**
+         * Read from file sequentially
+         *
+         * Params:  pBuffer     Buffer to copy data to
+         *          ulCount     Number of bytes to read
+         * Returns: != 0        Number of bytes read
+         *          0           End of file
+         *          -1          Read Failure
+         */
+        virtual int
+        Read (void *pBuffer, int nCount) = 0;
 
-    	return slotNr;
+        /**
+         * Write to file sequentially
+         *
+         * Params:  pBuffer     Buffer to copy data from
+         *          nCount      Number of bytes to write
+         * Returns: != 0        Number of bytes written
+         *          -1          Error
+         */
+        virtual int
+        Write (const void *pBuffer, int nCount) = 0;
+
+        /**
+         * Close file
+         */
+        virtual int
+        Close (void) = 0;
+    };
+
+    class CGlueConsole : public CGlueIO
+    {
+    public:
+        enum TConsoleMode
+        {
+            ConsoleModeRead, ConsoleModeWrite
+        };
+
+        CGlueConsole (CConsole &rConsole, TConsoleMode mode)
+            :
+            mConsole (rConsole), mMode (mode)
+        {
+        }
+
+        int
+        Read (void *pBuffer, int nCount)
+        {
+            int nResult = -1;
+
+            if (mMode == ConsoleModeRead)
+            {
+                CScheduler *const scheduler =
+                    CScheduler::IsActive () ? CScheduler::Get () : nullptr;
+                while ((nResult = mConsole.Read (pBuffer,
+                                                 static_cast<size_t> (nCount)))
+                    == 0)
+                {
+                    if (scheduler)
+                    {
+                        scheduler->Yield ();
+                    }
+                }
+            }
+
+            if (nResult < 0)
+            {
+                errno = EIO;
+
+                // Could be negative but different from -1.
+                nResult = -1;
+            }
+
+            return nResult;
+        }
+
+        int
+        Write (const void *pBuffer, int nCount)
+        {
+            int nResult =
+                mMode == ConsoleModeWrite ?
+                    mConsole.Write (pBuffer, static_cast<size_t> (nCount)) : -1;
+
+            if (nResult < 0)
+            {
+                errno = EIO;
+
+                // Could be negative but different from -1.
+                nResult = -1;
+            }
+
+            return nResult;
+        }
+
+        int
+        Close (void)
+        {
+            // TODO: Cannot close console file handle currently.
+            errno = EBADF;
+            return -1;
+        }
+
+    private:
+        CConsole &mConsole;
+        TConsoleMode const mMode;
+    };
+
+    struct CGlueIoFatFs : public CGlueIO
+    {
+        CGlueIoFatFs ()
+        {
+            memset (&mFile, 0, sizeof(mFile));
+        }
+
+        bool
+        Open (char *file, int flags, int /* mode */)
+        {
+            int fatfs_flags;
+
+            /*
+             * The OpenGroup documentation of the flags for open() says:
+             *
+             * "Applications shall specify exactly one of the first
+             * three values (file access modes) below in the value of oflag:
+             *
+             * O_RDONLY Open for reading only.
+             * O_WRONLY Open for writing only.
+             * O_RDWR Open for reading and writing."
+             *
+             * So combinations of those flags need not to be dealt with.
+             */
+            if (flags & O_RDWR)
+            {
+                fatfs_flags = FA_READ | FA_WRITE;
+            }
+            else if (flags & O_WRONLY)
+            {
+                fatfs_flags = FA_WRITE;
+            }
+            else
+            {
+                fatfs_flags = FA_READ;
+            }
+
+            if (flags & O_TRUNC)
+            {
+                /*
+                 * OpenGroup documentation:
+                 * "The result of using O_TRUNC with O_RDONLY is undefined."
+                 */
+                fatfs_flags |= FA_CREATE_ALWAYS;
+            }
+
+            if (flags & O_APPEND)
+            {
+                fatfs_flags |= FA_OPEN_APPEND;
+            }
+
+            if (flags & O_CREAT)
+            {
+                if (flags & O_EXCL)
+                {
+                    /*
+                     * OpenGroup documentation:
+                     * "O_EXCL If O_CREAT and O_EXCL are set, open() shall fail if the file exists.
+                     * "If O_EXCL is set and O_CREAT is not set, the result is undefined.".
+                     */
+                    fatfs_flags |= FA_CREATE_NEW;
+                }
+                else
+                {
+                    fatfs_flags |= FA_OPEN_ALWAYS;
+                }
+            }
+
+            // TODO mode?
+            auto const fresult = f_open (&mFile, file, fatfs_flags);
+
+            bool result;
+            if (fresult == FR_OK)
+            {
+                result = true;
+            }
+            else
+            {
+                result = false;
+
+                switch (fresult)
+                {
+                    case FR_EXIST:
+                        errno = EEXIST;
+                        break;
+
+                    case FR_NO_FILE:
+                    case FR_INVALID_NAME:
+                        errno = ENOENT;
+                        break;
+
+                    case FR_NO_PATH:
+                    case FR_INVALID_DRIVE:
+                        errno = ENOTDIR;
+                        break;
+
+                    case FR_NOT_ENOUGH_CORE:
+                        errno = ENOMEM;
+                        break;
+
+                    case FR_TOO_MANY_OPEN_FILES:
+                        errno = ENFILE;
+                        break;
+
+                    case FR_DENIED:
+                    case FR_DISK_ERR:
+                    case FR_INT_ERR:
+                    case FR_NOT_READY:
+                    case FR_INVALID_OBJECT:
+                    case FR_WRITE_PROTECTED:
+                    case FR_NOT_ENABLED:
+                    case FR_NO_FILESYSTEM:
+                    case FR_TIMEOUT:
+                    case FR_LOCKED:
+                    default:
+                        errno = EACCES;
+                        break;
+                }
+            }
+
+            return result;
+        }
+
+        int
+        Read (void *pBuffer, int nCount)
+        {
+            UINT bytes_read = 0;
+            auto const fresult = f_read (&mFile, pBuffer,
+                                         static_cast<UINT> (nCount),
+                                         &bytes_read);
+
+            int result;
+            if (fresult == FR_OK)
+            {
+                result = static_cast<int> (bytes_read);
+            }
+            else
+            {
+                result = -1;
+
+                switch (fresult)
+                {
+                    case FR_INVALID_OBJECT:
+                    case FR_DENIED:
+                        errno = EBADF;
+                        break;
+
+                    case FR_DISK_ERR:
+                    case FR_INT_ERR:
+                    case FR_TIMEOUT:
+                    default:
+                        errno = EIO;
+                        break;
+                }
+            }
+
+            return result;
+        }
+
+        int
+        Write (const void *pBuffer, int nCount)
+        {
+            UINT bytesWritten = 0;
+            auto const fresult = f_write (&mFile, pBuffer,
+                                          static_cast<UINT> (nCount),
+                                          &bytesWritten);
+
+            int result;
+            if (fresult == FR_OK)
+            {
+                result = static_cast<int> (bytesWritten);
+            }
+            else
+            {
+                result = -1;
+
+                switch (fresult)
+                {
+                    case FR_INVALID_OBJECT:
+                        errno = EBADF;
+                        break;
+
+                    case FR_DISK_ERR:
+                    case FR_INT_ERR:
+                    case FR_DENIED:
+                    case FR_TIMEOUT:
+                    default:
+                        errno = EIO;
+                        break;
+                }
+            }
+
+            return result;
+        }
+
+        int
+        Close (void)
+        {
+            auto const close_result = f_close (&mFile);
+
+            int result;
+            switch (close_result)
+            {
+                case FR_OK:
+                    result = 0;
+
+                case FR_INVALID_OBJECT:
+                case FR_INT_ERR:
+                    errno = EBADF;
+                    result = -1;
+                    break;
+
+                default:
+                    errno = EIO;
+                    result = -1;
+                    break;
+            }
+
+            return result;
+        }
+
+        FIL mFile;
+    };
+
+    int
+    FindFreeFileSlot (void)
+    {
+        int slotNr = -1;
+
+        for (auto const &slot : fileTab)
+        {
+            if (slot.mCGlueIO == nullptr)
+            {
+                slotNr = &slot - fileTab;
+                break;
+            }
+        }
+
+        return slotNr;
     }
 
-    int FindFreeDirSlot(void)
+    int
+    FindFreeDirSlot (void)
     {
-    	int slotNr = -1;
+        int slotNr = -1;
 
-    	for (auto const& slot: dirTab)
-    	{
-    		if (!slot.mOpen)
-    		{
-    			slotNr = &slot - dirTab;
-    			break;
-    		}
-    	}
+        for (auto const &slot : dirTab)
+        {
+            if (!slot.mOpen)
+            {
+                slotNr = &slot - dirTab;
+                break;
+            }
+        }
 
-    	return slotNr;
+        return slotNr;
     }
 
     void
-    CGlueInitFileSystem (CFATFileSystem& rFATFileSystem)
+    CGlueInitFileSystem (FATFS &rFATFileSystem)
     {
-            // Must only be called once
-            assert (!circle_fat_fs);
+        // Must only be called once
+        assert(!circle_fat_fs);
 
-            circle_fat_fs = &rFATFileSystem;
+        circle_fat_fs = &rFATFileSystem;
     }
 
     void
-    CGlueInitConsole (CConsole& rConsole)
+    CGlueInitConsole (CConsole &rConsole)
     {
-            CircleFile &stdin = fileTab[0];
-            CircleFile &stdout = fileTab[1];
-            CircleFile &stderr = fileTab[2];
+        CircleFile &stdin = fileTab[0];
+        CircleFile &stdout = fileTab[1];
+        CircleFile &stderr = fileTab[2];
 
-            // Must only be called once and not be called after a file has already been opened
-            assert (!stdin.mCGlueIO);
-            assert (!stdout.mCGlueIO);
-            assert (!stderr.mCGlueIO);
+        // Must only be called once and not be called after a file has already been opened
+        assert(!stdin.mCGlueIO);
+        assert(!stdout.mCGlueIO);
+        assert(!stderr.mCGlueIO);
 
-            stdin.mCGlueIO = new CGlueConsole (rConsole, CGlueConsole::ConsoleModeRead);
-            stdout.mCGlueIO = new CGlueConsole (rConsole, CGlueConsole::ConsoleModeWrite);
-            stderr.mCGlueIO = new CGlueConsole (rConsole, CGlueConsole::ConsoleModeWrite);
+        stdin.mCGlueIO = new CGlueConsole (rConsole,
+                                           CGlueConsole::ConsoleModeRead);
+        stdout.mCGlueIO = new CGlueConsole (rConsole,
+                                            CGlueConsole::ConsoleModeWrite);
+        stderr.mCGlueIO = new CGlueConsole (rConsole,
+                                            CGlueConsole::ConsoleModeWrite);
     }
 }
 
-void CGlueStdioInit(CFATFileSystem& rFATFileSystem, CConsole& rConsole)
+void
+CGlueStdioInit (FATFS &rFATFileSystem, CConsole &rConsole)
 {
-        CGlueInitConsole (rConsole);
-        CGlueInitFileSystem (rFATFileSystem);
+    CGlueInitConsole (rConsole);
+    CGlueInitFileSystem (rFATFileSystem);
 }
 
-void CGlueStdioInit (CFATFileSystem& rFATFileSystem)
+void
+CGlueStdioInit (FATFS &rFATFileSystem)
 {
-        CGlueInitFileSystem (rFATFileSystem);
+    CGlueInitFileSystem (rFATFileSystem);
 }
 
-void CGlueStdioInit (CConsole& rConsole)
+void
+CGlueStdioInit (CConsole &rConsole)
 {
-        CGlueInitConsole (rConsole);
+    CGlueInitConsole (rConsole);
 }
 
-extern "C"
-int
-_open(char *file, int flags, int mode)
+extern "C" int
+_open (char *file, int flags, int mode)
 {
-	int slot = -1;
+    int slot = FindFreeFileSlot ();
 
-	// Only supported modes are read and write. The mask is
-	// determined from the newlib header.
-	int const masked_flags = flags & 7;
-	if (masked_flags != O_RDONLY && masked_flags != O_WRONLY)
-	{
-		errno = ENOSYS;
-	}
-	else
-	{
-		slot = FindFreeFileSlot();
+    if (slot != -1)
+    {
+        auto const newFatFs = new CGlueIoFatFs ();
 
-		if (slot != -1)
-		{
-			CircleFile& newFile = fileTab[slot];
-			unsigned handle;
-			if (masked_flags == O_RDONLY)
-			{
-				handle = circle_fat_fs->FileOpen (file);
-			}
-			else
-			{
-				assert(masked_flags ==  O_WRONLY);
-				handle = circle_fat_fs->FileCreate (file);
-			}
-			if (handle != 0)
-			{
-				newFile.mCGlueIO = new CGlueIoFatFs(*circle_fat_fs, handle);
-			}
-			else
-			{
-				slot = -1;
-				errno = EACCES;
-			}
-		}
-		else
-		{
-			errno = ENFILE;
-		}
-	}
+        if (newFatFs->Open (file, flags, mode))
+        {
+            fileTab[slot].mCGlueIO = newFatFs;
+        }
+        else
+        {
+            delete newFatFs;
+        }
+    }
+    else
+    {
+        errno = ENFILE;
+    }
 
-	return slot;
+    return slot;
 }
 
-extern "C"
-int
-_close(int fildes)
+extern "C" int
+_close (int fildes)
 {
-	if (fildes < 0 || static_cast<unsigned int>(fildes) >= MAX_OPEN_FILES)
-	{
-		errno = EBADF;
-		return -1;
-	}
+    if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
+    {
+        errno = EBADF;
+        return -1;
+    }
 
-	CircleFile& file = fileTab[fildes];
-	if (file.mCGlueIO == nullptr)
-	{
-		errno = EBADF;
-		return -1;
-	}
+    CircleFile &file = fileTab[fildes];
+    if (file.mCGlueIO == nullptr)
+    {
+        errno = EBADF;
+        return -1;
+    }
 
-	unsigned const circle_close_result = file.mCGlueIO->Close();
+    unsigned const result = file.mCGlueIO->Close ();
 
-	delete file.mCGlueIO;
-	file.mCGlueIO = nullptr;
+    delete file.mCGlueIO;
+    file.mCGlueIO = nullptr;
 
-	if (circle_close_result == 0)
-	{
-		errno = EIO;
-		return -1;
-	}
-
-	return 0;
+    return result;
 }
 
-extern "C"
-int
-_read(int fildes, char *ptr, int len)
+extern "C" int
+_read (int fildes, char *ptr, int len)
 {
-	if (fildes < 0 || static_cast<unsigned int>(fildes) >= MAX_OPEN_FILES)
-	{
-		errno = EBADF;
-		return -1;
-	}
+    if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
+    {
+        errno = EBADF;
+        return -1;
+    }
 
-	CircleFile& file = fileTab[fildes];
-	if (file.mCGlueIO == nullptr)
-	{
-		errno = EBADF;
-		return -1;
-	}
+    CircleFile &file = fileTab[fildes];
+    if (file.mCGlueIO == nullptr)
+    {
+        errno = EBADF;
+        return -1;
+    }
 
-	unsigned const read_result = file.mCGlueIO->Read(ptr, static_cast<unsigned>(len));
-
-	if (read_result == CGlueIO::GeneralFailure)
-	{
-		errno = EIO;
-		return -1;
-	}
-
-	return static_cast<int>(read_result);
+    return file.mCGlueIO->Read (ptr, len);
 }
 
-extern "C"
-int
-_write(int fildes, char *ptr, int len)
+extern "C" int
+_write (int fildes, char *ptr, int len)
 {
-	if (fildes < 0 || static_cast<unsigned int>(fildes) >= MAX_OPEN_FILES)
-	{
-		errno = EBADF;
-		return -1;
-	}
+    if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
+    {
+        errno = EBADF;
+        return -1;
+    }
 
-	CircleFile& file = fileTab[fildes];
-	if (file.mCGlueIO == nullptr)
-	{
-		errno = EBADF;
-		return -1;
-	}
+    CircleFile &file = fileTab[fildes];
+    if (file.mCGlueIO == nullptr)
+    {
+        errno = EBADF;
+        return -1;
+    }
 
-	unsigned const write_result = file.mCGlueIO->Write(ptr, static_cast<unsigned>(len));
-
-	if (write_result == CGlueIO::GeneralFailure)
-	{
-		errno = EIO;
-		return -1;
-	}
-
-	return static_cast<int>(write_result);
+    return file.mCGlueIO->Write (ptr, len);
 }
 
-extern "C"
-DIR *
+extern "C" DIR*
 opendir (const char *name)
 {
-        assert (circle_fat_fs);
+    assert(circle_fat_fs);
 
-        /* For now only the single root directory and the current directory are supported */
-        if (strcmp(name, "/") != 0 && strcmp(name, ".") != 0)
-        {
-                errno = ENOENT;
-                return 0;
-        }
+    int const slotNum = FindFreeDirSlot ();
+    if (slotNum == -1)
+    {
+        errno = ENFILE;
+        return nullptr;
+    }
 
-        int const slotNum = FindFreeDirSlot ();
-        if (slotNum == -1)
-        {
-                errno = ENFILE;
-                return 0;
-        }
+    auto &slot = dirTab[slotNum];
 
-        auto &slot = dirTab[slotNum];
+    FRESULT const fresult = f_opendir (&slot.mCurrentEntry, name);
 
-        slot.mOpen = 1;
-        slot.mFirstRead = 1;
+    /*
+     * Best-effort mapping of FatFs error codes to errno values.
+     */
+    DIR *result = nullptr;
+    switch (fresult)
+    {
+        case FR_OK:
+            slot.mOpen = 1;
+            slot.mFirstRead = 1;
+            result = &slot;
+            break;
 
-        return &slot;
+        case FR_DISK_ERR:
+        case FR_INT_ERR:
+        case FR_NOT_READY:
+        case FR_INVALID_OBJECT:
+            errno = EACCES;
+            break;
+
+        case FR_NO_PATH:
+        case FR_INVALID_NAME:
+        case FR_INVALID_DRIVE:
+        case FR_NOT_ENABLED:
+        case FR_NO_FILESYSTEM:
+        case FR_TIMEOUT:
+            errno = ENOENT;
+            break;
+
+        case FR_NOT_ENOUGH_CORE:
+        case FR_TOO_MANY_OPEN_FILES:
+            errno = ENFILE;
+            break;
+    }
+
+    return result;
 }
 
-static struct dirent *
+static bool
+read_next_entry (FATFS_DIR *currentEntry, FILINFO *filinfo)
+{
+    bool result;
+
+    if (f_readdir (currentEntry, filinfo) == FR_OK)
+    {
+        result = filinfo->fname[0] != 0;
+    }
+    else
+    {
+        errno = EBADF;
+        result = false;
+    }
+
+    return result;
+}
+
+static struct dirent*
 do_readdir (DIR *dir, struct dirent *de)
 {
-        TDirentry Direntry;
-        bool haveEntry;
-        if (dir->mFirstRead)
+    FILINFO filinfo;
+    bool haveEntry;
+
+    if (dir->mFirstRead)
+    {
+        if (f_readdir (&dir->mCurrentEntry, nullptr) == FR_OK)
         {
-                haveEntry = circle_fat_fs->RootFindFirst (&Direntry, &dir->mCurrentEntry);
-                dir->mFirstRead = 0;
+            haveEntry = read_next_entry (&dir->mCurrentEntry, &filinfo);
         }
         else
         {
-                haveEntry = circle_fat_fs->RootFindNext (&Direntry, &dir->mCurrentEntry);
+            errno = EBADF;
+            haveEntry = false;
         }
+        dir->mFirstRead = 0;
+    }
+    else
+    {
+        haveEntry = read_next_entry (&dir->mCurrentEntry, &filinfo);
+    }
 
-        struct dirent *result;
-        if (haveEntry)
-        {
-                memcpy (de->d_name, Direntry.chTitle, sizeof(de->d_name));
-                de->d_ino = 0; // TODO: how to determine an inode number in Circle?
-                result = de;
-        }
-        else
-        {
-                // end of directory does not change errno
-                result = nullptr;
-        }
+    struct dirent *result;
+    if (haveEntry)
+    {
+        memcpy (de->d_name, filinfo.fname, sizeof(de->d_name));
+        de->d_ino = 0; // inode number does not exist in fatfs
+        result = de;
+    }
+    else
+    {
+        // end of directory does not change errno
+        result = nullptr;
+    }
 
-        return result;
+    return result;
 }
 
-extern "C" struct dirent *
+extern "C" struct dirent*
 readdir (DIR *dir)
 {
-        struct dirent *result;
+    struct dirent *result;
 
-        if (dir->mOpen)
-        {
-                result = do_readdir (dir, &dir->mEntry);
-        }
-        else
-        {
-                errno = EBADF;
-                result = nullptr;
-        }
+    if (dir->mOpen)
+    {
+        result = do_readdir (dir, &dir->mEntry);
+    }
+    else
+    {
+        errno = EBADF;
+        result = nullptr;
+    }
 
-        return result;
+    return result;
 }
 
 extern "C" int
 readdir_r (DIR *__restrict dir, dirent *__restrict de, dirent **__restrict ode)
 {
-        int result;
+    int result;
 
-        if (dir->mOpen)
-        {
-                *ode = do_readdir (dir, de);
-                result = 0;
-        }
-        else
-        {
-                *ode = nullptr;
-                result = EBADF;
-        }
+    if (dir->mOpen)
+    {
+        *ode = do_readdir (dir, de);
+        result = 0;
+    }
+    else
+    {
+        *ode = nullptr;
+        result = EBADF;
+    }
 
-        return result;
+    return result;
 }
 
 extern "C" void
 rewinddir (DIR *dir)
 {
-        dir->mFirstRead = 1;
+    dir->mFirstRead = 1;
 }
 
 extern "C" int
 closedir (DIR *dir)
 {
-        if (!dir->mOpen)
-        {
-                errno = EBADF;
-                return -1;
-        }
+    int result;
 
+    if (dir->mOpen)
+    {
         dir->mOpen = 0;
-        return 0;
+
+        int result;
+        if (f_closedir (&dir->mCurrentEntry) == FR_OK)
+        {
+            result = 0;
+        }
+        else
+        {
+            errno = EBADF;
+            result = -1;
+        }
+    }
+    else
+    {
+        errno = EBADF;
+        result = -1;
+    }
+
+    return result;
 }

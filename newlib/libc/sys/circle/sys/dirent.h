@@ -7,14 +7,14 @@ extern "C" {
 
 #include <sys/types.h>
 
-#include <circle/fs/fsdef.h>
+#include <wrap_fatfs.h>
 
 typedef struct _CIRCLE_DIR DIR;
 
 /* Directory entry as returned by readdir */
 struct dirent {
         ino_t  d_ino;
-        char   d_name[FS_TITLE_LEN + 1];
+        char   d_name[FF_LFN_BUF + 1];
 };
 
 DIR *opendir(const char *);
