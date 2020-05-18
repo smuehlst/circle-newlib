@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/dirent.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <errno.h>
 #include <string.h>
 #undef errno
@@ -65,32 +66,15 @@ namespace
         {
         }
 
-        /**
-         * Read from file sequentially
-         *
-         * Params:  pBuffer     Buffer to copy data to
-         *          ulCount     Number of bytes to read
-         * Returns: != 0        Number of bytes read
-         *          0           End of file
-         *          -1          Read Failure
-         */
         virtual int
         Read (void *pBuffer, int nCount) = 0;
 
-        /**
-         * Write to file sequentially
-         *
-         * Params:  pBuffer     Buffer to copy data from
-         *          nCount      Number of bytes to write
-         * Returns: != 0        Number of bytes written
-         *          -1          Error
-         */
         virtual int
         Write (const void *pBuffer, int nCount) = 0;
 
-        /**
-         * Close file
-         */
+        virtual int
+        LSeek(int ptr, int dir) = 0;
+
         virtual int
         Close (void) = 0;
     };
@@ -156,6 +140,13 @@ namespace
             }
 
             return nResult;
+        }
+
+        int
+        LSeek(int ptr, int dir)
+        {
+            errno = ESPIPE;
+            return -1;
         }
 
         int
@@ -367,6 +358,69 @@ namespace
         }
 
         int
+        LSeek(int ptr, int dir)
+        {
+            /*
+             * If whence is SEEK_SET, the file offset shall be set to
+             * offset bytes.
+             *
+             * If whence is SEEK_CUR, the file offset shall be set to
+             * its current location plus offset.
+             *
+             * If whence is SEEK_END, the file offset shall be set to
+             * the size of the file plus offset.
+             */
+            int new_pos;
+            switch (dir)
+            {
+                case SEEK_SET:
+                    new_pos = ptr;
+                    break;
+
+                case SEEK_CUR:
+                    new_pos = static_cast<int>(f_tell(&mFile)) + ptr;
+                    break;
+
+                case SEEK_END:
+                    new_pos = static_cast<int>(f_size(&mFile)) + ptr;
+                    break;
+
+                default:
+                    new_pos = -1;
+                    break;
+            }
+
+            int result;
+            if (new_pos >= 0)
+            {
+                int const fresult = f_lseek(&mFile, static_cast<FSIZE_t>(new_pos));
+
+                switch (fresult)
+                {
+                    case FR_OK:
+                        result = new_pos;
+                        break;
+
+                    case FR_DISK_ERR:
+                    case FR_INT_ERR:
+                    case FR_INVALID_OBJECT:
+                    case FR_TIMEOUT:
+                    default:
+                        result = -1;
+                        errno = EBADF;
+                        break;
+                }
+            }
+            else
+            {
+                errno = EINVAL;
+                result = -1;
+            }
+
+            return -1;
+        }
+
+        int
         Close (void)
         {
             auto const close_result = f_close (&mFile);
@@ -564,6 +618,25 @@ _write (int fildes, char *ptr, int len)
     }
 
     return file.mCGlueIO->Write (ptr, len);
+}
+
+extern "C" int
+_lseek(int fildes, int ptr, int dir)
+{
+    if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    CircleFile &file = fileTab[fildes];
+    if (file.mCGlueIO == nullptr)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    return file.mCGlueIO->LSeek (ptr, dir);
 }
 
 extern "C" DIR*

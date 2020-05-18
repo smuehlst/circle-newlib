@@ -68,7 +68,7 @@ OBJCOPY = `if [ -f ${objroot}/../binutils/objcopy ] ; \
 
 # object files needed
 OBJS = chown.o environ.o errno.o execve.o fork.o fstat.o \
-	getpid.o gettod.o io.o isatty.o kill.o link.o lseek.o \
+	getpid.o gettod.o io.o isatty.o kill.o link.o \
 	readlink.o sbrk.o stat.o symlink.o times.o unlink.o \
 	wait.o _exit.o mem.o
 
