@@ -56,7 +56,31 @@ namespace
     };
 
     CircleFile fileTab[MAX_OPEN_FILES];
+    CSpinLock fileTabLock(TASK_LEVEL);
+
     _CIRCLE_DIR dirTab[MAX_OPEN_DIRS];
+    CSpinLock dirTabLock(TASK_LEVEL);
+
+    /**
+     * Helper class to acquire lock and to release it automatically
+     * when surrounding block is left.
+     */
+    class SpinLockHolder
+    {
+    public:
+        SpinLockHolder (CSpinLock &lock) : lockRef(lock)
+        {
+            lockRef.Acquire ();
+        }
+
+        ~SpinLockHolder ()
+        {
+            lockRef.Release ();
+        }
+
+    private:
+        CSpinLock &lockRef;
+    };
 
     class CGlueIO
     {
@@ -539,6 +563,8 @@ CGlueStdioInit (CConsole &rConsole)
 extern "C" int
 _open (char *file, int flags, int mode)
 {
+    SpinLockHolder lockHolder(fileTabLock);
+
     int slot = FindFreeFileSlot ();
 
     if (slot != -1)
@@ -570,6 +596,8 @@ _close (int fildes)
         errno = EBADF;
         return -1;
     }
+
+    SpinLockHolder lockHolder(fileTabLock);
 
     CircleFile &file = fileTab[fildes];
     if (file.mCGlueIO == nullptr)
@@ -647,6 +675,8 @@ extern "C" DIR*
 opendir (const char *name)
 {
     assert(circle_fat_fs);
+
+    SpinLockHolder lockHolder(dirTabLock);
 
     int const slotNum = FindFreeDirSlot ();
     if (slotNum == -1)
@@ -800,6 +830,8 @@ rewinddir (DIR *dir)
 extern "C" int
 closedir (DIR *dir)
 {
+    SpinLockHolder lockHolder(dirTabLock);
+
     int result;
 
     if (dir->mOpen)
