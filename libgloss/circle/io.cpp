@@ -162,6 +162,9 @@ namespace
         TConsoleMode const mMode;
     };
 
+    /**
+     * FatFs: http://www.elm-chan.org/fsw/ff/00index_e.html
+     */
     struct CGlueIoFatFs : public CGlueIO
     {
         CGlueIoFatFs ()
