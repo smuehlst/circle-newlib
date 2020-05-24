@@ -838,7 +838,6 @@ closedir (DIR *dir)
     {
         dir->mOpen = 0;
 
-        int result;
         if (f_closedir (&dir->mCurrentEntry) == FR_OK)
         {
             result = 0;
