@@ -430,6 +430,7 @@ namespace
             {
                 case FR_OK:
                     result = 0;
+                    break;
 
                 case FR_INVALID_OBJECT:
                 case FR_INT_ERR:
