@@ -671,7 +671,7 @@ newlib_cflags="${newlib_cflags} -DCLOCK_PROVIDED -DMALLOC_PROVIDED -DEXIT_PROVID
     syscall_dir=syscalls
     sys_dir=circle
     have_crt0="no"
-    newlib_cflags="${newlib_cflags} -DMALLOC_PROVIDED -DHAVE_OPENDIR"
+    newlib_cflags="${newlib_cflags} -DMALLOC_PROVIDED -DHAVE_OPENDIR -DHAVE_RENAME"
     ;;
   aarch64*-*-*)
 	default_newlib_io_long_long="yes"
