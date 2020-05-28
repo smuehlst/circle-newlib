@@ -13,7 +13,6 @@
 #include <string.h>
 #undef errno
 extern int errno;
-#include "warning.h"
 
 #include <circle/input/console.h>
 #include <circle/sched/scheduler.h>
