@@ -16,6 +16,7 @@ extern int errno;
 
 #include <circle/input/console.h>
 #include <circle/sched/scheduler.h>
+#include <circle/usb/usbhostcontroller.h>
 #include <circle/string.h>
 #include "circle_glue.h"
 #include <assert.h>
@@ -125,6 +126,8 @@ namespace
             {
                 CScheduler *const scheduler =
                     CScheduler::IsActive () ? CScheduler::Get () : nullptr;
+                CUSBHostController *const usbhost =
+                    CUSBHostController::IsActive () ? CUSBHostController::Get () : nullptr;
                 while ((nResult = mConsole.Read (pBuffer,
                                                  static_cast<size_t> (nCount)))
                     == 0)
@@ -132,6 +135,14 @@ namespace
                     if (scheduler)
                     {
                         scheduler->Yield ();
+                    }
+
+                    if (usbhost)
+                    {
+                        if (usbhost->UpdatePlugAndPlay ())
+                        {
+                            mConsole.UpdatePlugAndPlay ();
+                        }
                     }
                 }
             }
