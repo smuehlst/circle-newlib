@@ -124,10 +124,12 @@ namespace
 
             if (mMode == ConsoleModeRead)
             {
-                CScheduler *const scheduler =
+                CScheduler * const scheduler =
                     CScheduler::IsActive () ? CScheduler::Get () : nullptr;
-                CUSBHostController *const usbhost =
-                    CUSBHostController::IsActive () ? CUSBHostController::Get () : nullptr;
+                CUSBHostController * const usbhost =
+                    CUSBHostController::IsActive () ?
+                        CUSBHostController::Get () : nullptr;
+
                 while ((nResult = mConsole.Read (pBuffer,
                                                  static_cast<size_t> (nCount)))
                     == 0)
@@ -137,12 +139,9 @@ namespace
                         scheduler->Yield ();
                     }
 
-                    if (usbhost)
+                    if (usbhost && usbhost->UpdatePlugAndPlay ())
                     {
-                        if (usbhost->UpdatePlugAndPlay ())
-                        {
-                            mConsole.UpdatePlugAndPlay ();
-                        }
+                        mConsole.UpdatePlugAndPlay ();
                     }
                 }
             }
