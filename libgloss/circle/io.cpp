@@ -572,7 +572,7 @@ CGlueStdioInit (CConsole &rConsole)
 extern "C" int
 _open (char *file, int flags, int mode)
 {
-    SpinLockHolder lockHolder(fileTabLock);
+    SpinLockHolder const lockHolder(fileTabLock);
 
     int slot = FindFreeFileSlot ();
 
@@ -587,6 +587,7 @@ _open (char *file, int flags, int mode)
         else
         {
             delete newFatFs;
+            slot = -1;
         }
     }
     else
@@ -606,7 +607,7 @@ _close (int fildes)
         return -1;
     }
 
-    SpinLockHolder lockHolder(fileTabLock);
+    SpinLockHolder const lockHolder(fileTabLock);
 
     CircleFile &file = fileTab[fildes];
     if (file.mCGlueIO == nullptr)
@@ -685,7 +686,7 @@ opendir (const char *name)
 {
     assert(circle_fat_fs);
 
-    SpinLockHolder lockHolder(dirTabLock);
+    SpinLockHolder const lockHolder(dirTabLock);
 
     int const slotNum = FindFreeDirSlot ();
     if (slotNum == -1)
@@ -839,7 +840,7 @@ rewinddir (DIR *dir)
 extern "C" int
 closedir (DIR *dir)
 {
-    SpinLockHolder lockHolder(dirTabLock);
+    SpinLockHolder const lockHolder(dirTabLock);
 
     int result;
 
