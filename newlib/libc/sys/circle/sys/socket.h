@@ -39,16 +39,16 @@ struct msghdr {
     int            msg_flags;       /* Flags on received message. */
 };
 
-int     accept(int, struct sockaddr *restrict, socklen_t *restrict);
+int     accept(int, struct sockaddr *, socklen_t *);
 int     bind(int, const struct sockaddr *, socklen_t);
 int     connect(int, const struct sockaddr *, socklen_t);
-int     getpeername(int, struct sockaddr *restrict, socklen_t *restrict);
-int     getsockname(int, struct sockaddr *restrict, socklen_t *restrict);
-int     getsockopt(int, int, int, void *restrict, socklen_t *restrict);
+int     getpeername(int, struct sockaddr *, socklen_t *);
+int     getsockname(int, struct sockaddr *, socklen_t *);
+int     getsockopt(int, int, int, void *, socklen_t *);
 int     listen(int, int);
 ssize_t recv(int, void *, size_t, int);
-ssize_t recvfrom(int, void *restrict, size_t, int,
-        struct sockaddr *restrict, socklen_t *restrict);
+ssize_t recvfrom(int, void *, size_t, int,
+        struct sockaddr *, socklen_t *);
 ssize_t recvmsg(int, struct msghdr *, int);
 ssize_t send(int, const void *, size_t, int);
 ssize_t sendmsg(int, const struct msghdr *, int);
