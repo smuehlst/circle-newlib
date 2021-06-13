@@ -1,4 +1,6 @@
 ## Process this file with automake to generate Makefile.in
+# Disabled memcpy, memset and memmove and use the
+# implementations from Circle to avoid conflicts
 
 AUTOMAKE_OPTIONS = cygnus
 
@@ -10,12 +12,11 @@ noinst_LIBRARIES = lib.a
 
 lib_a_SOURCES = setjmp.S strcmp.S strcpy.c \
 		aeabi_memcpy.c aeabi_memcpy-armv7a.S \
-		aeabi_memmove.c aeabi_memmove-soft.S \
-		aeabi_memset.c aeabi_memset-soft.S aeabi_memclr.c
+		aeabi_memclr.c
 lib_a_SOURCES += memchr-stub.c
 lib_a_SOURCES += memchr.S
-lib_a_SOURCES += memcpy-stub.c
-lib_a_SOURCES += memcpy.S
+# lib_a_SOURCES += memcpy-stub.c
+# lib_a_SOURCES += memcpy.S
 lib_a_SOURCES += strlen-stub.c
 lib_a_SOURCES += strlen.S
 
@@ -37,18 +38,18 @@ AEABI_MEMSET_DEP=aeabi_memset-thumb.S aeabi_memset-thumb2.S \
 $(lpfx)memchr.o: $(MEMCHR_DEP)
 $(lpfx)memchr.obj: $(MEMCHR_DEP)
 
-$(lpfx)memcpy.o: $(MEMCPY_DEP)
+# $(lpfx)memcpy.o: $(MEMCPY_DEP)
 
-$(lpfx)memcpy.obj: $(MEMCPY_DEP)
+# $(lpfx)memcpy.obj: $(MEMCPY_DEP)
 
 $(lpfx)strcmp.o: $(STRCMP_DEP)
 
 $(lpfx)strcmp.obj: $(STRCMP_DEP)
 
-$(lpfx)aeabi_memmove.o: $(AEABI_MEMMOVE_DEP)
+# $(lpfx)aeabi_memmove.o: $(AEABI_MEMMOVE_DEP)
 
-$(lpfx)aeabi_memmove.obj: $(AEABI_MEMMOVE_DEP)
+# $(lpfx)aeabi_memmove.obj: $(AEABI_MEMMOVE_DEP)
 
-$(lpfx)aeabi_memset.o: $(AEABI_MEMSET_DEP)
+# $(lpfx)aeabi_memset.o: $(AEABI_MEMSET_DEP)
 
-$(lpfx)aeabi_memset.obj: $(AEABI_MEMSET_DEP)
+# $(lpfx)aeabi_memset.obj: $(AEABI_MEMSET_DEP)

@@ -1,4 +1,7 @@
 ## Process this file with automake to generate Makefile.in
+#
+# Disabled memcpy, memset and memmove for circle-stdlib to
+# avoid clash with Circle's own functions.
 
 AUTOMAKE_OPTIONS = cygnus
 
@@ -16,9 +19,6 @@ GENERAL_SOURCES = \
 	index.c \
 	memchr.c \
 	memcmp.c \
-	memcpy.c \
-	memmove.c \
-	memset.c \
 	rindex.c \
 	strcasecmp.c \
 	strcat.c \
@@ -148,13 +148,13 @@ include $(srcdir)/../../Makefile.shared
 
 CHEWOUT_FILES=\
 bcmp.def	memcpy.def	strcmp.def	strncat.def strstr.def \
-bcopy.def	memmove.def	strcoll.def	strncmp.def strtok.def \
-bzero.def	memset.def	strcpy.def	strncpy.def strxfrm.def \
+bcopy.def	strcoll.def	strncmp.def strtok.def \
+bzero.def	strcpy.def	strncpy.def strxfrm.def \
 index.def	rindex.def	strcspn.def	strpbrk.def swab.def \
 memchr.def	strcat.def	strerror.def	strerror_r.def strrchr.def \
 memcmp.def	strchr.def	strlen.def	strnlen.def strspn.def \
 strcasecmp.def	strncasecmp.def strcasestr.def	strlwr.def  strupr.def \
-memccpy.def 	mempcpy.def	stpcpy.def	stpncpy.def strsignal.def \
+memccpy.def 	stpcpy.def	stpncpy.def strsignal.def \
 wcscasecmp.def	wcscat.def	wcschr.def	wcscmp.def wcscoll.def \
 wcscpy.def	wcscspn.def	wcpcpy.def	wcpncpy.def wcsdup.def \
 wcslcat.def	wcslcpy.def	wcslen.def	wcsncasecmp.def wcsncat.def \
