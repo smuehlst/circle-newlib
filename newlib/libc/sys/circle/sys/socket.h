@@ -1,11 +1,21 @@
 /**
- * socket implementation based on Circle
+ * @file socket.h
+ * @author Stephan Mühlstrasser
+ * @brief socket implementation for Circle
+ * 
+ * @copyright Copyright (c) 2022
  */
 
 #ifndef _SYS_SOCKET_H
 #define _SYS_SOCKET_H
 
-typedef int socklen_t;
+#include <sys/types.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef unsigned int socklen_t;
 typedef unsigned int sa_family_t;
 
 struct sockaddr  {
@@ -39,31 +49,33 @@ struct msghdr {
     int            msg_flags;       /* Flags on received message. */
 };
 
-int     accept(int, struct sockaddr *, socklen_t *);
-int     bind(int, const struct sockaddr *, socklen_t);
-int     connect(int, const struct sockaddr *, socklen_t);
-int     getpeername(int, struct sockaddr *, socklen_t *);
-int     getsockname(int, struct sockaddr *, socklen_t *);
-int     getsockopt(int, int, int, void *, socklen_t *);
-int     listen(int, int);
-ssize_t recv(int, void *, size_t, int);
-ssize_t recvfrom(int, void *, size_t, int,
-        struct sockaddr *, socklen_t *);
-ssize_t recvmsg(int, struct msghdr *, int);
-ssize_t send(int, const void *, size_t, int);
-ssize_t sendmsg(int, const struct msghdr *, int);
-ssize_t sendto(int, const void *, size_t, int, const struct sockaddr *,
-        socklen_t);
-int     setsockopt(int, int, int, const void *, socklen_t);
-int     shutdown(int, int);
-int     socket(int, int, int);
-int     sockatmark(int);
-int     socketpair(int, int, int, int[2]);
-
-void FD_CLR(int fd, fd_set *fdset);
-int FD_ISSET(int fd, fd_set *fdset);
-void FD_SET(int fd, fd_set *fdset);
-void FD_ZERO(fd_set *fdset);
+int     accept(int socket, struct sockaddr *address,
+             socklen_t *address_len);
+int     bind(int socket, const struct sockaddr *address,
+             socklen_t address_len);
+int     connect(int socket, const struct sockaddr *address,
+             socklen_t address_len);
+int     getpeername(int socket, struct sockaddr *address,
+             socklen_t *address_len);
+int     getsockname(int socket, struct sockaddr *address,
+             socklen_t *address_len);
+int     getsockopt(int socket, int level, int option_name,
+             void *option_value, socklen_t *option_len);
+int     listen(int socket, int backlog);
+ssize_t recv(int socket, void *buffer, size_t length, int flags);
+ssize_t recvfrom(int socket, void *buffer, size_t length,
+             int flags, struct sockaddr *address, socklen_t *address_len);
+ssize_t recvmsg(int socket, struct msghdr *message, int flags);
+ssize_t send(int socket, const void *message, size_t length, int flags);
+ssize_t sendmsg(int socket, const struct msghdr *message, int flags);
+ssize_t sendto(int socket, const void *message, size_t length, int flags,
+             const struct sockaddr *dest_addr, socklen_t dest_len);
+int     setsockopt(int socket, int level, int option_name,
+             const void *option_value, socklen_t option_len);
+int     shutdown(int socket, int how);
+int     socket(int domain, int type, int protocol);
+int     socketpair(int domain, int type, int protocol,
+             int socket_vector[2]);
 
 /* */
 #define SOCK_DGRAM  1                   /* Datagram socket. */
@@ -139,5 +151,9 @@ void FD_ZERO(fd_set *fdset);
  * associated with the msghdr structure.
  */
 #define CMSG_FIRSTHDR(mhdr)     ((void *) 0)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
