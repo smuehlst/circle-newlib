@@ -39,8 +39,6 @@ struct _CIRCLE_DIR
 
 namespace
 {
-    FATFS *circle_fat_fs = nullptr;
-
     constexpr unsigned int MAX_OPEN_FILES = 20;
     constexpr unsigned int MAX_OPEN_DIRS = 20;
 
@@ -521,15 +519,6 @@ namespace
     }
 
     void
-    CGlueInitFileSystem (FATFS &rFATFileSystem)
-    {
-        // Must only be called once
-        assert(!circle_fat_fs);
-
-        circle_fat_fs = &rFATFileSystem;
-    }
-
-    void
     CGlueInitConsole (CConsole &rConsole)
     {
         CircleFile &stdin = fileTab[0];
@@ -548,19 +537,6 @@ namespace
         stderr.mCGlueIO = new CGlueConsole (rConsole,
                                             CGlueConsole::ConsoleModeWrite);
     }
-}
-
-void
-CGlueStdioInit (FATFS &rFATFileSystem, CConsole &rConsole)
-{
-    CGlueInitConsole (rConsole);
-    CGlueInitFileSystem (rFATFileSystem);
-}
-
-void
-CGlueStdioInit (FATFS &rFATFileSystem)
-{
-    CGlueInitFileSystem (rFATFileSystem);
 }
 
 void
@@ -684,8 +660,6 @@ _lseek(int fildes, int ptr, int dir)
 extern "C" DIR*
 opendir (const char *name)
 {
-    assert(circle_fat_fs);
-
     SpinLockHolder const lockHolder(dirTabLock);
 
     int const slotNum = FindFreeDirSlot ();
