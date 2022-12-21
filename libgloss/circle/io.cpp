@@ -18,89 +18,14 @@ extern int errno;
 #include <circle/sched/scheduler.h>
 #include <circle/usb/usbhostcontroller.h>
 #include <circle/string.h>
+#include <circle/net/socket.h>
 #include "circle_glue.h"
+#include "cglueio.h"
+#include "filetable.h"
 #include <assert.h>
 
-struct _CIRCLE_DIR
+namespace _CircleStdlib
 {
-    _CIRCLE_DIR ()
-        :
-        mFirstRead (0), mOpen (0)
-    {
-        mEntry.d_ino = 0;
-        mEntry.d_name[0] = 0;
-    }
-
-    FATFS_DIR mCurrentEntry;
-    struct dirent mEntry;
-    unsigned int mFirstRead :1;
-    unsigned int mOpen :1;
-};
-
-namespace
-{
-    constexpr unsigned int MAX_OPEN_FILES = 20;
-    constexpr unsigned int MAX_OPEN_DIRS = 20;
-
-    class CGlueIO;
-    struct CircleFile
-    {
-        CircleFile ()
-            :
-            mCGlueIO (nullptr)
-        {
-        }
-        CGlueIO *mCGlueIO;
-    };
-
-    CircleFile fileTab[MAX_OPEN_FILES];
-    CSpinLock fileTabLock(TASK_LEVEL);
-
-    _CIRCLE_DIR dirTab[MAX_OPEN_DIRS];
-    CSpinLock dirTabLock(TASK_LEVEL);
-
-    /**
-     * Helper class to acquire lock and to release it automatically
-     * when surrounding block is left.
-     */
-    class SpinLockHolder
-    {
-    public:
-        SpinLockHolder (CSpinLock &lock) : lockRef(lock)
-        {
-            lockRef.Acquire ();
-        }
-
-        ~SpinLockHolder ()
-        {
-            lockRef.Release ();
-        }
-
-    private:
-        CSpinLock &lockRef;
-    };
-
-    class CGlueIO
-    {
-    public:
-        virtual
-        ~CGlueIO ()
-        {
-        }
-
-        virtual int
-        Read (void *pBuffer, int nCount) = 0;
-
-        virtual int
-        Write (const void *pBuffer, int nCount) = 0;
-
-        virtual int
-        LSeek(int ptr, int dir) = 0;
-
-        virtual int
-        Close (void) = 0;
-    };
-
     class CGlueConsole : public CGlueIO
     {
     public:
@@ -484,81 +409,88 @@ namespace
         FIL mFile;
     };
 
-    int
-    FindFreeFileSlot (void)
+    /**
+     * Posix sockets
+     */
+    struct CGlueIoSocket : public CGlueIO
     {
-        int slotNr = -1;
-
-        for (auto const &slot : fileTab)
+        CGlueIoSocket ()
+            :
+            mSocket(nullptr)
         {
-            if (slot.mCGlueIO == nullptr)
-            {
-                slotNr = &slot - fileTab;
-                break;
-            }
         }
 
-        return slotNr;
-    }
-
-    int
-    FindFreeDirSlot (void)
-    {
-        int slotNr = -1;
-
-        for (auto const &slot : dirTab)
+        int
+        Read (void *pBuffer, int nCount)
         {
-            if (!slot.mOpen)
-            {
-                slotNr = &slot - dirTab;
-                break;
-            }
+            return -1;
         }
 
-        return slotNr;
-    }
+        int
+        Write (const void *pBuffer, int nCount)
+        {
+            return -1;
+        }
+
+        int
+        LSeek(int ptr, int dir)
+        {
+            return -1;
+        }
+
+        int
+        Close (void)
+        {
+            return -1;
+        }
+
+        CSocket *mSocket;
+    };
 
     void
     CGlueInitConsole (CConsole &rConsole)
     {
-        CircleFile &stdin = fileTab[0];
-        CircleFile &stdout = fileTab[1];
-        CircleFile &stderr = fileTab[2];
+        _CircleStdlib::CircleFile * const stdin = _CircleStdlib::FileTable::GetFile(0);
+        _CircleStdlib::CircleFile * const stdout = _CircleStdlib::FileTable::GetFile(1);
+        _CircleStdlib::CircleFile * const stderr = _CircleStdlib::FileTable::GetFile(2);
 
         // Must only be called once and not be called after a file has already been opened
-        assert(!stdin.mCGlueIO);
-        assert(!stdout.mCGlueIO);
-        assert(!stderr.mCGlueIO);
+        assert(!stdin->IsOpen());
+        assert(!stdout->IsOpen());
+        assert(!stderr->IsOpen());
 
-        stdin.mCGlueIO = new CGlueConsole (rConsole,
-                                           CGlueConsole::ConsoleModeRead);
-        stdout.mCGlueIO = new CGlueConsole (rConsole,
-                                            CGlueConsole::ConsoleModeWrite);
-        stderr.mCGlueIO = new CGlueConsole (rConsole,
-                                            CGlueConsole::ConsoleModeWrite);
+        stdin->AssignGlueIO(*new CGlueConsole (rConsole,
+                                           CGlueConsole::ConsoleModeRead));
+        stdout->AssignGlueIO(*new CGlueConsole (rConsole,
+                                            CGlueConsole::ConsoleModeWrite));
+        stderr->AssignGlueIO(*new CGlueConsole (rConsole,
+                                            CGlueConsole::ConsoleModeWrite));
     }
 }
 
 void
 CGlueStdioInit (CConsole &rConsole)
 {
-    CGlueInitConsole (rConsole);
+     _CircleStdlib::CGlueInitConsole (rConsole);
 }
 
 extern "C" int
 _open (char *file, int flags, int mode)
 {
-    SpinLockHolder const lockHolder(fileTabLock);
+    _CircleStdlib::FileTable::FileTableLock fileTabLock;
 
-    int slot = FindFreeFileSlot ();
+    _CircleStdlib::CircleFile *circleFile;
+    int slot = _CircleStdlib::FileTable::FindFreeFileSlot (circleFile);
 
     if (slot != -1)
     {
-        auto const newFatFs = new CGlueIoFatFs ();
+        assert(circleFile != nullptr);
+
+        auto const newFatFs = new _CircleStdlib::CGlueIoFatFs ();
 
         if (newFatFs->Open (file, flags, mode))
         {
-            fileTab[slot].mCGlueIO = newFatFs;
+            circleFile->AssignGlueIO(*newFatFs);
         }
         else
         {
@@ -577,25 +509,23 @@ _open (char *file, int flags, int mode)
 extern "C" int
 _close (int fildes)
 {
-    if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
+    _CircleStdlib::CircleFile * const file = _CircleStdlib::FileTable::GetFile(fildes);
+    if (!file)
     {
         errno = EBADF;
         return -1;
     }
 
-    SpinLockHolder const lockHolder(fileTabLock);
+    _CircleStdlib::FileTable::FileTableLock fileTabLock;
 
-    CircleFile &file = fileTab[fildes];
-    if (file.mCGlueIO == nullptr)
+    if (!file->IsOpen())
     {
         errno = EBADF;
         return -1;
     }
 
-    unsigned const result = file.mCGlueIO->Close ();
-
-    delete file.mCGlueIO;
-    file.mCGlueIO = nullptr;
+    unsigned const result = file->GetGlueIO()->Close ();
+    file->CloseGlueIO ();
 
     return result;
 }
@@ -603,75 +533,75 @@ _close (int fildes)
 extern "C" int
 _read (int fildes, char *ptr, int len)
 {
-    if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
+    _CircleStdlib::CircleFile * const file = _CircleStdlib::FileTable::GetFile(fildes);
+    if (!file)
     {
         errno = EBADF;
         return -1;
     }
 
-    CircleFile &file = fileTab[fildes];
-    if (file.mCGlueIO == nullptr)
+    if (!file->IsOpen())
     {
         errno = EBADF;
         return -1;
     }
 
-    return file.mCGlueIO->Read (ptr, len);
+    return file->GetGlueIO()->Read (ptr, len);
 }
 
 extern "C" int
 _write (int fildes, char *ptr, int len)
 {
-    if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
+    _CircleStdlib::CircleFile * const file = _CircleStdlib::FileTable::GetFile(fildes);
+    if (!file)    {
+        errno = EBADF;
+        return -1;
+    }
+
+    if (!file->IsOpen())
     {
         errno = EBADF;
         return -1;
     }
 
-    CircleFile &file = fileTab[fildes];
-    if (file.mCGlueIO == nullptr)
-    {
-        errno = EBADF;
-        return -1;
-    }
-
-    return file.mCGlueIO->Write (ptr, len);
+    return file->GetGlueIO()->Write (ptr, len);
 }
 
 extern "C" int
 _lseek(int fildes, int ptr, int dir)
 {
-    if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
+    _CircleStdlib::CircleFile * const file = _CircleStdlib::FileTable::GetFile(fildes);
+    if (!file)
     {
         errno = EBADF;
         return -1;
     }
 
-    CircleFile &file = fileTab[fildes];
-    if (file.mCGlueIO == nullptr)
+    if (!file->IsOpen())
     {
         errno = EBADF;
         return -1;
     }
 
-    return file.mCGlueIO->LSeek (ptr, dir);
+    return file->GetGlueIO()->LSeek (ptr, dir);
 }
 
-extern "C" DIR*
+extern "C" DIR *
 opendir (const char *name)
 {
-    SpinLockHolder const lockHolder(dirTabLock);
+    _CircleStdlib::FileTable::DirTableLock dirTableLock;
 
-    int const slotNum = FindFreeDirSlot ();
+    _CIRCLE_DIR *circleDir;
+    int const slotNum = _CircleStdlib::FileTable::FindFreeDirSlot (circleDir);
     if (slotNum == -1)
     {
         errno = ENFILE;
         return nullptr;
     }
 
-    auto &slot = dirTab[slotNum];
+    assert(circleDir);
 
-    FRESULT const fresult = f_opendir (&slot.mCurrentEntry, name);
+    FRESULT const fresult = f_opendir (&circleDir->mCurrentEntry, name);
 
     /*
      * Best-effort mapping of FatFs error codes to errno values.
@@ -680,9 +610,9 @@ opendir (const char *name)
     switch (fresult)
     {
         case FR_OK:
-            slot.mOpen = 1;
-            slot.mFirstRead = 1;
-            result = &slot;
+            circleDir->mOpen = 1;
+            circleDir->mFirstRead = 1;
+            result = circleDir;
             break;
 
         case FR_DISK_ERR:
@@ -814,7 +744,7 @@ rewinddir (DIR *dir)
 extern "C" int
 closedir (DIR *dir)
 {
-    SpinLockHolder const lockHolder(dirTabLock);
+    _CircleStdlib::FileTable::DirTableLock dirTableLock;
 
     int result;
 

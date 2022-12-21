@@ -71,7 +71,7 @@ OBJS = chown.o environ.o errno.o execve.o fork.o fstat.o \
 	getpid.o gettod.o io.o isatty.o kill.o link.o \
 	readlink.o sbrk.o stat.o symlink.o times.o unlink.o \
 	wait.o _exit.o mem.o mkdir.o rename.o \
-	select.o socket.o
+	filetable.o select.o socket.o
 
 # Object files specific to particular targets.
 EVALOBJS = ${OBJS}
