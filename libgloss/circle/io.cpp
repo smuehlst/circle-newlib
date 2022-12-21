@@ -409,44 +409,6 @@ namespace _CircleStdlib
         FIL mFile;
     };
 
-    /**
-     * Posix sockets
-     */
-    struct CGlueIoSocket : public CGlueIO
-    {
-        CGlueIoSocket ()
-            :
-            mSocket(nullptr)
-        {
-        }
-
-        int
-        Read (void *pBuffer, int nCount)
-        {
-            return -1;
-        }
-
-        int
-        Write (const void *pBuffer, int nCount)
-        {
-            return -1;
-        }
-
-        int
-        LSeek(int ptr, int dir)
-        {
-            return -1;
-        }
-
-        int
-        Close (void)
-        {
-            return -1;
-        }
-
-        CSocket *mSocket;
-    };
-
     void
     CGlueInitConsole (CConsole &rConsole)
     {

@@ -1,5 +1,58 @@
 #include <sys/socket.h>
 #include <errno.h>
+#include <circle/net/netsubsystem.h>
+#include <circle/net/socket.h>
+#include "cglueio.h"
+#include "filetable.h"
+
+namespace _CircleStdlib {
+
+    static CNetSubSystem *pCNet = nullptr;
+
+    /**
+     * Posix sockets
+     */
+    struct CGlueIoSocket : public CGlueIO
+    {
+        CGlueIoSocket ()
+            :
+            mSocket(nullptr)
+        {
+        }
+
+        int
+        Read (void *pBuffer, int nCount)
+        {
+            return -1;
+        }
+
+        int
+        Write (const void *pBuffer, int nCount)
+        {
+            return -1;
+        }
+
+        int
+        LSeek(int ptr, int dir)
+        {
+            return -1;
+        }
+
+        int
+        Close (void)
+        {
+            return -1;
+        }
+
+        CSocket *mSocket;
+    };
+}
+
+void CGlueNetworkInit (CNetSubSystem &rNetwork)
+{
+    assert(!_CircleStdlib::pCNet);
+    _CircleStdlib::pCNet = &rNetwork;
+}
 
 extern "C"
 int accept(int socket, struct sockaddr *address,
@@ -31,7 +84,6 @@ int getpeername(int socket, struct sockaddr *address,
 {
     errno = ENOSYS;
     return -1;
-
 }
 
 extern "C"
