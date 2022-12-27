@@ -13,7 +13,6 @@
 #include <string.h>
 #undef errno
 extern int errno;
-
 #include <circle/input/console.h>
 #include <circle/sched/scheduler.h>
 #include <circle/usb/usbhostcontroller.h>
@@ -99,6 +98,13 @@ namespace
 
         virtual int
         Close (void) = 0;
+
+        virtual int
+        FTruncate (off_t)
+        {
+            errno = EINVAL;
+            return -1;
+        }
     };
 
     class CGlueConsole : public CGlueIO
@@ -481,6 +487,52 @@ namespace
             return result;
         }
 
+        virtual int
+        FTruncate (off_t length)
+        {
+            if (length < 0)
+            {
+                errno = EINVAL;
+                return -1;
+            }
+
+            FSIZE_t const cur_pos = f_tell(&mFile);
+
+            if (f_lseek(&mFile, (FSIZE_t) length) != F_OK)
+            {
+                errno = EIO;
+                return -1;
+            }
+
+            FRESULT const fresult = f_truncate(&mFile);
+            int result;
+            if (fresult == F_OK)
+            {
+                result = 0;
+            }
+            else
+            {
+                result = -1;
+
+                // Best effort to map error codes:
+                switch (fresult)
+                {
+                case FR_DENIED:
+                    errno = EINVAL;
+                    break;
+
+                default:
+                    errno = EIO;
+                    break;
+                }
+            }
+
+            // Best effort to restore seek position even if error occurred.
+            f_lseek(&mFile, cur_pos);
+
+            return result;
+        }
+
         FIL mFile;
     };
 
@@ -521,20 +573,20 @@ namespace
     void
     CGlueInitConsole (CConsole &rConsole)
     {
-        CircleFile &stdin = fileTab[0];
-        CircleFile &stdout = fileTab[1];
-        CircleFile &stderr = fileTab[2];
+        CircleFile &circle_stdin = fileTab[0];
+        CircleFile &circle_stdout = fileTab[1];
+        CircleFile &circle_stderr = fileTab[2];
 
         // Must only be called once and not be called after a file has already been opened
-        assert(!stdin.mCGlueIO);
-        assert(!stdout.mCGlueIO);
-        assert(!stderr.mCGlueIO);
+        assert(!circle_stdin.mCGlueIO);
+        assert(!circle_stdout.mCGlueIO);
+        assert(!circle_stderr.mCGlueIO);
 
-        stdin.mCGlueIO = new CGlueConsole (rConsole,
+        circle_stdin.mCGlueIO = new CGlueConsole (rConsole,
                                            CGlueConsole::ConsoleModeRead);
-        stdout.mCGlueIO = new CGlueConsole (rConsole,
+        circle_stdout.mCGlueIO = new CGlueConsole (rConsole,
                                             CGlueConsole::ConsoleModeWrite);
-        stderr.mCGlueIO = new CGlueConsole (rConsole,
+        circle_stderr.mCGlueIO = new CGlueConsole (rConsole,
                                             CGlueConsole::ConsoleModeWrite);
     }
 }
@@ -655,6 +707,25 @@ _lseek(int fildes, int ptr, int dir)
     }
 
     return file.mCGlueIO->LSeek (ptr, dir);
+}
+
+extern "C" int
+ftruncate (int fildes, off_t length)
+{
+    if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    CircleFile &file = fileTab[fildes];
+    if (file.mCGlueIO == nullptr)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    return file.mCGlueIO->FTruncate (length);
 }
 
 extern "C" DIR*
