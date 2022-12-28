@@ -6,10 +6,12 @@
 #include <_syslist.h>
 #include <sys/types.h>
 #include <sys/dirent.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <stdlib.h>
 #undef errno
 extern int errno;
 #include <circle/input/console.h>
@@ -113,6 +115,9 @@ namespace
         }
 
         virtual int
+        FStat (struct stat *buf) = 0;
+
+        virtual int
         IsATty (void) = 0;
     };
 
@@ -204,6 +209,13 @@ namespace
         }
 
         int
+        FStat (struct stat *buf)
+        {
+            errno = EBADF;
+            return -1;
+        }
+
+        int
         IsATty (void)
         {
             return 1;
@@ -220,13 +232,28 @@ namespace
     struct CGlueIoFatFs : public CGlueIO
     {
         CGlueIoFatFs ()
+            : mFilename (nullptr)
         {
             memset (&mFile, 0, sizeof(mFile));
+        }
+
+        ~CGlueIoFatFs ()
+        {
+            free (mFilename);
         }
 
         bool
         Open (char *file, int flags, int /* mode */)
         {
+            // Remember file name for simulation of fstat ()
+            mFilename = (char *) malloc (strlen (file) + 1);
+            if (!mFilename)
+            {
+                errno = ENOMEM;
+                return false;
+            }
+            strcpy(mFilename, file);
+
             int fatfs_flags;
 
             /*
@@ -499,6 +526,12 @@ namespace
                     break;
             }
 
+            if (mFilename)
+            {
+                free (mFilename);
+                mFilename = nullptr;
+            }
+
             return result;
         }
 
@@ -562,6 +595,20 @@ namespace
         }
 
         int
+        FStat (struct stat *buf)
+        {
+            // We need to force an fsync() because the fstat is simulated
+            // via a stat() call using the saved filename.
+            if (FSync () == -1)
+            {
+                return -1;
+            }
+
+            assert (mFilename);
+            return stat (mFilename, buf);
+        }
+
+        int
         IsATty (void)
         {
             errno = ENOTTY;
@@ -569,6 +616,7 @@ namespace
         }
 
         FIL mFile;
+        char *mFilename;
     };
 
     int
@@ -742,6 +790,25 @@ _lseek(int fildes, int ptr, int dir)
     }
 
     return file.mCGlueIO->LSeek (ptr, dir);
+}
+
+extern "C" int
+_fstat (int fildes, struct stat *st)
+{
+    if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    CircleFile &file = fileTab[fildes];
+    if (file.mCGlueIO == nullptr)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    return file.mCGlueIO->FStat (st);
 }
 
 extern "C" int
