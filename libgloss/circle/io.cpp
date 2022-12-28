@@ -5,7 +5,6 @@
 #include <_ansi.h>
 #include <_syslist.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/dirent.h>
 #include <fcntl.h>
 #include <unistd.h>
