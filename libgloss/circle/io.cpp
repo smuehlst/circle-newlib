@@ -105,6 +105,13 @@ namespace
             errno = EINVAL;
             return -1;
         }
+
+        virtual int
+        FSync (void)
+        {
+            errno = EINVAL;
+            return -1;
+        }
     };
 
     class CGlueConsole : public CGlueIO
@@ -533,6 +540,19 @@ namespace
             return result;
         }
 
+        int
+        FSync (void)
+        {
+            int const result = f_sync (&mFile) == FR_OK ? 0 : -1;
+
+            if (result != 0)
+            {
+                errno = EIO;
+            }
+
+            return result;
+        }
+
         FIL mFile;
     };
 
@@ -726,6 +746,25 @@ ftruncate (int fildes, off_t length)
     }
 
     return file.mCGlueIO->FTruncate (length);
+}
+
+extern "C" int
+fsync(int fildes)
+{
+    if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    CircleFile &file = fileTab[fildes];
+    if (file.mCGlueIO == nullptr)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+	return file.mCGlueIO->FSync ();
 }
 
 extern "C" DIR*
