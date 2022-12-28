@@ -111,6 +111,9 @@ namespace
             errno = EINVAL;
             return -1;
         }
+
+        virtual int
+        IsATty (void) = 0;
     };
 
     class CGlueConsole : public CGlueIO
@@ -198,6 +201,12 @@ namespace
             // TODO: Cannot close console file handle currently.
             errno = EBADF;
             return -1;
+        }
+
+        int
+        IsATty (void)
+        {
+            return 1;
         }
 
     private:
@@ -552,6 +561,13 @@ namespace
             return result;
         }
 
+        int
+        IsATty (void)
+        {
+            errno = ENOTTY;
+            return 0;
+        }
+
         FIL mFile;
     };
 
@@ -663,7 +679,7 @@ _close (int fildes)
         return -1;
     }
 
-    unsigned const result = file.mCGlueIO->Close ();
+    int const result = file.mCGlueIO->Close ();
 
     delete file.mCGlueIO;
     file.mCGlueIO = nullptr;
@@ -747,8 +763,22 @@ ftruncate (int fildes, off_t length)
     return file.mCGlueIO->FTruncate (length);
 }
 
-extern "C" int
-fsync(int fildes)
+template<int (CGlueIO::*func) (void)>
+int call_glueio_func_void_arg_valid_fildes(int fildes)
+{
+    CircleFile &file = fileTab[fildes];
+
+    if (file.mCGlueIO == nullptr)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    return (file.mCGlueIO->*func) ();
+}
+
+template<int (CGlueIO::*func) (void)>
+int call_glueio_func_void_arg(int fildes)
 {
     if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
     {
@@ -756,14 +786,19 @@ fsync(int fildes)
         return -1;
     }
 
-    CircleFile &file = fileTab[fildes];
-    if (file.mCGlueIO == nullptr)
-    {
-        errno = EBADF;
-        return -1;
-    }
+    return call_glueio_func_void_arg_valid_fildes<func> (fildes);
+}
 
-	return file.mCGlueIO->FSync ();
+extern "C" int
+fsync (int fildes)
+{
+    return call_glueio_func_void_arg<&CGlueIO::FSync> (fildes);
+}
+
+extern "C" int
+_isatty (int fildes)
+{
+    return call_glueio_func_void_arg<&CGlueIO::IsATty> (fildes);
 }
 
 extern "C" DIR*
