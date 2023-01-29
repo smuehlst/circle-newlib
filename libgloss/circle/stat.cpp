@@ -9,8 +9,6 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
-#undef errno
-extern int errno;
 #include <assert.h>
 #include "circle_glue.h"
 

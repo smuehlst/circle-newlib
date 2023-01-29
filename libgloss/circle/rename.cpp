@@ -6,9 +6,6 @@
 
 #include "wrap_fatfs.h"
 
-#undef errno
-extern int errno;
-
 extern "C"
 int
 _rename (const char *oldname, const char *newname)

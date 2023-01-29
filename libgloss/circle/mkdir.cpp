@@ -2,9 +2,6 @@
 #include <errno.h>
 #include "wrap_fatfs.h"
 
-#undef errno
-extern int errno;
-
 extern "C"
 int
 mkdir (const char *path, mode_t mode)

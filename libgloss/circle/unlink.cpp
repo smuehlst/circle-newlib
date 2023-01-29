@@ -5,9 +5,6 @@
 
 #include "wrap_fatfs.h"
 
-#undef errno
-extern int errno;
-
 extern "C"
 int
 _unlink (const char *name)

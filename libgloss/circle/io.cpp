@@ -12,8 +12,6 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#undef errno
-extern int errno;
 #include <circle/input/console.h>
 #include <circle/sched/scheduler.h>
 #include <circle/usb/usbhostcontroller.h>

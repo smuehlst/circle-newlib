@@ -7,8 +7,6 @@
 #include <_syslist.h>
 #include <errno.h>
 #include <sys/types.h>
-#undef errno
-extern int errno;
 #include "warning.h"
 
 int
