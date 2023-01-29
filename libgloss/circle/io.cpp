@@ -18,6 +18,7 @@
 #include <circle/string.h>
 #include "circle_glue.h"
 #include <assert.h>
+#include <stdarg.h>
 
 struct _CIRCLE_DIR
 {
@@ -81,6 +82,10 @@ namespace
     class CGlueIO
     {
     public:
+        CGlueIO() : mRefCount(1)
+        {
+        }
+
         virtual
         ~CGlueIO ()
         {
@@ -117,6 +122,25 @@ namespace
 
         virtual int
         IsATty (void) = 0;
+
+        void IncrementRefCount (void)
+        {
+            mRefCount += 1;
+        }
+
+        void DecrementRefCount (void)
+        {
+            assert (mRefCount > 0);
+            mRefCount -= 1;
+        }
+
+        unsigned int GetRefCount (void) const
+        {
+            return mRefCount;
+        }
+
+    private:
+        unsigned int mRefCount;
     };
 
     class CGlueConsole : public CGlueIO
@@ -618,15 +642,15 @@ namespace
     };
 
     int
-    FindFreeFileSlot (void)
+    FindFreeFileSlot (unsigned int start_index = 0)
     {
         int slotNr = -1;
 
-        for (auto const &slot : fileTab)
+        for (unsigned int i = start_index; i < MAX_OPEN_FILES; i += 1)
         {
-            if (slot.mCGlueIO == nullptr)
+            if (fileTab[i].mCGlueIO == nullptr)
             {
-                slotNr = &slot - fileTab;
+                slotNr = static_cast<int>(i);
                 break;
             }
         }
@@ -725,9 +749,20 @@ _close (int fildes)
         return -1;
     }
 
-    int const result = file.mCGlueIO->Close ();
+    assert (file.mCGlueIO->GetRefCount () > 0);
+    file.mCGlueIO->DecrementRefCount ();
 
-    delete file.mCGlueIO;
+    int result;
+    if (file.mCGlueIO->GetRefCount () == 0)
+    {
+        result = file.mCGlueIO->Close ();
+        delete file.mCGlueIO;
+    }
+    else
+    {
+        result = 0;
+    }
+
     file.mCGlueIO = nullptr;
 
     return result;
@@ -1046,6 +1081,114 @@ closedir (DIR *dir)
         errno = EBADF;
         result = -1;
     }
+
+    return result;
+}
+
+namespace {
+    int
+    dupfd (CircleFile &original_file, int start_slot)
+    {
+        if (start_slot < 0 || start_slot >= MAX_OPEN_FILES)
+        {
+            errno = EINVAL;
+            return -1;
+        }
+
+        int const result =
+            FindFreeFileSlot(static_cast<unsigned int>(start_slot));
+
+        if (result != -1)
+        {
+            CircleFile &new_file = fileTab[result];
+
+            assert (new_file.mCGlueIO == nullptr);
+            new_file.mCGlueIO = original_file.mCGlueIO;
+            new_file.mCGlueIO->IncrementRefCount();
+        }
+        else
+        {
+            errno = EMFILE;
+        }
+
+        return result;
+    }
+}
+
+extern "C" int
+fcntl (int fildes, int cmd, ...)
+{
+    if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    CircleFile &original_file = fileTab[fildes];
+
+    SpinLockHolder const lockHolder(fileTabLock);
+
+    if (original_file.mCGlueIO == nullptr)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    if (cmd != F_DUPFD)
+    {
+        errno = ENOSYS;
+        return -1;
+    }
+
+    va_list args;
+    va_start(args, cmd);
+    int const arg = va_arg(args, int);
+    va_end(args);
+
+    // TODO: F_DUPFD is the only operation implemented so far.
+	return dupfd (original_file, arg);
+}
+
+extern "C" int
+dup(int fildes)
+{
+    return fcntl (fildes, F_DUPFD, 0);
+}
+
+extern "C" int
+dup2 (int fildes, int fildes2)
+{
+    // From the OpenGroup specification:
+    // "If fildes2 is less than 0 or greater than or equal to {OPEN_MAX},
+    // dup2() shall return -1 with errno set to [EBADF]."
+    if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    CircleFile &original_file = fileTab[fildes];
+
+    SpinLockHolder const lockHolder(fileTabLock);
+
+    if (original_file.mCGlueIO == nullptr)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    // From the OpenGroup specification:
+    // "If fildes is a valid file descriptor and is equal to fildes2,
+    // dup2() shall return fildes2 without closing it."
+    if (fildes == fildes2)
+    {
+        return fildes2;
+    }
+
+    _close (fildes2);
+    int const result = dupfd (original_file, fildes2);
+
+    assert (result == -1 || result == fildes2);
 
     return result;
 }
