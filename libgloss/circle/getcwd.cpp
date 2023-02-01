@@ -21,6 +21,13 @@ char *getcwd(char *buf, size_t size)
     if (f_result == FR_OK)
     {
         result = buf;
+
+        // Remove the drive prefix before the first '/'
+        char * const slash = strchr(result, '/');
+        if (slash != nullptr)
+        {
+            memmove(result, slash, strlen(slash) + 1);
+        }
     }
     else
     {
