@@ -8,8 +8,6 @@
 #include <sys/time.h>
 #include <sys/times.h>
 #include <errno.h>
-#undef errno
-extern int errno;
 #include "warning.h"
 
 #include <circle/timer.h>

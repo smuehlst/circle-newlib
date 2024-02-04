@@ -7,8 +7,6 @@
 #include <_syslist.h>
 #include <sys/times.h>
 #include <errno.h>
-#undef errno
-extern int errno;
 #include "warning.h"
 
 clock_t

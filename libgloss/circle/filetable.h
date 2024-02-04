@@ -86,11 +86,13 @@ namespace _CircleStdlib
         };
 
     public:
-        static int FindFreeFileSlot (CircleFile *&pFile);
+        static int FindFreeFileSlot (CircleFile *&pFile, unsigned int start_index = 0);
         static int FindFreeDirSlot (_CIRCLE_DIR *&pDir);
 
         static CircleFile *GetFile(int slot);
         static _CIRCLE_DIR *GetDir(int slot);
+
+        static int DupFd (CircleFile &original_file, int start_slot);
 
         class FileTableLock : SpinLockHolder
         {
@@ -104,19 +106,17 @@ namespace _CircleStdlib
             DirTableLock() : SpinLockHolder(dirTabLock) {}
         };
 
-    private:
-        static constexpr int MAX_OPEN_FILES = 20;
-        static constexpr int MAX_OPEN_DIRS = 20;
+        static constexpr unsigned int MAX_OPEN_FILES = 20;
+        static constexpr unsigned int MAX_OPEN_DIRS = 20;
 
+    private:
         static CircleFile fileTab[MAX_OPEN_FILES];
         static CSpinLock fileTabLock;
 
         static _CIRCLE_DIR dirTab[MAX_OPEN_DIRS];
         static CSpinLock dirTabLock;
-
     };
-
-
 }
 
 #endif
+

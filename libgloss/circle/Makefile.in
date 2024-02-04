@@ -67,11 +67,11 @@ OBJCOPY = `if [ -f ${objroot}/../binutils/objcopy ] ; \
 	else t='$(program_transform_name)'; echo objcopy | sed -e $$t ; fi`
 
 # object files needed
-OBJS = chown.o environ.o errno.o execve.o fork.o fstat.o \
-	getpid.o gettod.o io.o isatty.o kill.o link.o \
+OBJS = chown.o environ.o errno.o execve.o fork.o \
+	getpid.o gettod.o io.o kill.o link.o \
 	readlink.o sbrk.o stat.o symlink.o times.o unlink.o \
-	wait.o _exit.o mem.o mkdir.o rename.o \
-	filetable.o select.o socket.o
+	wait.o _exit.o mem.o mkdir.o rename.o chdir.o \
+	getcwd.o filetable.o select.o socket.o
 
 # Object files specific to particular targets.
 EVALOBJS = ${OBJS}
