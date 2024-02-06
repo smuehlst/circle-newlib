@@ -1,9 +1,11 @@
-#include <sys/socket.h>
-#include <errno.h>
 #include <circle/net/netsubsystem.h>
 #include <circle/net/socket.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <errno.h>
 #include "cglueio.h"
 #include "filetable.h"
+#include "circlenetmap.h"
 
 namespace _CircleStdlib {
 
@@ -14,9 +16,9 @@ namespace _CircleStdlib {
      */
     struct CGlueIoSocket : public CGlueIO
     {
-        CGlueIoSocket ()
+        CGlueIoSocket (int nProtocol)
             :
-            mSocket(nullptr)
+            mSocket(pCNet, nProtocol)
         {
         }
 
@@ -41,10 +43,27 @@ namespace _CircleStdlib {
         int
         Close (void)
         {
+            // Nothing to do here. The Circle socket object will be
+            // implicitly closed and destroyed when the CGlueIO object
+            // is destroyed.
+            return 0;
+        }
+
+        int
+        FStat (struct stat *)
+        {
+            errno = EBADF;
             return -1;
         }
 
-        CSocket *mSocket;
+        int
+        IsATty (void)
+        {
+            errno = ENOTTY;
+            return -1;
+        }
+
+        CSocket mSocket;
     };
 }
 
@@ -168,11 +187,68 @@ int shutdown(int socket, int how)
     return -1;
 }
 
-extern "C"
-int socket(int domain, int type, int protocol)
+extern "C" int socket(int domain, int type, int protocol)
 {
-    errno = ENOSYS;
-    return -1;
+    if (domain != AF_INET)
+    {
+        errno = EAFNOSUPPORT;
+        return -1;
+    }
+
+    int circle_socket_protocol = 0;
+    switch (type)
+    {
+    case SOCK_STREAM:
+        switch (protocol)
+        {
+        case IPPROTO_TCP:
+        case 0:
+            circle_socket_protocol = _CircleStdlib::CircleNetMap::C_IPPROTO_TCP;
+            break;
+
+        default:
+            errno = EPROTONOSUPPORT;
+            return -1;
+        }
+        break;
+
+    case SOCK_DGRAM:
+        switch (protocol)
+        {
+        case IPPROTO_UDP:
+        case 0:
+            circle_socket_protocol = _CircleStdlib::CircleNetMap::C_IPPROTO_UDP;
+            break;
+
+        default:
+            errno = EPROTONOSUPPORT;
+            return -1;
+        }
+        break;
+
+    default:
+        errno = EPROTOTYPE;
+        return -1;
+    }
+
+    _CircleStdlib::FileTable::FileTableLock fileTabLock;
+
+    _CircleStdlib::CircleFile *circleFile = nullptr;
+    int slot = _CircleStdlib::FileTable::FindFreeFileSlot(circleFile);
+
+    if (slot != -1)
+    {
+        assert(circleFile != nullptr);
+
+        auto const new_socket = new _CircleStdlib::CGlueIoSocket(circle_socket_protocol);
+        circleFile->AssignGlueIO(*new_socket);
+    }
+    else
+    {
+        errno = ENFILE;
+    }
+
+    return slot;
 }
 
 extern "C"

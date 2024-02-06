@@ -10,13 +10,13 @@
 #define _SYS_SOCKET_H
 
 #include <sys/types.h>
+#include <bits/sockettypes.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef unsigned int socklen_t;
-typedef unsigned int sa_family_t;
 
 struct sockaddr  {
     sa_family_t  sa_family; /* Address family. */
