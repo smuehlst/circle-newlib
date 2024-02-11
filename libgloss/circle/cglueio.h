@@ -3,6 +3,8 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
+
 namespace _CircleStdlib
 {
     class CGlueIO
@@ -48,6 +50,14 @@ namespace _CircleStdlib
 
         virtual int
         IsATty (void) = 0;
+
+        virtual int
+        Bind (const struct sockaddr *,
+                socklen_t)
+        {
+            errno = ENOTSOCK;
+            return -1;           
+        }
 
         void IncrementRefCount (void)
         {

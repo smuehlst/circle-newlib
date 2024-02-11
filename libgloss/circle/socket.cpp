@@ -2,6 +2,7 @@
 #include <circle/net/socket.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <errno.h>
 #include "cglueio.h"
 #include "filetable.h"
@@ -16,9 +17,18 @@ namespace _CircleStdlib {
      */
     struct CGlueIoSocket : public CGlueIO
     {
+        enum socket_state
+        {
+            socket_state_new,
+            socket_state_bound,
+            socket_state_listening,
+            socket_state_accepted
+        };
+
         CGlueIoSocket (int nProtocol)
             :
-            mSocket(pCNet, nProtocol)
+            mSocket(pCNet, nProtocol),
+            mState(socket_state_new)
         {
         }
 
@@ -63,7 +73,47 @@ namespace _CircleStdlib {
             return -1;
         }
 
+        int
+        Bind (const struct sockaddr *sa,
+                socklen_t len)
+        {
+            if (sa->sa_family != AF_INET)
+            {
+                errno = EOPNOTSUPP;
+                return -1;
+            }
+
+            if (len != sizeof(struct sockaddr_in ) || mState != socket_state_new)
+            {
+                errno = EINVAL;
+                return -1;
+            }
+
+            const struct sockaddr_in * const sa_in = reinterpret_cast<const struct sockaddr_in *>(sa);
+
+            // Circle has no means of binding to a specific interface
+            if (sa_in->sin_addr.s_addr != htonl(INADDR_ANY))
+            {
+                errno = EADDRNOTAVAIL;
+                return -1;
+            }
+
+            int const bind_result = mSocket.Bind(sa_in->sin_port);
+
+            if (bind_result < 0)
+            {
+                // We don't know the specific reason for the failure. EACCESS seems like a good generic errno.
+                errno = EACCES;
+                return -1;
+            }
+
+            mState = socket_state_bound;
+
+            return 0;
+        }
+
         CSocket mSocket;
+        socket_state mState;
     };
 }
 
@@ -85,8 +135,18 @@ extern "C"
 int bind(int socket, const struct sockaddr *address,
                     socklen_t address_len)
 {
-    errno = ENOSYS;
-    return -1;
+    _CircleStdlib::CircleFile * const socket_file = _CircleStdlib::FileTable::GetFile(socket);
+
+    if (!socket_file || !socket_file->IsOpen())
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    _CircleStdlib::CGlueIO * const glueIO = socket_file->GetGlueIO();
+    assert(glueIO);
+
+    return glueIO->Bind(address, address_len);
 }
 
 extern "C"
@@ -257,4 +317,48 @@ int socketpair(int domain, int type, int protocol,
 {
     errno = ENOSYS;
     return -1;
+}
+
+extern "C" uint32_t htonl(uint32_t hostlong)
+{
+    return
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__   
+        __builtin_bswap32(hostlong);
+#else
+        hostlong
+#endif
+    ;
+}
+
+extern "C" uint16_t htons(uint16_t hostshort)
+{
+    return
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+        __builtin_bswap16(hostshort)
+#else
+        hostshort
+#endif
+    ;
+}
+
+extern "C" uint32_t ntohl(uint32_t netlong)
+{
+    return
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+        __builtin_bswap32(netlong);
+#else
+        netlong
+#endif
+    ;
+}
+
+extern "C" uint16_t ntohs(uint16_t netshort)
+{
+    return
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+        __builtin_bswap16(netshort)
+#else
+        netshort
+#endif
+    ;
 }
