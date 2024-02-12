@@ -87,7 +87,7 @@ int     socketpair(int domain, int type, int protocol,
 #define SOL_SOCKET  1
 
 /* Maximum backlog queue length which may be specified by the backlog field of the listen() function */
-#define SOMAXCONN   0   /* TODO determine value */
+#define SOMAXCONN   32   /* Cloned from Circle's limit */
 
 /* option_name argument in getsockopt() or setsockopt() calls: */
 #define SO_ACCEPTCONN	1	                /* Socket is accepting connections. */

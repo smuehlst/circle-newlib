@@ -59,6 +59,13 @@ namespace _CircleStdlib
             return -1;           
         }
 
+        virtual int
+        Listen (int backlog)
+        {
+            errno = ENOTSOCK;
+            return -1;
+        }
+
         void IncrementRefCount (void)
         {
             mRefCount += 1;

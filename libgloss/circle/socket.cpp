@@ -112,6 +112,44 @@ namespace _CircleStdlib {
             return 0;
         }
 
+        virtual int
+        Listen (int backlog)
+        {
+            // TODO error if socket is already connected
+
+            // The listen() function is documented with the following behaviors:
+            //
+            // "The implementation may have an upper limit on the length of the
+            // listen queue-either global or per accepting socket. If backlog
+            // exceeds this limit, the length of the listen queue is set to the limit.
+            // 
+            // If listen() is called with a backlog argument value that is less
+            // than 0, the function behaves as if it had been called with a backlog
+            // argument value of 0.
+            //
+            // A backlog argument of 0 may allow the socket to accept connections,
+            // in which case the length of the listen queue may be set to an
+            // implementation-defined minimum value."
+            //
+            // Circle's Listen() fails with a backlog of 0, so we use 1 as the
+            // implementation-defined minimum value.
+            unsigned int const ubacklog =
+                backlog < 1
+                    ? 1
+                    : (backlog > SOMAXCONN
+                        ? SOMAXCONN
+                        : backlog);
+            
+            int const listen_result = mSocket.Listen(ubacklog);
+            if (listen_result < 0)
+            {
+                // We don't know the exact reason.
+                errno = ENOBUFS;
+            }
+
+            return listen_result;
+        }
+
         CSocket mSocket;
         socket_state mState;
     };
@@ -184,8 +222,20 @@ int getsockopt(int socket, int level, int option_name,
 extern "C"
 int listen(int socket, int backlog)
 {
-    errno = ENOSYS;
-    return -1;
+    _CircleStdlib::FileTable::FileTableLock fileTabLock;
+
+    _CircleStdlib::CircleFile * const socket_file = _CircleStdlib::FileTable::GetFile(socket);
+
+    if (!socket_file || !socket_file->IsOpen())
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    _CircleStdlib::CGlueIO * const glueIO = socket_file->GetGlueIO();
+    assert(glueIO);
+
+    return glueIO->Listen(backlog);
 }
 
 extern "C"
