@@ -66,6 +66,13 @@ namespace _CircleStdlib
             return -1;
         }
 
+        virtual int
+        Accept(struct sockaddr *, socklen_t *)
+        {
+            errno = ENOTSOCK;
+            return -1;
+        }
+
         void IncrementRefCount (void)
         {
             mRefCount += 1;

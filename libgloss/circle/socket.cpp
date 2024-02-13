@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <string.h>
 #include "cglueio.h"
 #include "filetable.h"
 #include "circlenetmap.h"
@@ -27,9 +28,22 @@ namespace _CircleStdlib {
 
         CGlueIoSocket (int nProtocol)
             :
-            mSocket(pCNet, nProtocol),
+            mSocket(new CSocket(pCNet, nProtocol)),
             mState(socket_state_new)
         {
+        }
+
+        CGlueIoSocket (CSocket *acceptedSocket)
+            :
+            mSocket(acceptedSocket),
+            mState(socket_state_accepted)
+        {
+            assert(acceptedSocket);
+        }
+
+        ~CGlueIoSocket()
+        {
+            delete mSocket;
         }
 
         int
@@ -83,7 +97,7 @@ namespace _CircleStdlib {
                 return -1;
             }
 
-            if (len != sizeof(struct sockaddr_in ) || mState != socket_state_new)
+            if (len != sizeof(struct sockaddr_in) || mState != socket_state_new)
             {
                 errno = EINVAL;
                 return -1;
@@ -98,7 +112,7 @@ namespace _CircleStdlib {
                 return -1;
             }
 
-            int const bind_result = mSocket.Bind(sa_in->sin_port);
+            int const bind_result = mSocket->Bind(sa_in->sin_port);
 
             if (bind_result < 0)
             {
@@ -140,17 +154,76 @@ namespace _CircleStdlib {
                         ? SOMAXCONN
                         : backlog);
             
-            int const listen_result = mSocket.Listen(ubacklog);
+            int const listen_result = mSocket->Listen(ubacklog);
             if (listen_result < 0)
             {
                 // We don't know the exact reason.
                 errno = ENOBUFS;
             }
+            else
+            {
+                mState = socket_state_listening;
+            }
 
             return listen_result;
         }
 
-        CSocket mSocket;
+        int Accept(struct sockaddr *address, socklen_t *address_len)
+        {
+            if (mState != socket_state_listening)
+            {
+                errno = EINVAL;
+                return -1;
+            }
+
+            CIPAddress ForeignIP;
+            u16 nForeignPort;
+            CSocket * const pConnection = mSocket->Accept(&ForeignIP, &nForeignPort);
+
+            if (!pConnection)
+            {
+                errno = EINVAL;
+                return -1;
+            }
+
+            _CircleStdlib::CircleFile *circleFile = nullptr;
+            int const slot = _CircleStdlib::FileTable::FindFreeFileSlot(circleFile);
+
+            if (slot != -1)
+            {
+                assert(circleFile != nullptr);
+
+                auto const new_socket = new _CircleStdlib::CGlueIoSocket(pConnection);
+                circleFile->AssignGlueIO(*new_socket);
+
+                if (address && address_len && *address_len > 0)
+                {
+                    struct sockaddr_in sockaddr;
+                    socklen_t out_len = sizeof(struct sockaddr_in);
+                    socklen_t const in_len = *address_len;
+                    
+                    *address_len = out_len;
+                    if (out_len > in_len)
+                    {
+                        out_len = in_len;
+                    }
+
+                    sockaddr.sin_family = AF_INET;
+                    sockaddr.sin_addr.s_addr = (u32) ForeignIP;
+                    sockaddr.sin_port = nForeignPort;
+                    
+                    memcpy(address, &sockaddr, out_len);
+                }
+            }
+            else
+            {
+                errno = ENFILE;
+            }
+
+            return slot;
+        }
+
+        CSocket *mSocket;
         socket_state mState;
     };
 }
@@ -165,14 +238,28 @@ extern "C"
 int accept(int socket, struct sockaddr *address,
                       socklen_t *address_len)
 {
-    errno = ENOSYS;
-    return -1;
+    _CircleStdlib::FileTable::FileTableLock fileTabLock;
+
+    _CircleStdlib::CircleFile * const socket_file = _CircleStdlib::FileTable::GetFile(socket);
+
+    if (!socket_file || !socket_file->IsOpen())
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    _CircleStdlib::CGlueIO * const glueIO = socket_file->GetGlueIO();
+    assert(glueIO);
+
+    return glueIO->Accept(address, address_len);
 }
 
 extern "C"
 int bind(int socket, const struct sockaddr *address,
                     socklen_t address_len)
 {
+    _CircleStdlib::FileTable::FileTableLock fileTabLock;
+
     _CircleStdlib::CircleFile * const socket_file = _CircleStdlib::FileTable::GetFile(socket);
 
     if (!socket_file || !socket_file->IsOpen())
@@ -344,7 +431,7 @@ extern "C" int socket(int domain, int type, int protocol)
     _CircleStdlib::FileTable::FileTableLock fileTabLock;
 
     _CircleStdlib::CircleFile *circleFile = nullptr;
-    int slot = _CircleStdlib::FileTable::FindFreeFileSlot(circleFile);
+    int const slot = _CircleStdlib::FileTable::FindFreeFileSlot(circleFile);
 
     if (slot != -1)
     {
