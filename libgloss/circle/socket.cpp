@@ -23,7 +23,7 @@ namespace _CircleStdlib {
             socket_state_new,
             socket_state_bound,
             socket_state_listening,
-            socket_state_accepted
+            socket_state_connected
         };
 
         CGlueIoSocket (int nProtocol)
@@ -36,7 +36,7 @@ namespace _CircleStdlib {
         CGlueIoSocket (CSocket *acceptedSocket)
             :
             mSocket(acceptedSocket),
-            mState(socket_state_accepted)
+            mState(socket_state_connected)
         {
             assert(acceptedSocket);
         }
@@ -44,18 +44,6 @@ namespace _CircleStdlib {
         ~CGlueIoSocket()
         {
             delete mSocket;
-        }
-
-        int
-        Read (void *pBuffer, int nCount)
-        {
-            return -1;
-        }
-
-        int
-        Write (const void *pBuffer, int nCount)
-        {
-            return -1;
         }
 
         int
@@ -112,7 +100,12 @@ namespace _CircleStdlib {
                 return -1;
             }
 
-            int const bind_result = mSocket->Bind(sa_in->sin_port);
+            /* 
+             * Circle expects the port in little-endian representation, e.g. in host byte order.
+             * The socket interface requires the port in network byte order. Therefore we
+             * have to convert to host byte order here.
+             */
+            int const bind_result = mSocket->Bind(ntohs(sa_in->sin_port));
 
             if (bind_result < 0)
             {
@@ -221,6 +214,48 @@ namespace _CircleStdlib {
             }
 
             return slot;
+        }
+
+        int
+        Read (void *pBuffer, int nCount)
+        {
+            assert(mSocket);
+
+            if (mState != socket_state_connected)
+            {
+                errno = ENOTCONN;
+                return -1;
+            }
+
+            int const result = mSocket->Receive(pBuffer, nCount, 0);
+
+            if (result == -1)
+            {
+                errno = EPIPE;
+            }
+
+            return result;
+        }
+
+        int
+        Write (const void *pBuffer, int nCount)
+        {
+            assert(mSocket);
+
+            if (mState != socket_state_connected)
+            {
+                errno = ECONNRESET;
+                return -1;
+            }
+
+            int const result = mSocket->Send(pBuffer, nCount, 0);
+
+            if (result == -1)
+            {
+                errno = EPIPE;
+            }
+
+            return result;
         }
 
         CSocket *mSocket;

@@ -11,6 +11,7 @@ struct in_addr {
     in_addr_t s_addr;
 };
 
+/* The sin_port and sin_addr members shall be in network byte order (big-endia). */
 struct sockaddr_in {
     sa_family_t sin_family; 
     in_port_t sin_port;
