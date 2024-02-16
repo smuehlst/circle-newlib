@@ -1,4 +1,5 @@
 #include <circle/net/netsubsystem.h>
+#include <circle/sched/scheduler.h>
 #include <circle/net/socket.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -9,7 +10,8 @@
 #include "filetable.h"
 #include "circlenetmap.h"
 
-namespace _CircleStdlib {
+namespace _CircleStdlib
+{
 
     static CNetSubSystem *pCNet = nullptr;
 
@@ -26,17 +28,15 @@ namespace _CircleStdlib {
             socket_state_connected
         };
 
-        CGlueIoSocket (int nProtocol)
-            :
-            mSocket(new CSocket(pCNet, nProtocol)),
-            mState(socket_state_new)
+        CGlueIoSocket(int nProtocol)
+            : mSocket(new CSocket(pCNet, nProtocol)),
+              mState(socket_state_new)
         {
         }
 
-        CGlueIoSocket (CSocket *acceptedSocket)
-            :
-            mSocket(acceptedSocket),
-            mState(socket_state_connected)
+        CGlueIoSocket(CSocket *acceptedSocket)
+            : mSocket(acceptedSocket),
+              mState(socket_state_connected)
         {
             assert(acceptedSocket);
         }
@@ -53,8 +53,10 @@ namespace _CircleStdlib {
         }
 
         int
-        Close (void)
+        Close(void)
         {
+            CScheduler::Get()->Yield();
+
             // Nothing to do here. The Circle socket object will be
             // implicitly closed and destroyed when the CGlueIO object
             // is destroyed.
@@ -62,22 +64,22 @@ namespace _CircleStdlib {
         }
 
         int
-        FStat (struct stat *)
+        FStat(struct stat *)
         {
             errno = EBADF;
             return -1;
         }
 
         int
-        IsATty (void)
+        IsATty(void)
         {
             errno = ENOTTY;
             return -1;
         }
 
         int
-        Bind (const struct sockaddr *sa,
-                socklen_t len)
+        Bind(const struct sockaddr *sa,
+             socklen_t len)
         {
             if (sa->sa_family != AF_INET)
             {
@@ -91,7 +93,7 @@ namespace _CircleStdlib {
                 return -1;
             }
 
-            const struct sockaddr_in * const sa_in = reinterpret_cast<const struct sockaddr_in *>(sa);
+            const struct sockaddr_in *const sa_in = reinterpret_cast<const struct sockaddr_in *>(sa);
 
             // Circle has no means of binding to a specific interface
             if (sa_in->sin_addr.s_addr != htonl(INADDR_ANY))
@@ -100,7 +102,7 @@ namespace _CircleStdlib {
                 return -1;
             }
 
-            /* 
+            /*
              * Circle expects the port in little-endian representation, e.g. in host byte order.
              * The socket interface requires the port in network byte order. Therefore we
              * have to convert to host byte order here.
@@ -116,20 +118,26 @@ namespace _CircleStdlib {
 
             mState = socket_state_bound;
 
+            CScheduler::Get()->Yield();
+
             return 0;
         }
 
         virtual int
-        Listen (int backlog)
+        Listen(int backlog)
         {
-            // TODO error if socket is already connected
+            if (mState == socket_state_connected)
+            {
+                errno = EINVAL;
+                return -1;
+            }
 
             // The listen() function is documented with the following behaviors:
             //
             // "The implementation may have an upper limit on the length of the
             // listen queue-either global or per accepting socket. If backlog
             // exceeds this limit, the length of the listen queue is set to the limit.
-            // 
+            //
             // If listen() is called with a backlog argument value that is less
             // than 0, the function behaves as if it had been called with a backlog
             // argument value of 0.
@@ -144,9 +152,9 @@ namespace _CircleStdlib {
                 backlog < 1
                     ? 1
                     : (backlog > SOMAXCONN
-                        ? SOMAXCONN
-                        : backlog);
-            
+                           ? SOMAXCONN
+                           : backlog);
+
             int const listen_result = mSocket->Listen(ubacklog);
             if (listen_result < 0)
             {
@@ -157,6 +165,8 @@ namespace _CircleStdlib {
             {
                 mState = socket_state_listening;
             }
+
+            CScheduler::Get()->Yield();
 
             return listen_result;
         }
@@ -171,7 +181,7 @@ namespace _CircleStdlib {
 
             CIPAddress ForeignIP;
             u16 nForeignPort;
-            CSocket * const pConnection = mSocket->Accept(&ForeignIP, &nForeignPort);
+            CSocket *const pConnection = mSocket->Accept(&ForeignIP, &nForeignPort);
 
             if (!pConnection)
             {
@@ -194,7 +204,7 @@ namespace _CircleStdlib {
                     struct sockaddr_in sockaddr;
                     socklen_t out_len = sizeof(struct sockaddr_in);
                     socklen_t const in_len = *address_len;
-                    
+
                     *address_len = out_len;
                     if (out_len > in_len)
                     {
@@ -202,9 +212,9 @@ namespace _CircleStdlib {
                     }
 
                     sockaddr.sin_family = AF_INET;
-                    sockaddr.sin_addr.s_addr = (u32) ForeignIP;
+                    sockaddr.sin_addr.s_addr = (u32)ForeignIP;
                     sockaddr.sin_port = nForeignPort;
-                    
+
                     memcpy(address, &sockaddr, out_len);
                 }
             }
@@ -213,11 +223,13 @@ namespace _CircleStdlib {
                 errno = ENFILE;
             }
 
+            CScheduler::Get()->Yield();
+
             return slot;
         }
 
         int
-        Read (void *pBuffer, int nCount)
+        Read(void *pBuffer, int nCount)
         {
             assert(mSocket);
 
@@ -234,11 +246,13 @@ namespace _CircleStdlib {
                 errno = EPIPE;
             }
 
+            CScheduler::Get()->Yield();
+
             return result;
         }
 
         int
-        Write (const void *pBuffer, int nCount)
+        Write(const void *pBuffer, int nCount)
         {
             assert(mSocket);
 
@@ -255,6 +269,8 @@ namespace _CircleStdlib {
                 errno = EPIPE;
             }
 
+            CScheduler::Get()->Yield();
+
             return result;
         }
 
@@ -263,19 +279,18 @@ namespace _CircleStdlib {
     };
 }
 
-void CGlueNetworkInit (CNetSubSystem &rNetwork)
+void CGlueNetworkInit(CNetSubSystem &rNetwork)
 {
     assert(!_CircleStdlib::pCNet);
     _CircleStdlib::pCNet = &rNetwork;
 }
 
-extern "C"
-int accept(int socket, struct sockaddr *address,
+extern "C" int accept(int socket, struct sockaddr *address,
                       socklen_t *address_len)
 {
     _CircleStdlib::FileTable::FileTableLock fileTabLock;
 
-    _CircleStdlib::CircleFile * const socket_file = _CircleStdlib::FileTable::GetFile(socket);
+    _CircleStdlib::CircleFile *const socket_file = _CircleStdlib::FileTable::GetFile(socket);
 
     if (!socket_file || !socket_file->IsOpen())
     {
@@ -283,19 +298,18 @@ int accept(int socket, struct sockaddr *address,
         return -1;
     }
 
-    _CircleStdlib::CGlueIO * const glueIO = socket_file->GetGlueIO();
+    _CircleStdlib::CGlueIO *const glueIO = socket_file->GetGlueIO();
     assert(glueIO);
 
     return glueIO->Accept(address, address_len);
 }
 
-extern "C"
-int bind(int socket, const struct sockaddr *address,
+extern "C" int bind(int socket, const struct sockaddr *address,
                     socklen_t address_len)
 {
     _CircleStdlib::FileTable::FileTableLock fileTabLock;
 
-    _CircleStdlib::CircleFile * const socket_file = _CircleStdlib::FileTable::GetFile(socket);
+    _CircleStdlib::CircleFile *const socket_file = _CircleStdlib::FileTable::GetFile(socket);
 
     if (!socket_file || !socket_file->IsOpen())
     {
@@ -303,50 +317,45 @@ int bind(int socket, const struct sockaddr *address,
         return -1;
     }
 
-    _CircleStdlib::CGlueIO * const glueIO = socket_file->GetGlueIO();
+    _CircleStdlib::CGlueIO *const glueIO = socket_file->GetGlueIO();
     assert(glueIO);
 
     return glueIO->Bind(address, address_len);
 }
 
-extern "C"
-int connect(int socket, const struct sockaddr *address,
+extern "C" int connect(int socket, const struct sockaddr *address,
                        socklen_t address_len)
 {
     errno = ENOSYS;
     return -1;
 }
 
-extern "C"
-int getpeername(int socket, struct sockaddr *address,
+extern "C" int getpeername(int socket, struct sockaddr *address,
                            socklen_t *address_len)
 {
     errno = ENOSYS;
     return -1;
 }
 
-extern "C"
-int getsockname(int socket, struct sockaddr *address,
+extern "C" int getsockname(int socket, struct sockaddr *address,
                            socklen_t *address_len)
 {
     errno = ENOSYS;
     return -1;
 }
 
-extern "C"
-int getsockopt(int socket, int level, int option_name,
+extern "C" int getsockopt(int socket, int level, int option_name,
                           void *option_value, socklen_t *option_len)
 {
     errno = ENOSYS;
     return -1;
 }
 
-extern "C"
-int listen(int socket, int backlog)
+extern "C" int listen(int socket, int backlog)
 {
     _CircleStdlib::FileTable::FileTableLock fileTabLock;
 
-    _CircleStdlib::CircleFile * const socket_file = _CircleStdlib::FileTable::GetFile(socket);
+    _CircleStdlib::CircleFile *const socket_file = _CircleStdlib::FileTable::GetFile(socket);
 
     if (!socket_file || !socket_file->IsOpen())
     {
@@ -354,66 +363,58 @@ int listen(int socket, int backlog)
         return -1;
     }
 
-    _CircleStdlib::CGlueIO * const glueIO = socket_file->GetGlueIO();
+    _CircleStdlib::CGlueIO *const glueIO = socket_file->GetGlueIO();
     assert(glueIO);
 
     return glueIO->Listen(backlog);
 }
 
-extern "C"
-ssize_t recv(int socket, void *buffer, size_t length, int flags)
+extern "C" ssize_t recv(int socket, void *buffer, size_t length, int flags)
 {
     errno = ENOSYS;
     return -1;
 }
 
-extern "C"
-ssize_t recvfrom(int socket, void *buffer, size_t length,
+extern "C" ssize_t recvfrom(int socket, void *buffer, size_t length,
                             int flags, struct sockaddr *address, socklen_t *address_len)
 {
     errno = ENOSYS;
     return -1;
 }
 
-extern "C"
-ssize_t recvmsg(int socket, struct msghdr *message, int flags)
+extern "C" ssize_t recvmsg(int socket, struct msghdr *message, int flags)
 {
     errno = ENOSYS;
     return -1;
 }
 
-extern "C"
-ssize_t send(int socket, const void *message, size_t length, int flags)
+extern "C" ssize_t send(int socket, const void *message, size_t length, int flags)
 {
     errno = ENOSYS;
     return -1;
 }
 
-extern "C"
-ssize_t sendmsg(int socket, const struct msghdr *message, int flags)
+extern "C" ssize_t sendmsg(int socket, const struct msghdr *message, int flags)
 {
     errno = ENOSYS;
     return -1;
 }
 
-extern "C"
-ssize_t sendto(int socket, const void *message, size_t length, int flags,
+extern "C" ssize_t sendto(int socket, const void *message, size_t length, int flags,
                           const struct sockaddr *dest_addr, socklen_t dest_len)
 {
     errno = ENOSYS;
     return -1;
 }
 
-extern "C"
-int setsockopt(int socket, int level, int option_name,
+extern "C" int setsockopt(int socket, int level, int option_name,
                           const void *option_value, socklen_t option_len)
 {
     errno = ENOSYS;
     return -1;
 }
 
-extern "C"
-int shutdown(int socket, int how)
+extern "C" int shutdown(int socket, int how)
 {
     errno = ENOSYS;
     return -1;
@@ -483,8 +484,7 @@ extern "C" int socket(int domain, int type, int protocol)
     return slot;
 }
 
-extern "C"
-int socketpair(int domain, int type, int protocol,
+extern "C" int socketpair(int domain, int type, int protocol,
                           int socket_vector[2])
 {
     errno = ENOSYS;
@@ -494,7 +494,7 @@ int socketpair(int domain, int type, int protocol,
 extern "C" uint32_t htonl(uint32_t hostlong)
 {
     return
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__   
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
         __builtin_bswap32(hostlong);
 #else
         hostlong
@@ -510,7 +510,7 @@ extern "C" uint16_t htons(uint16_t hostshort)
 #else
         hostshort
 #endif
-    ;
+            ;
 }
 
 extern "C" uint32_t ntohl(uint32_t netlong)
@@ -532,5 +532,5 @@ extern "C" uint16_t ntohs(uint16_t netshort)
 #else
         netshort
 #endif
-    ;
+            ;
 }
