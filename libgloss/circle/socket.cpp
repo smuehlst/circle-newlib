@@ -10,6 +10,8 @@
 #include "filetable.h"
 #include "circlenetmap.h"
 
+#include <circle/logger.h>
+
 namespace _CircleStdlib
 {
 
@@ -228,6 +230,50 @@ namespace _CircleStdlib
             return slot;
         }
 
+        virtual int
+        Connect(const struct sockaddr *address, socklen_t address_len)
+        {
+            if (address->sa_family != AF_INET || mState == socket_state_listening)
+            {
+                errno = EOPNOTSUPP;
+                return -1;
+            }
+
+            if (address_len != sizeof(struct sockaddr_in))
+            {
+                errno = EINVAL;
+                return -1;
+            }
+
+            if (mState == socket_state_connected)
+            {
+                errno = EISCONN;
+                return -1;
+            }
+
+            const struct sockaddr_in * const in_addr = reinterpret_cast<const struct sockaddr_in *>(address);
+
+            CIPAddress circle_address = ntohl(in_addr->sin_addr.s_addr);
+            u16 const circle_port = ntohs(in_addr->sin_port);
+
+            CLogger::Get ()->Write ("socket", LogNotice, "addr ext %x addr circle %x\n", in_addr->sin_addr.s_addr, (u32)circle_address);
+
+            int const result = mSocket->Connect(circle_address, circle_port);
+            if (result == -1)
+            {
+                // We don't know better.
+                errno = EADDRNOTAVAIL;
+            }
+            else
+            {
+                mState = socket_state_connected;
+            }
+
+            CScheduler::Get()->Yield();
+
+            return result;
+        }
+
         int
         Read(void *pBuffer, int nCount)
         {
@@ -326,8 +372,20 @@ extern "C" int bind(int socket, const struct sockaddr *address,
 extern "C" int connect(int socket, const struct sockaddr *address,
                        socklen_t address_len)
 {
-    errno = ENOSYS;
-    return -1;
+    _CircleStdlib::FileTable::FileTableLock fileTabLock;
+
+    _CircleStdlib::CircleFile *const socket_file = _CircleStdlib::FileTable::GetFile(socket);
+
+    if (!socket_file || !socket_file->IsOpen())
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    _CircleStdlib::CGlueIO *const glueIO = socket_file->GetGlueIO();
+    assert(glueIO);
+
+    return glueIO->Connect(address, address_len);
 }
 
 extern "C" int getpeername(int socket, struct sockaddr *address,

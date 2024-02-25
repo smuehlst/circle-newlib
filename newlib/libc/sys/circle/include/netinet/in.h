@@ -25,8 +25,9 @@ struct sockaddr_in {
 #define IPPROTO_TCP     (IPPROTO_IP + 4)    /* Transmission control protocol. */
 #define IPPROTO_UDP     (IPPROTO_IP + 5)    /* User datagram protocol. */
 
-#define INADDR_ANY      1                   /* IPv4 local host address. */
-#define INADDR_BROADCAST (INADDR_ANY + 1)   /* IPv4 broadcast address. */
+#define	INADDR_ANY		((in_addr_t) 0x00000000) /* IPv4 wildcard address. */
+#define	INADDR_LOOPBACK	((in_addr_t) 0x7f000001) /* IPv4 local host address. */
+#define	INADDR_BROADCAST ((in_addr_t) 0xffffffff) /* IPv4 broadcast address. */
 
 #define INET_ADDRSTRLEN 16                  /* Length of the string form for IP. */
 
