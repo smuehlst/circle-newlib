@@ -253,10 +253,8 @@ namespace _CircleStdlib
 
             const struct sockaddr_in * const in_addr = reinterpret_cast<const struct sockaddr_in *>(address);
 
-            CIPAddress circle_address = ntohl(in_addr->sin_addr.s_addr);
+            CIPAddress circle_address {in_addr->sin_addr.s_addr};
             u16 const circle_port = ntohs(in_addr->sin_port);
-
-            CLogger::Get ()->Write ("socket", LogNotice, "addr ext %x addr circle %x\n", in_addr->sin_addr.s_addr, (u32)circle_address);
 
             int const result = mSocket->Connect(circle_address, circle_port);
             if (result == -1)
