@@ -616,6 +616,8 @@ _close (int fildes)
         result = 0;
     }
 
+    CScheduler::Get()->Yield();
+
     return result;
 }
 
