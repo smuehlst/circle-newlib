@@ -1116,7 +1116,7 @@ namespace {
 }
 
 extern "C" int
-fcntl (int fildes, int cmd, ...)
+_fcntl (int fildes, int cmd, ...)
 {
     if (fildes < 0 || static_cast<unsigned int> (fildes) >= MAX_OPEN_FILES)
     {
