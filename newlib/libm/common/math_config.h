@@ -32,6 +32,9 @@
 #include <math.h>
 #include <stdint.h>
 
+typedef float float_t;
+typedef double double_t;
+
 #ifndef WANT_ROUNDING
 /* Correct special case results in non-nearest rounding modes.  */
 # define WANT_ROUNDING 1

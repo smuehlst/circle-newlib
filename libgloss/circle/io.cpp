@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <circle/input/console.h>
 #include <circle/sched/scheduler.h>
-#include <circle/usb/usbhostcontroller.h>
+#include <circle/usb/usbhcidevice.h>
 #include <circle/string.h>
 #include "circle_glue.h"
 #include <assert.h>
@@ -166,9 +166,9 @@ namespace
             {
                 CScheduler * const scheduler =
                     CScheduler::IsActive () ? CScheduler::Get () : nullptr;
-                CUSBHostController * const usbhost =
-                    CUSBHostController::IsActive () ?
-                        CUSBHostController::Get () : nullptr;
+                CUSBController * const usbhost =
+                    CUSBHCIDevice::IsActive () ?
+                        CUSBHCIDevice::Get () : nullptr;
 
                 while ((nResult = mConsole.Read (pBuffer,
                                                  static_cast<size_t> (nCount)))
