@@ -233,8 +233,19 @@ namespace
         int
         FStat (struct stat *buf)
         {
-            errno = EBADF;
-            return -1;
+            assert(buf);
+            memset(buf, 0, sizeof(*buf));
+
+            // Just some arbitrary but fixed values.
+            buf->st_dev = 0x0202;
+            buf->st_ino = 2000;
+            buf->st_nlink = 1;
+
+            // The important flag is S_IFCHR. This is needed by newlib
+            // internally to recognize that this is a TTY.
+            buf->st_mode = S_IRUSR | S_IWUSR | S_IFCHR;
+
+            return 0;
         }
 
         int
