@@ -1,7 +1,6 @@
-multilibtool_DATA += %D%/nosys.specs
-multilibtool_LIBRARIES += %D%/libnosys.a
+multilibtool_LIBRARIES += %D%/libcirclenewlib.a
 
-%C%_libnosys_a_SOURCES = \
+%C%_libcirclenewlib_a_SOURCES = \
 	%D%/chdir.cpp \
 	%D%/chown.c \
 	%D%/environ.c \
