@@ -9,8 +9,9 @@ details. */
 #include "winsup.h"
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
-#define _COMPILING_NEWLIB
+#define _LIBC
 #include <dirent.h>
 
 #include "cygerrno.h"
@@ -60,13 +61,18 @@ opendir (const char *name)
       set_errno (fh->error ());
       res = NULL;
     }
-  else if (fh->exists ())
-    res = fh->opendir (-1);
-  else
+  else if (!fh->exists ())
     {
       set_errno (ENOENT);
       res = NULL;
     }
+  else if (!fh->pc.isdir ())
+    {
+      set_errno (ENOTDIR);
+      res = NULL;
+    }
+  else
+    res = fh->opendir (-1);
 
   if (!res && fh)
     delete fh;
@@ -103,6 +109,7 @@ readdir_worker (DIR *dir, dirent *de)
 
       de->d_ino = 0;
       de->d_type = DT_UNKNOWN;
+      de->d_reclen = sizeof *de;
       memset (&de->__d_unused1, 0, sizeof (de->__d_unused1));
 
       res = ((fhandler_base *) dir->__fh)->readdir (dir, de);
@@ -140,7 +147,7 @@ readdir_worker (DIR *dir, dirent *de)
 
 	  if (is_dot_dot && !(dir->__flags & dirent_isroot))
 	    de->d_ino = readdir_get_ino (((fhandler_base *)
-	    				 dir->__fh)->get_name (),
+					 dir->__fh)->get_name (),
 					 true);
 	  else
 	    {
@@ -161,9 +168,6 @@ readdir_worker (DIR *dir, dirent *de)
 		}
 	    }
 	}
-      /* This fills out the old 32 bit d_ino field for old applications,
-	 build under Cygwin before 1.5.x. */
-      de->__d_internal1 = de->d_ino;
     }
   __except (NO_ERROR)
     {
@@ -198,6 +202,59 @@ readdir_r (DIR *__restrict dir, dirent *__restrict de, dirent **__restrict ode)
 	res = 0;
     }
   return res;
+}
+
+extern "C"
+ssize_t posix_getdents(int fd, void *buf, size_t nbytes, int flags)
+{
+  struct posix_dent *dent_buf, *src;
+  ssize_t cnt = 0;
+
+  cygheap_fdget cfd (fd);
+  /* Valid descriptor? */
+  if (cfd < 0)
+    return -1;
+  /* Valid flags?  Right now only DT_FORCE_TYPE is defined */
+  if ((flags & ~DT_FORCE_TYPE) != 0)
+    {
+      set_errno (EINVAL);
+      return -1;
+    }
+  /* Create type-safe buffer pointer */
+  dent_buf = (struct posix_dent *) buf;
+  /* Check if nbytes is big enough to fit at least one struct posix_dent */
+  if (nbytes < sizeof (struct posix_dent))
+    {
+      set_errno (EINVAL);
+      return -1;
+    }
+  /* Create internal DIR * on first invocation */
+  if (!cfd->getdents_dir ())
+    {
+      cfd->getdents_dir (cfd->opendir (fd));
+      if (!cfd->getdents_dir ())
+	return -1;
+    }
+  /* Now loop until EOF or buf is full */
+  while (nbytes >= sizeof (struct posix_dent))
+    {
+      /* Our struct posix_dent is identical to struct dirent */
+      src = (struct posix_dent *) readdir (cfd->getdents_dir ());
+      if (!src)
+	break;
+      /* Handle the suggested DT_FORCE_TYPE flag */
+      if (src->d_type == DT_UNKNOWN && (flags & DT_FORCE_TYPE))
+	{
+	  struct stat st;
+
+	  if (!fstatat (fd, src->d_name, &st, AT_SYMLINK_NOFOLLOW))
+	    src->d_type = IFTODT (st.st_mode);
+	}
+      *dent_buf++ = *src;
+      ++cnt;
+      nbytes -= sizeof (struct posix_dent);
+    }
+  return cnt * sizeof (struct posix_dent);
 }
 
 /* telldir */
@@ -235,7 +292,6 @@ seekdir (DIR *dir, long loc)
 	  dir->__flags &= dirent_info_mask;
 	  ((fhandler_base *) dir->__fh)->seekdir (dir, loc);
 	}
-      set_errno (EINVAL);	/* Diagnosis */
     }
   __except (EFAULT) {}
   __endtry
@@ -267,9 +323,8 @@ rewinddir (DIR *dir)
   __endtry
 }
 
-/* closedir: POSIX 5.1.2.1 */
-extern "C" int
-closedir (DIR *dir)
+static int
+closedir_worker (DIR *dir, int *fdret)
 {
   __try
     {
@@ -280,19 +335,42 @@ closedir (DIR *dir)
 
 	  int res = ((fhandler_base *) dir->__fh)->closedir (dir);
 
-	  close (dir->__d_fd);
+	  if (fdret)
+	    *fdret = dir->__d_fd;
+	  else
+	    close (dir->__d_fd);
+
 	  free (dir->__d_dirname);
 	  free (dir->__d_dirent);
 	  free (dir);
-	  syscall_printf ("%R = closedir(%p)", res, dir);
 	  return res;
 	}
       set_errno (EBADF);
     }
   __except (EFAULT) {}
   __endtry
-  syscall_printf ("%R = closedir(%p)", -1, dir);
   return -1;
+}
+
+/* closedir: POSIX 5.1.2.1 */
+extern "C" int
+closedir (DIR *dir)
+{
+  int res;
+
+  res = closedir_worker (dir, NULL);
+  syscall_printf ("%R = closedir(%p)", res, dir);
+  return res;
+}
+
+extern "C" int
+fdclosedir (DIR *dir)
+{
+  int fd = -1;
+
+  closedir_worker (dir, &fd);
+  syscall_printf ("%d = fdclosedir(%p)", fd, dir);
+  return fd;
 }
 
 /* mkdir: POSIX 5.4.1.1 */
@@ -313,15 +391,27 @@ mkdir (const char *dir, mode_t mode)
       /* Following Linux, and intentionally ignoring POSIX, do not
 	 resolve the last component of DIR if it is a symlink, even if
 	 DIR has a trailing slash.  Achieve this by stripping trailing
-	 slashes or backslashes.  */
+	 slashes or backslashes.
+
+	 Exception: If DIR == 'x:' followed by one or more slashes or
+	 backslashes, and if there's at least one backslash, assume
+	 that the user is referring to the root directory of drive x.
+	 Retain one backslash in this case.  */
       if (isdirsep (dir[strlen (dir) - 1]))
 	{
 	  /* This converts // to /, but since both give EEXIST, we're okay.  */
 	  char *buf;
 	  char *p = stpcpy (buf = tp.c_get (), dir) - 1;
+	  bool msdos = false;
 	  dir = buf;
 	  while (p > dir && isdirsep (*p))
-	    *p-- = '\0';
+	    {
+	      if (*p == '\\')
+		msdos = true;
+	      *p-- = '\0';
+	    }
+	  if (msdos && p == dir + 1 && isdrive (dir))
+	    p[1] = '\\';
 	}
       if (!(fh = build_fh_name (dir, PC_SYM_NOFOLLOW)))
 	__leave;   /* errno already set */;
@@ -360,20 +450,31 @@ rmdir (const char *dir)
 	  set_errno (ENOENT);
 	  __leave;
 	}
-
       /* Following Linux, and intentionally ignoring POSIX, do not
 	 resolve the last component of DIR if it is a symlink, even if
 	 DIR has a trailing slash.  Achieve this by stripping trailing
-	 slashes or backslashes.  */
+	 slashes or backslashes.
+
+	 Exception: If DIR == 'x:' followed by one or more slashes or
+	 backslashes, and if there's at least one backslash, assume
+	 that the user is referring to the root directory of drive x.
+	 Retain one backslash in this case.  */
       if (isdirsep (dir[strlen (dir) - 1]))
 	{
 	  /* This converts // to /, but since both give ENOTEMPTY,
 	     we're okay.  */
 	  char *buf;
 	  char *p = stpcpy (buf = tp.c_get (), dir) - 1;
+	  bool msdos = false;
 	  dir = buf;
 	  while (p > dir && isdirsep (*p))
-	    *p-- = '\0';
+	    {
+	      if (*p == '\\')
+		msdos = true;
+	      *p-- = '\0';
+	    }
+	  if (msdos && p == dir + 1 && isdrive (dir))
+	    p[1] = '\\';
 	}
       if (!(fh = build_fh_name (dir, PC_SYM_NOFOLLOW)))
 	__leave;   /* errno already set */;
@@ -387,8 +488,6 @@ rmdir (const char *dir)
 	set_errno (ENOENT);
       else if (has_dot_last_component (dir, false))
 	set_errno (EINVAL);
-      else if (isdev_dev (fh->dev ()))
-	set_errno (ENOTEMPTY);
       else if (!fh->rmdir ())
 	res = 0;
       delete fh;
