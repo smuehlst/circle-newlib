@@ -1,15 +1,17 @@
+#	mem functions disabled in libc to avoid duplicate functions with circle
+#	%D%/memmove.c
+#	%D%/memcpy-stub.c
+#	%D%/memcpy.S
+#	%D%/memset-stub.c
+#	%D%/memset.S
+
 libc_a_SOURCES += \
 	%D%/memchr-stub.c \
 	%D%/memchr.S \
 	%D%/memcmp-stub.c \
 	%D%/memcmp.S \
-	%D%/memcpy-stub.c \
-	%D%/memcpy.S \
-	%D%/memmove.c \
 	%D%/memrchr-stub.c \
 	%D%/memrchr.S \
-	%D%/memset-stub.c \
-	%D%/memset.S \
 	%D%/rawmemchr.S \
 	%D%/rawmemchr-stub.c \
 	%D%/setjmp.S \
