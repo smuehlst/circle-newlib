@@ -1,7 +1,7 @@
 #include "config.h"
 
 #include "wrap_fatfs.h"
-
+#include "circle_macros.h"
 #include <_ansi.h>
 #include <_syslist.h>
 #include <sys/types.h>

@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+#include "circle_macros.h"
 #include "circle_glue.h"
 
 extern "C" int
