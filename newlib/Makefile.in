@@ -21,6 +21,13 @@
 #	%D%/memset-stub.c
 #	%D%/memset.S
 
+# mem functions disabled in libc to avoid duplicate functions with Circle
+#	%D%/aeabi_memcpy.c %D%/aeabi_memcpy-armv7a.S
+#	%D%/aeabi_memmove.c %D%/aeabi_memmove-soft.S
+#	%D%/aeabi_memset.c %D%/aeabi_memset-soft.S %D%/aeabi_memclr.c
+#	%D%/memcpy-stub.c
+#	%D%/memcpy.S
+
 
 VPATH = @srcdir@
 am__is_gnu_make = { \
@@ -718,13 +725,8 @@ check_PROGRAMS =
 
 @HAVE_LIBC_MACHINE_ARM_TRUE@am__append_69 = \
 @HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/setjmp.S libc/machine/arm/strcmp.S libc/machine/arm/strcpy.c \
-@HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/aeabi_memcpy.c libc/machine/arm/aeabi_memcpy-armv7a.S \
-@HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/aeabi_memmove.c libc/machine/arm/aeabi_memmove-soft.S \
-@HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/aeabi_memset.c libc/machine/arm/aeabi_memset-soft.S libc/machine/arm/aeabi_memclr.c \
 @HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/memchr-stub.c \
 @HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/memchr.S \
-@HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/memcpy-stub.c \
-@HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/memcpy.S \
 @HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/strlen-stub.c \
 @HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/strlen.S
 
@@ -1984,17 +1986,8 @@ am__objects_51 = libc/ssp/libc_a-chk_fail.$(OBJEXT) \
 @HAVE_LIBC_MACHINE_ARM_TRUE@am__objects_80 = libc/machine/arm/libc_a-setjmp.$(OBJEXT) \
 @HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-strcmp.$(OBJEXT) \
 @HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-strcpy.$(OBJEXT) \
-@HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-aeabi_memcpy.$(OBJEXT) \
-@HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-aeabi_memcpy-armv7a.$(OBJEXT) \
-@HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-aeabi_memmove.$(OBJEXT) \
-@HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-aeabi_memmove-soft.$(OBJEXT) \
-@HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-aeabi_memset.$(OBJEXT) \
-@HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-aeabi_memset-soft.$(OBJEXT) \
-@HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-aeabi_memclr.$(OBJEXT) \
 @HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-memchr-stub.$(OBJEXT) \
 @HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-memchr.$(OBJEXT) \
-@HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-memcpy-stub.$(OBJEXT) \
-@HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-memcpy.$(OBJEXT) \
 @HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-strlen-stub.$(OBJEXT) \
 @HAVE_LIBC_MACHINE_ARM_TRUE@	libc/machine/arm/libc_a-strlen.$(OBJEXT)
 @HAVE_LIBC_MACHINE_BFIN_TRUE@am__objects_81 = libc/machine/bfin/libc_a-setjmp.$(OBJEXT) \
@@ -8343,37 +8336,10 @@ libc/machine/arm/libc_a-strcmp.$(OBJEXT):  \
 libc/machine/arm/libc_a-strcpy.$(OBJEXT):  \
 	libc/machine/arm/$(am__dirstamp) \
 	libc/machine/arm/$(DEPDIR)/$(am__dirstamp)
-libc/machine/arm/libc_a-aeabi_memcpy.$(OBJEXT):  \
-	libc/machine/arm/$(am__dirstamp) \
-	libc/machine/arm/$(DEPDIR)/$(am__dirstamp)
-libc/machine/arm/libc_a-aeabi_memcpy-armv7a.$(OBJEXT):  \
-	libc/machine/arm/$(am__dirstamp) \
-	libc/machine/arm/$(DEPDIR)/$(am__dirstamp)
-libc/machine/arm/libc_a-aeabi_memmove.$(OBJEXT):  \
-	libc/machine/arm/$(am__dirstamp) \
-	libc/machine/arm/$(DEPDIR)/$(am__dirstamp)
-libc/machine/arm/libc_a-aeabi_memmove-soft.$(OBJEXT):  \
-	libc/machine/arm/$(am__dirstamp) \
-	libc/machine/arm/$(DEPDIR)/$(am__dirstamp)
-libc/machine/arm/libc_a-aeabi_memset.$(OBJEXT):  \
-	libc/machine/arm/$(am__dirstamp) \
-	libc/machine/arm/$(DEPDIR)/$(am__dirstamp)
-libc/machine/arm/libc_a-aeabi_memset-soft.$(OBJEXT):  \
-	libc/machine/arm/$(am__dirstamp) \
-	libc/machine/arm/$(DEPDIR)/$(am__dirstamp)
-libc/machine/arm/libc_a-aeabi_memclr.$(OBJEXT):  \
-	libc/machine/arm/$(am__dirstamp) \
-	libc/machine/arm/$(DEPDIR)/$(am__dirstamp)
 libc/machine/arm/libc_a-memchr-stub.$(OBJEXT):  \
 	libc/machine/arm/$(am__dirstamp) \
 	libc/machine/arm/$(DEPDIR)/$(am__dirstamp)
 libc/machine/arm/libc_a-memchr.$(OBJEXT):  \
-	libc/machine/arm/$(am__dirstamp) \
-	libc/machine/arm/$(DEPDIR)/$(am__dirstamp)
-libc/machine/arm/libc_a-memcpy-stub.$(OBJEXT):  \
-	libc/machine/arm/$(am__dirstamp) \
-	libc/machine/arm/$(DEPDIR)/$(am__dirstamp)
-libc/machine/arm/libc_a-memcpy.$(OBJEXT):  \
 	libc/machine/arm/$(am__dirstamp) \
 	libc/machine/arm/$(DEPDIR)/$(am__dirstamp)
 libc/machine/arm/libc_a-strlen-stub.$(OBJEXT):  \
@@ -12921,17 +12887,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arc64/$(DEPDIR)/libc_a-strcat.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arc64/$(DEPDIR)/libc_a-strcmp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arc64/$(DEPDIR)/libc_a-strlen.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memclr.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memcpy-armv7a.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memcpy.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memmove-soft.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memmove.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memset-soft.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memset.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arm/$(DEPDIR)/libc_a-memchr-stub.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arm/$(DEPDIR)/libc_a-memchr.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arm/$(DEPDIR)/libc_a-memcpy-stub.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arm/$(DEPDIR)/libc_a-memcpy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arm/$(DEPDIR)/libc_a-setjmp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arm/$(DEPDIR)/libc_a-strcmp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/machine/arm/$(DEPDIR)/libc_a-strcpy.Po@am__quote@
@@ -17456,48 +17413,6 @@ libc/machine/arm/libc_a-strcmp.obj: libc/machine/arm/strcmp.S
 @AMDEP_TRUE@@am__fastdepCCAS_FALSE@	DEPDIR=$(DEPDIR) $(CCASDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCCAS_FALSE@	$(AM_V_CPPAS@am__nodep@)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -c -o libc/machine/arm/libc_a-strcmp.obj `if test -f 'libc/machine/arm/strcmp.S'; then $(CYGPATH_W) 'libc/machine/arm/strcmp.S'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/strcmp.S'; fi`
 
-libc/machine/arm/libc_a-aeabi_memcpy-armv7a.o: libc/machine/arm/aeabi_memcpy-armv7a.S
-@am__fastdepCCAS_TRUE@	$(AM_V_CPPAS)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -MT libc/machine/arm/libc_a-aeabi_memcpy-armv7a.o -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memcpy-armv7a.Tpo -c -o libc/machine/arm/libc_a-aeabi_memcpy-armv7a.o `test -f 'libc/machine/arm/aeabi_memcpy-armv7a.S' || echo '$(srcdir)/'`libc/machine/arm/aeabi_memcpy-armv7a.S
-@am__fastdepCCAS_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memcpy-armv7a.Tpo libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memcpy-armv7a.Po
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS)source='libc/machine/arm/aeabi_memcpy-armv7a.S' object='libc/machine/arm/libc_a-aeabi_memcpy-armv7a.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	DEPDIR=$(DEPDIR) $(CCASDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS@am__nodep@)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -c -o libc/machine/arm/libc_a-aeabi_memcpy-armv7a.o `test -f 'libc/machine/arm/aeabi_memcpy-armv7a.S' || echo '$(srcdir)/'`libc/machine/arm/aeabi_memcpy-armv7a.S
-
-libc/machine/arm/libc_a-aeabi_memcpy-armv7a.obj: libc/machine/arm/aeabi_memcpy-armv7a.S
-@am__fastdepCCAS_TRUE@	$(AM_V_CPPAS)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -MT libc/machine/arm/libc_a-aeabi_memcpy-armv7a.obj -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memcpy-armv7a.Tpo -c -o libc/machine/arm/libc_a-aeabi_memcpy-armv7a.obj `if test -f 'libc/machine/arm/aeabi_memcpy-armv7a.S'; then $(CYGPATH_W) 'libc/machine/arm/aeabi_memcpy-armv7a.S'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/aeabi_memcpy-armv7a.S'; fi`
-@am__fastdepCCAS_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memcpy-armv7a.Tpo libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memcpy-armv7a.Po
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS)source='libc/machine/arm/aeabi_memcpy-armv7a.S' object='libc/machine/arm/libc_a-aeabi_memcpy-armv7a.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	DEPDIR=$(DEPDIR) $(CCASDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS@am__nodep@)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -c -o libc/machine/arm/libc_a-aeabi_memcpy-armv7a.obj `if test -f 'libc/machine/arm/aeabi_memcpy-armv7a.S'; then $(CYGPATH_W) 'libc/machine/arm/aeabi_memcpy-armv7a.S'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/aeabi_memcpy-armv7a.S'; fi`
-
-libc/machine/arm/libc_a-aeabi_memmove-soft.o: libc/machine/arm/aeabi_memmove-soft.S
-@am__fastdepCCAS_TRUE@	$(AM_V_CPPAS)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -MT libc/machine/arm/libc_a-aeabi_memmove-soft.o -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memmove-soft.Tpo -c -o libc/machine/arm/libc_a-aeabi_memmove-soft.o `test -f 'libc/machine/arm/aeabi_memmove-soft.S' || echo '$(srcdir)/'`libc/machine/arm/aeabi_memmove-soft.S
-@am__fastdepCCAS_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memmove-soft.Tpo libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memmove-soft.Po
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS)source='libc/machine/arm/aeabi_memmove-soft.S' object='libc/machine/arm/libc_a-aeabi_memmove-soft.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	DEPDIR=$(DEPDIR) $(CCASDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS@am__nodep@)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -c -o libc/machine/arm/libc_a-aeabi_memmove-soft.o `test -f 'libc/machine/arm/aeabi_memmove-soft.S' || echo '$(srcdir)/'`libc/machine/arm/aeabi_memmove-soft.S
-
-libc/machine/arm/libc_a-aeabi_memmove-soft.obj: libc/machine/arm/aeabi_memmove-soft.S
-@am__fastdepCCAS_TRUE@	$(AM_V_CPPAS)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -MT libc/machine/arm/libc_a-aeabi_memmove-soft.obj -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memmove-soft.Tpo -c -o libc/machine/arm/libc_a-aeabi_memmove-soft.obj `if test -f 'libc/machine/arm/aeabi_memmove-soft.S'; then $(CYGPATH_W) 'libc/machine/arm/aeabi_memmove-soft.S'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/aeabi_memmove-soft.S'; fi`
-@am__fastdepCCAS_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memmove-soft.Tpo libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memmove-soft.Po
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS)source='libc/machine/arm/aeabi_memmove-soft.S' object='libc/machine/arm/libc_a-aeabi_memmove-soft.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	DEPDIR=$(DEPDIR) $(CCASDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS@am__nodep@)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -c -o libc/machine/arm/libc_a-aeabi_memmove-soft.obj `if test -f 'libc/machine/arm/aeabi_memmove-soft.S'; then $(CYGPATH_W) 'libc/machine/arm/aeabi_memmove-soft.S'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/aeabi_memmove-soft.S'; fi`
-
-libc/machine/arm/libc_a-aeabi_memset-soft.o: libc/machine/arm/aeabi_memset-soft.S
-@am__fastdepCCAS_TRUE@	$(AM_V_CPPAS)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -MT libc/machine/arm/libc_a-aeabi_memset-soft.o -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memset-soft.Tpo -c -o libc/machine/arm/libc_a-aeabi_memset-soft.o `test -f 'libc/machine/arm/aeabi_memset-soft.S' || echo '$(srcdir)/'`libc/machine/arm/aeabi_memset-soft.S
-@am__fastdepCCAS_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memset-soft.Tpo libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memset-soft.Po
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS)source='libc/machine/arm/aeabi_memset-soft.S' object='libc/machine/arm/libc_a-aeabi_memset-soft.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	DEPDIR=$(DEPDIR) $(CCASDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS@am__nodep@)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -c -o libc/machine/arm/libc_a-aeabi_memset-soft.o `test -f 'libc/machine/arm/aeabi_memset-soft.S' || echo '$(srcdir)/'`libc/machine/arm/aeabi_memset-soft.S
-
-libc/machine/arm/libc_a-aeabi_memset-soft.obj: libc/machine/arm/aeabi_memset-soft.S
-@am__fastdepCCAS_TRUE@	$(AM_V_CPPAS)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -MT libc/machine/arm/libc_a-aeabi_memset-soft.obj -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memset-soft.Tpo -c -o libc/machine/arm/libc_a-aeabi_memset-soft.obj `if test -f 'libc/machine/arm/aeabi_memset-soft.S'; then $(CYGPATH_W) 'libc/machine/arm/aeabi_memset-soft.S'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/aeabi_memset-soft.S'; fi`
-@am__fastdepCCAS_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memset-soft.Tpo libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memset-soft.Po
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS)source='libc/machine/arm/aeabi_memset-soft.S' object='libc/machine/arm/libc_a-aeabi_memset-soft.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	DEPDIR=$(DEPDIR) $(CCASDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS@am__nodep@)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -c -o libc/machine/arm/libc_a-aeabi_memset-soft.obj `if test -f 'libc/machine/arm/aeabi_memset-soft.S'; then $(CYGPATH_W) 'libc/machine/arm/aeabi_memset-soft.S'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/aeabi_memset-soft.S'; fi`
-
 libc/machine/arm/libc_a-memchr.o: libc/machine/arm/memchr.S
 @am__fastdepCCAS_TRUE@	$(AM_V_CPPAS)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -MT libc/machine/arm/libc_a-memchr.o -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-memchr.Tpo -c -o libc/machine/arm/libc_a-memchr.o `test -f 'libc/machine/arm/memchr.S' || echo '$(srcdir)/'`libc/machine/arm/memchr.S
 @am__fastdepCCAS_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-memchr.Tpo libc/machine/arm/$(DEPDIR)/libc_a-memchr.Po
@@ -17511,20 +17426,6 @@ libc/machine/arm/libc_a-memchr.obj: libc/machine/arm/memchr.S
 @AMDEP_TRUE@@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS)source='libc/machine/arm/memchr.S' object='libc/machine/arm/libc_a-memchr.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCCAS_FALSE@	DEPDIR=$(DEPDIR) $(CCASDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCCAS_FALSE@	$(AM_V_CPPAS@am__nodep@)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -c -o libc/machine/arm/libc_a-memchr.obj `if test -f 'libc/machine/arm/memchr.S'; then $(CYGPATH_W) 'libc/machine/arm/memchr.S'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/memchr.S'; fi`
-
-libc/machine/arm/libc_a-memcpy.o: libc/machine/arm/memcpy.S
-@am__fastdepCCAS_TRUE@	$(AM_V_CPPAS)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -MT libc/machine/arm/libc_a-memcpy.o -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-memcpy.Tpo -c -o libc/machine/arm/libc_a-memcpy.o `test -f 'libc/machine/arm/memcpy.S' || echo '$(srcdir)/'`libc/machine/arm/memcpy.S
-@am__fastdepCCAS_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-memcpy.Tpo libc/machine/arm/$(DEPDIR)/libc_a-memcpy.Po
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS)source='libc/machine/arm/memcpy.S' object='libc/machine/arm/libc_a-memcpy.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	DEPDIR=$(DEPDIR) $(CCASDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS@am__nodep@)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -c -o libc/machine/arm/libc_a-memcpy.o `test -f 'libc/machine/arm/memcpy.S' || echo '$(srcdir)/'`libc/machine/arm/memcpy.S
-
-libc/machine/arm/libc_a-memcpy.obj: libc/machine/arm/memcpy.S
-@am__fastdepCCAS_TRUE@	$(AM_V_CPPAS)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -MT libc/machine/arm/libc_a-memcpy.obj -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-memcpy.Tpo -c -o libc/machine/arm/libc_a-memcpy.obj `if test -f 'libc/machine/arm/memcpy.S'; then $(CYGPATH_W) 'libc/machine/arm/memcpy.S'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/memcpy.S'; fi`
-@am__fastdepCCAS_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-memcpy.Tpo libc/machine/arm/$(DEPDIR)/libc_a-memcpy.Po
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS)source='libc/machine/arm/memcpy.S' object='libc/machine/arm/libc_a-memcpy.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCCAS_FALSE@	DEPDIR=$(DEPDIR) $(CCASDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCCAS_FALSE@	$(AM_V_CPPAS@am__nodep@)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -c -o libc/machine/arm/libc_a-memcpy.obj `if test -f 'libc/machine/arm/memcpy.S'; then $(CYGPATH_W) 'libc/machine/arm/memcpy.S'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/memcpy.S'; fi`
 
 libc/machine/arm/libc_a-strlen.o: libc/machine/arm/strlen.S
 @am__fastdepCCAS_TRUE@	$(AM_V_CPPAS)$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CCASFLAGS) $(CCASFLAGS) -MT libc/machine/arm/libc_a-strlen.o -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-strlen.Tpo -c -o libc/machine/arm/libc_a-strlen.o `test -f 'libc/machine/arm/strlen.S' || echo '$(srcdir)/'`libc/machine/arm/strlen.S
@@ -33712,62 +33613,6 @@ libc/machine/arm/libc_a-strcpy.obj: libc/machine/arm/strcpy.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/machine/arm/libc_a-strcpy.obj `if test -f 'libc/machine/arm/strcpy.c'; then $(CYGPATH_W) 'libc/machine/arm/strcpy.c'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/strcpy.c'; fi`
 
-libc/machine/arm/libc_a-aeabi_memcpy.o: libc/machine/arm/aeabi_memcpy.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/machine/arm/libc_a-aeabi_memcpy.o -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memcpy.Tpo -c -o libc/machine/arm/libc_a-aeabi_memcpy.o `test -f 'libc/machine/arm/aeabi_memcpy.c' || echo '$(srcdir)/'`libc/machine/arm/aeabi_memcpy.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memcpy.Tpo libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memcpy.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/machine/arm/aeabi_memcpy.c' object='libc/machine/arm/libc_a-aeabi_memcpy.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/machine/arm/libc_a-aeabi_memcpy.o `test -f 'libc/machine/arm/aeabi_memcpy.c' || echo '$(srcdir)/'`libc/machine/arm/aeabi_memcpy.c
-
-libc/machine/arm/libc_a-aeabi_memcpy.obj: libc/machine/arm/aeabi_memcpy.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/machine/arm/libc_a-aeabi_memcpy.obj -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memcpy.Tpo -c -o libc/machine/arm/libc_a-aeabi_memcpy.obj `if test -f 'libc/machine/arm/aeabi_memcpy.c'; then $(CYGPATH_W) 'libc/machine/arm/aeabi_memcpy.c'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/aeabi_memcpy.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memcpy.Tpo libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memcpy.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/machine/arm/aeabi_memcpy.c' object='libc/machine/arm/libc_a-aeabi_memcpy.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/machine/arm/libc_a-aeabi_memcpy.obj `if test -f 'libc/machine/arm/aeabi_memcpy.c'; then $(CYGPATH_W) 'libc/machine/arm/aeabi_memcpy.c'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/aeabi_memcpy.c'; fi`
-
-libc/machine/arm/libc_a-aeabi_memmove.o: libc/machine/arm/aeabi_memmove.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/machine/arm/libc_a-aeabi_memmove.o -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memmove.Tpo -c -o libc/machine/arm/libc_a-aeabi_memmove.o `test -f 'libc/machine/arm/aeabi_memmove.c' || echo '$(srcdir)/'`libc/machine/arm/aeabi_memmove.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memmove.Tpo libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memmove.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/machine/arm/aeabi_memmove.c' object='libc/machine/arm/libc_a-aeabi_memmove.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/machine/arm/libc_a-aeabi_memmove.o `test -f 'libc/machine/arm/aeabi_memmove.c' || echo '$(srcdir)/'`libc/machine/arm/aeabi_memmove.c
-
-libc/machine/arm/libc_a-aeabi_memmove.obj: libc/machine/arm/aeabi_memmove.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/machine/arm/libc_a-aeabi_memmove.obj -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memmove.Tpo -c -o libc/machine/arm/libc_a-aeabi_memmove.obj `if test -f 'libc/machine/arm/aeabi_memmove.c'; then $(CYGPATH_W) 'libc/machine/arm/aeabi_memmove.c'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/aeabi_memmove.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memmove.Tpo libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memmove.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/machine/arm/aeabi_memmove.c' object='libc/machine/arm/libc_a-aeabi_memmove.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/machine/arm/libc_a-aeabi_memmove.obj `if test -f 'libc/machine/arm/aeabi_memmove.c'; then $(CYGPATH_W) 'libc/machine/arm/aeabi_memmove.c'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/aeabi_memmove.c'; fi`
-
-libc/machine/arm/libc_a-aeabi_memset.o: libc/machine/arm/aeabi_memset.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/machine/arm/libc_a-aeabi_memset.o -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memset.Tpo -c -o libc/machine/arm/libc_a-aeabi_memset.o `test -f 'libc/machine/arm/aeabi_memset.c' || echo '$(srcdir)/'`libc/machine/arm/aeabi_memset.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memset.Tpo libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memset.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/machine/arm/aeabi_memset.c' object='libc/machine/arm/libc_a-aeabi_memset.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/machine/arm/libc_a-aeabi_memset.o `test -f 'libc/machine/arm/aeabi_memset.c' || echo '$(srcdir)/'`libc/machine/arm/aeabi_memset.c
-
-libc/machine/arm/libc_a-aeabi_memset.obj: libc/machine/arm/aeabi_memset.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/machine/arm/libc_a-aeabi_memset.obj -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memset.Tpo -c -o libc/machine/arm/libc_a-aeabi_memset.obj `if test -f 'libc/machine/arm/aeabi_memset.c'; then $(CYGPATH_W) 'libc/machine/arm/aeabi_memset.c'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/aeabi_memset.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memset.Tpo libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memset.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/machine/arm/aeabi_memset.c' object='libc/machine/arm/libc_a-aeabi_memset.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/machine/arm/libc_a-aeabi_memset.obj `if test -f 'libc/machine/arm/aeabi_memset.c'; then $(CYGPATH_W) 'libc/machine/arm/aeabi_memset.c'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/aeabi_memset.c'; fi`
-
-libc/machine/arm/libc_a-aeabi_memclr.o: libc/machine/arm/aeabi_memclr.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/machine/arm/libc_a-aeabi_memclr.o -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memclr.Tpo -c -o libc/machine/arm/libc_a-aeabi_memclr.o `test -f 'libc/machine/arm/aeabi_memclr.c' || echo '$(srcdir)/'`libc/machine/arm/aeabi_memclr.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memclr.Tpo libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memclr.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/machine/arm/aeabi_memclr.c' object='libc/machine/arm/libc_a-aeabi_memclr.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/machine/arm/libc_a-aeabi_memclr.o `test -f 'libc/machine/arm/aeabi_memclr.c' || echo '$(srcdir)/'`libc/machine/arm/aeabi_memclr.c
-
-libc/machine/arm/libc_a-aeabi_memclr.obj: libc/machine/arm/aeabi_memclr.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/machine/arm/libc_a-aeabi_memclr.obj -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memclr.Tpo -c -o libc/machine/arm/libc_a-aeabi_memclr.obj `if test -f 'libc/machine/arm/aeabi_memclr.c'; then $(CYGPATH_W) 'libc/machine/arm/aeabi_memclr.c'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/aeabi_memclr.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memclr.Tpo libc/machine/arm/$(DEPDIR)/libc_a-aeabi_memclr.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/machine/arm/aeabi_memclr.c' object='libc/machine/arm/libc_a-aeabi_memclr.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/machine/arm/libc_a-aeabi_memclr.obj `if test -f 'libc/machine/arm/aeabi_memclr.c'; then $(CYGPATH_W) 'libc/machine/arm/aeabi_memclr.c'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/aeabi_memclr.c'; fi`
-
 libc/machine/arm/libc_a-memchr-stub.o: libc/machine/arm/memchr-stub.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/machine/arm/libc_a-memchr-stub.o -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-memchr-stub.Tpo -c -o libc/machine/arm/libc_a-memchr-stub.o `test -f 'libc/machine/arm/memchr-stub.c' || echo '$(srcdir)/'`libc/machine/arm/memchr-stub.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-memchr-stub.Tpo libc/machine/arm/$(DEPDIR)/libc_a-memchr-stub.Po
@@ -33781,20 +33626,6 @@ libc/machine/arm/libc_a-memchr-stub.obj: libc/machine/arm/memchr-stub.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/machine/arm/memchr-stub.c' object='libc/machine/arm/libc_a-memchr-stub.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/machine/arm/libc_a-memchr-stub.obj `if test -f 'libc/machine/arm/memchr-stub.c'; then $(CYGPATH_W) 'libc/machine/arm/memchr-stub.c'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/memchr-stub.c'; fi`
-
-libc/machine/arm/libc_a-memcpy-stub.o: libc/machine/arm/memcpy-stub.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/machine/arm/libc_a-memcpy-stub.o -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-memcpy-stub.Tpo -c -o libc/machine/arm/libc_a-memcpy-stub.o `test -f 'libc/machine/arm/memcpy-stub.c' || echo '$(srcdir)/'`libc/machine/arm/memcpy-stub.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-memcpy-stub.Tpo libc/machine/arm/$(DEPDIR)/libc_a-memcpy-stub.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/machine/arm/memcpy-stub.c' object='libc/machine/arm/libc_a-memcpy-stub.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/machine/arm/libc_a-memcpy-stub.o `test -f 'libc/machine/arm/memcpy-stub.c' || echo '$(srcdir)/'`libc/machine/arm/memcpy-stub.c
-
-libc/machine/arm/libc_a-memcpy-stub.obj: libc/machine/arm/memcpy-stub.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/machine/arm/libc_a-memcpy-stub.obj -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-memcpy-stub.Tpo -c -o libc/machine/arm/libc_a-memcpy-stub.obj `if test -f 'libc/machine/arm/memcpy-stub.c'; then $(CYGPATH_W) 'libc/machine/arm/memcpy-stub.c'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/memcpy-stub.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/machine/arm/$(DEPDIR)/libc_a-memcpy-stub.Tpo libc/machine/arm/$(DEPDIR)/libc_a-memcpy-stub.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/machine/arm/memcpy-stub.c' object='libc/machine/arm/libc_a-memcpy-stub.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/machine/arm/libc_a-memcpy-stub.obj `if test -f 'libc/machine/arm/memcpy-stub.c'; then $(CYGPATH_W) 'libc/machine/arm/memcpy-stub.c'; else $(CYGPATH_W) '$(srcdir)/libc/machine/arm/memcpy-stub.c'; fi`
 
 libc/machine/arm/libc_a-strlen-stub.o: libc/machine/arm/strlen-stub.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/machine/arm/libc_a-strlen-stub.o -MD -MP -MF libc/machine/arm/$(DEPDIR)/libc_a-strlen-stub.Tpo -c -o libc/machine/arm/libc_a-strlen-stub.o `test -f 'libc/machine/arm/strlen-stub.c' || echo '$(srcdir)/'`libc/machine/arm/strlen-stub.c
