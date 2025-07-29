@@ -14,6 +14,11 @@
 
 @SET_MAKE@
 
+# mem functions disabled, use the ones from Circle
+#	%D%/memcpy.c
+#	%D%/memmove.c
+#	%D%/memset.c
+
 #	mem functions disabled in libc to avoid duplicate functions with circle
 #	%D%/memmove.c
 #	%D%/memcpy-stub.c
@@ -2516,9 +2521,6 @@ am_libc_a_OBJECTS = $(am__objects_1) \
 	libc/string/libc_a-index.$(OBJEXT) \
 	libc/string/libc_a-memchr.$(OBJEXT) \
 	libc/string/libc_a-memcmp.$(OBJEXT) \
-	libc/string/libc_a-memcpy.$(OBJEXT) \
-	libc/string/libc_a-memmove.$(OBJEXT) \
-	libc/string/libc_a-memset.$(OBJEXT) \
 	libc/string/libc_a-rindex.$(OBJEXT) \
 	libc/string/libc_a-strcasecmp.$(OBJEXT) \
 	libc/string/libc_a-strcat.$(OBJEXT) \
@@ -4174,10 +4176,9 @@ libc_a_SOURCES = $(am__append_5) libc/stdlib/__adjust.c \
 	libc/string/explicit_bzero.c libc/string/ffsl.c \
 	libc/string/ffsll.c libc/string/fls.c libc/string/flsl.c \
 	libc/string/flsll.c libc/string/index.c libc/string/memchr.c \
-	libc/string/memcmp.c libc/string/memcpy.c \
-	libc/string/memmove.c libc/string/memset.c \
-	libc/string/rindex.c libc/string/strcasecmp.c \
-	libc/string/strcat.c libc/string/strchr.c libc/string/strcmp.c \
+	libc/string/memcmp.c libc/string/rindex.c \
+	libc/string/strcasecmp.c libc/string/strcat.c \
+	libc/string/strchr.c libc/string/strcmp.c \
 	libc/string/strcoll.c libc/string/strcpy.c \
 	libc/string/strcspn.c libc/string/strdup.c \
 	libc/string/strdup_r.c libc/string/strerror.c \
@@ -6355,12 +6356,6 @@ libc/string/libc_a-index.$(OBJEXT): libc/string/$(am__dirstamp) \
 libc/string/libc_a-memchr.$(OBJEXT): libc/string/$(am__dirstamp) \
 	libc/string/$(DEPDIR)/$(am__dirstamp)
 libc/string/libc_a-memcmp.$(OBJEXT): libc/string/$(am__dirstamp) \
-	libc/string/$(DEPDIR)/$(am__dirstamp)
-libc/string/libc_a-memcpy.$(OBJEXT): libc/string/$(am__dirstamp) \
-	libc/string/$(DEPDIR)/$(am__dirstamp)
-libc/string/libc_a-memmove.$(OBJEXT): libc/string/$(am__dirstamp) \
-	libc/string/$(DEPDIR)/$(am__dirstamp)
-libc/string/libc_a-memset.$(OBJEXT): libc/string/$(am__dirstamp) \
 	libc/string/$(DEPDIR)/$(am__dirstamp)
 libc/string/libc_a-rindex.$(OBJEXT): libc/string/$(am__dirstamp) \
 	libc/string/$(DEPDIR)/$(am__dirstamp)
@@ -13719,12 +13714,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@libc/string/$(DEPDIR)/libc_a-memccpy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/string/$(DEPDIR)/libc_a-memchr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/string/$(DEPDIR)/libc_a-memcmp.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@libc/string/$(DEPDIR)/libc_a-memcpy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/string/$(DEPDIR)/libc_a-memmem.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@libc/string/$(DEPDIR)/libc_a-memmove.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/string/$(DEPDIR)/libc_a-mempcpy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/string/$(DEPDIR)/libc_a-memrchr.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@libc/string/$(DEPDIR)/libc_a-memset.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/string/$(DEPDIR)/libc_a-rawmemchr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/string/$(DEPDIR)/libc_a-rindex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libc/string/$(DEPDIR)/libc_a-stpcpy.Po@am__quote@
@@ -26374,48 +26366,6 @@ libc/string/libc_a-memcmp.obj: libc/string/memcmp.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/string/memcmp.c' object='libc/string/libc_a-memcmp.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/string/libc_a-memcmp.obj `if test -f 'libc/string/memcmp.c'; then $(CYGPATH_W) 'libc/string/memcmp.c'; else $(CYGPATH_W) '$(srcdir)/libc/string/memcmp.c'; fi`
-
-libc/string/libc_a-memcpy.o: libc/string/memcpy.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/string/libc_a-memcpy.o -MD -MP -MF libc/string/$(DEPDIR)/libc_a-memcpy.Tpo -c -o libc/string/libc_a-memcpy.o `test -f 'libc/string/memcpy.c' || echo '$(srcdir)/'`libc/string/memcpy.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/string/$(DEPDIR)/libc_a-memcpy.Tpo libc/string/$(DEPDIR)/libc_a-memcpy.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/string/memcpy.c' object='libc/string/libc_a-memcpy.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/string/libc_a-memcpy.o `test -f 'libc/string/memcpy.c' || echo '$(srcdir)/'`libc/string/memcpy.c
-
-libc/string/libc_a-memcpy.obj: libc/string/memcpy.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/string/libc_a-memcpy.obj -MD -MP -MF libc/string/$(DEPDIR)/libc_a-memcpy.Tpo -c -o libc/string/libc_a-memcpy.obj `if test -f 'libc/string/memcpy.c'; then $(CYGPATH_W) 'libc/string/memcpy.c'; else $(CYGPATH_W) '$(srcdir)/libc/string/memcpy.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/string/$(DEPDIR)/libc_a-memcpy.Tpo libc/string/$(DEPDIR)/libc_a-memcpy.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/string/memcpy.c' object='libc/string/libc_a-memcpy.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/string/libc_a-memcpy.obj `if test -f 'libc/string/memcpy.c'; then $(CYGPATH_W) 'libc/string/memcpy.c'; else $(CYGPATH_W) '$(srcdir)/libc/string/memcpy.c'; fi`
-
-libc/string/libc_a-memmove.o: libc/string/memmove.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/string/libc_a-memmove.o -MD -MP -MF libc/string/$(DEPDIR)/libc_a-memmove.Tpo -c -o libc/string/libc_a-memmove.o `test -f 'libc/string/memmove.c' || echo '$(srcdir)/'`libc/string/memmove.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/string/$(DEPDIR)/libc_a-memmove.Tpo libc/string/$(DEPDIR)/libc_a-memmove.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/string/memmove.c' object='libc/string/libc_a-memmove.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/string/libc_a-memmove.o `test -f 'libc/string/memmove.c' || echo '$(srcdir)/'`libc/string/memmove.c
-
-libc/string/libc_a-memmove.obj: libc/string/memmove.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/string/libc_a-memmove.obj -MD -MP -MF libc/string/$(DEPDIR)/libc_a-memmove.Tpo -c -o libc/string/libc_a-memmove.obj `if test -f 'libc/string/memmove.c'; then $(CYGPATH_W) 'libc/string/memmove.c'; else $(CYGPATH_W) '$(srcdir)/libc/string/memmove.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/string/$(DEPDIR)/libc_a-memmove.Tpo libc/string/$(DEPDIR)/libc_a-memmove.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/string/memmove.c' object='libc/string/libc_a-memmove.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/string/libc_a-memmove.obj `if test -f 'libc/string/memmove.c'; then $(CYGPATH_W) 'libc/string/memmove.c'; else $(CYGPATH_W) '$(srcdir)/libc/string/memmove.c'; fi`
-
-libc/string/libc_a-memset.o: libc/string/memset.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/string/libc_a-memset.o -MD -MP -MF libc/string/$(DEPDIR)/libc_a-memset.Tpo -c -o libc/string/libc_a-memset.o `test -f 'libc/string/memset.c' || echo '$(srcdir)/'`libc/string/memset.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/string/$(DEPDIR)/libc_a-memset.Tpo libc/string/$(DEPDIR)/libc_a-memset.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/string/memset.c' object='libc/string/libc_a-memset.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/string/libc_a-memset.o `test -f 'libc/string/memset.c' || echo '$(srcdir)/'`libc/string/memset.c
-
-libc/string/libc_a-memset.obj: libc/string/memset.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/string/libc_a-memset.obj -MD -MP -MF libc/string/$(DEPDIR)/libc_a-memset.Tpo -c -o libc/string/libc_a-memset.obj `if test -f 'libc/string/memset.c'; then $(CYGPATH_W) 'libc/string/memset.c'; else $(CYGPATH_W) '$(srcdir)/libc/string/memset.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) libc/string/$(DEPDIR)/libc_a-memset.Tpo libc/string/$(DEPDIR)/libc_a-memset.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='libc/string/memset.c' object='libc/string/libc_a-memset.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -c -o libc/string/libc_a-memset.obj `if test -f 'libc/string/memset.c'; then $(CYGPATH_W) 'libc/string/memset.c'; else $(CYGPATH_W) '$(srcdir)/libc/string/memset.c'; fi`
 
 libc/string/libc_a-rindex.o: libc/string/rindex.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libc_a_CPPFLAGS) $(CPPFLAGS) $(libc_a_CFLAGS) $(CFLAGS) -MT libc/string/libc_a-rindex.o -MD -MP -MF libc/string/$(DEPDIR)/libc_a-rindex.Tpo -c -o libc/string/libc_a-rindex.o `test -f 'libc/string/rindex.c' || echo '$(srcdir)/'`libc/string/rindex.c

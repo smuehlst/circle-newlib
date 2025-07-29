@@ -1,3 +1,8 @@
+# mem functions disabled, use the ones from Circle
+#	%D%/memcpy.c
+#	%D%/memmove.c
+#	%D%/memset.c
+
 libc_a_SOURCES += \
 	%D%/bcopy.c \
 	%D%/bzero.c \
@@ -10,9 +15,6 @@ libc_a_SOURCES += \
 	%D%/index.c \
 	%D%/memchr.c \
 	%D%/memcmp.c \
-	%D%/memcpy.c \
-	%D%/memmove.c \
-	%D%/memset.c \
 	%D%/rindex.c \
 	%D%/strcasecmp.c \
 	%D%/strcat.c \
