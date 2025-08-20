@@ -15,4 +15,4 @@ _symlink(const char *path1, const char *path2)
   return -1;
 }
 
-stub_warning(_symlink)
+// stub_warning(_symlink)

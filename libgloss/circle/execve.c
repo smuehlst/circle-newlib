@@ -15,4 +15,4 @@ _execve(char *name, char **argv, char **env)
   return -1;
 }
 
-stub_warning(_execve)
+// stub_warning(_execve)

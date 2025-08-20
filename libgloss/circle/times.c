@@ -16,4 +16,4 @@ _times(struct tms *buf)
   return -1;
 }
 
-stub_warning(_times)
+// stub_warning(_times)

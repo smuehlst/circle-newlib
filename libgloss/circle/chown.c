@@ -16,4 +16,4 @@ _chown(const char *path, uid_t owner, gid_t group)
   return -1;
 }
 
-stub_warning(_chown)
+// stub_warning(_chown)

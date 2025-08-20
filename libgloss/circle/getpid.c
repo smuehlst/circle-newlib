@@ -15,4 +15,4 @@ _getpid(void)
   return -1;
 }
 
-stub_warning(_getpid)
+// stub_warning(_getpid)

@@ -15,4 +15,4 @@ _wait(int  *status)
   return -1;
 }
 
-stub_warning(_wait)
+// stub_warning(_wait)

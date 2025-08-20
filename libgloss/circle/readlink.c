@@ -16,4 +16,4 @@ _readlink(const char *path, char *buf, size_t bufsize)
   return -1;
 }
 
-stub_warning(_readlink)
+// stub_warning(_readlink)

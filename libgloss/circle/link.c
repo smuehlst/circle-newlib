@@ -15,4 +15,4 @@ _link(char *existing, char *new)
   return -1;
 }
 
-stub_warning(_link)
+// stub_warning(_link)

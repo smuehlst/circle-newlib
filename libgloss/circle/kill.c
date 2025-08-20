@@ -15,4 +15,4 @@ _kill(int pid, int sig)
   return -1;
 }
 
-stub_warning(_kill)
+// stub_warning(_kill)
