@@ -3,6 +3,9 @@
  */
 
 #include "config.h"
+
+#include "wrap_fatfs.h"
+
 #include <_ansi.h>
 #include <_syslist.h>
 #include <sys/types.h>
