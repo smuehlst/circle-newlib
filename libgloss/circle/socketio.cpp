@@ -1,3 +1,5 @@
+#include "circle_macros.h"
+
 #include <circle/net/netsubsystem.h>
 #include <circle/sched/scheduler.h>
 #include <circle/net/socket.h>

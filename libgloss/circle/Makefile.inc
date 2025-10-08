@@ -3,7 +3,7 @@ multilibtool_LIBRARIES += %D%/libcirclenewlib.a
 %C%_libcirclenewlib_a_SOURCES = \
 	%D%/chdir.cpp \
 	%D%/chown.c \
-	%D%/circlenetmap.cpp
+	%D%/circlenetmap.cpp \
 	%D%/environ.c \
 	%D%/errno.c \
 	%D%/execve.c \

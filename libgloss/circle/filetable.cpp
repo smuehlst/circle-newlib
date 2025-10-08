@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <assert.h>
 
+#include "circle_macros.h"
 #include "circle_glue.h"
 #include "cglueio.h"
 #include "filetable.h"
