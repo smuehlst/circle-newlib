@@ -14,6 +14,14 @@ namespace _CircleStdlib
     _CIRCLE_DIR FileTable::dirTab[];
     CSpinLock FileTable::dirTabLock { TASK_LEVEL };
 
+    void CircleFile::CloseGlueIO(void)
+    {
+        assert(mCGlueIO);
+
+        delete mCGlueIO;
+        mCGlueIO = nullptr;
+    }
+
     int
     FileTable::FindFreeFileSlot(CircleFile *&pFile, unsigned int start_index)
     {

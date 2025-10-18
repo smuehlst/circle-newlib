@@ -44,13 +44,7 @@ namespace _CircleStdlib
             mCGlueIO = &glueIO;
         }
 
-        void CloseGlueIO(void)
-        {
-            assert(mCGlueIO);
-
-            delete mCGlueIO;
-            mCGlueIO = nullptr;
-        }
+        void CloseGlueIO(void);
 
         CGlueIO *GetGlueIO(void)
         {
