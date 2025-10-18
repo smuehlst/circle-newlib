@@ -6,6 +6,7 @@
 #include "filetable.h"
 #include "cglueio.h"
 #include <circle/timer.h>
+#include <circle/sched/scheduler.h>
 
 static_assert(_CircleStdlib::FileTable::MAX_OPEN_FILES <= FD_SETSIZE,
               "MAX_OPEN_FILES exceeds FD_SETSIZE");
@@ -73,6 +74,16 @@ extern "C" int select(int nfds, fd_set *readfds,
         return -1;
     }
 
+    // Validate struct timeval if given.
+    if (timeout)
+    {
+        if (timeout->tv_sec < 0 || timeout->tv_usec < 0 || timeout->tv_usec >= 1000000)
+        {
+            errno = EINVAL;
+            return -1;
+        }
+    }
+
     auto const prepare_copy = [](fd_set *param) -> fd_set
     {
         if (param)
@@ -95,48 +106,62 @@ extern "C" int select(int nfds, fd_set *readfds,
     FD_ZERO(&write_out);
     FD_ZERO(&err_out);
 
+    int bit_set_count = 0;
+
+    auto const check_fd = [&bit_set_count](int fd, fd_set &in, bool is_open, bool status, fd_set &out) -> bool
+    {
+        if (FD_ISSET(fd, &in))
+        {
+            if (!is_open)
+            {
+                errno = EBADF;
+                return false;
+            }
+            if (status)
+            {
+                FD_SET(fd, &out);
+                bit_set_count += 1;
+            }
+        }
+        return true;
+    };
+
     // Compute timeout deadline (in clock ticks)
     u64 const start = CTimer::GetClockTicks64();
-    u64 const wait_ticks = (timeout ? (u64)timeout->tv_sec * CLOCKHZ + (u64)timeout->tv_usec * (CLOCKHZ / 1000000) : (u64)-1);
+    u64 const wait_ticks =
+        timeout ? static_cast<u64>(timeout->tv_sec) * CLOCKHZ + static_cast<u64>(timeout->tv_usec) * (CLOCKHZ / 1000000) : static_cast<u64>(-1);
 
-    int bit_set_count = 0;
     while (bit_set_count == 0)
     {
-        // Check for timeout
-        if (timeout && CTimer::GetClockTicks64() - start >= wait_ticks)
-        {
-            // Timeout reached, return with no bits set
-            break;
-        }
-
         for (int fd = 0; fd < nfds; fd += 1)
         {
             CircleFile *const file = _CircleStdlib::FileTable::GetFile(fd);
-            if (!file || !file->IsOpen())
+            CGlueIO *const glueIO = file && file->IsOpen() ? file->GetGlueIO() : nullptr;
+
+            CGlueIO::TStatus const status = glueIO ? glueIO->GetSelectStatus() : CGlueIO::TStatus{false, false, false, false};
+            bool const is_open = glueIO != nullptr;
+
+            if (!check_fd(fd, read_copy, is_open, status.bRxReady, read_out)
+                || !check_fd(fd, write_copy, is_open, status.bTxReady, write_out)
+                || !check_fd(fd, err_copy, is_open, status.bException, err_out))
             {
-                errno = EBADF;
+                CScheduler::Get()->Yield();
                 return -1;
             }
+        }
 
-            CGlueIO *const glueIO = file->GetGlueIO();
-            assert(glueIO);
+        // Doing the Yield here guarantees that it is called at least
+        // once for the select() call.
+        CScheduler::Get()->Yield();
 
-            CGlueIO::TStatus const status = glueIO->GetSelectStatus();
-
-            if (FD_ISSET(fd, &read_copy) && status.bRxReady)
+        // Check for timeout. If the timeout argument points to an object
+        // of type struct timeval whose members are 0, select() does not block.
+        if (timeout)
+        {
+            if (timeout->tv_sec == 0 && timeout->tv_usec == 0
+                || CTimer::GetClockTicks64() - start >= wait_ticks)
             {
-                FD_SET(fd, &read_out);
-                bit_set_count += 1;
-            }
-            if (FD_ISSET(fd, &write_copy) && status.bTxReady)
-            {
-                FD_SET(fd, &write_out);
-                bit_set_count += 1;
-            }
-            if (FD_ISSET(fd, &err_copy) && status.bException)
-            {
-                FD_SET(fd, &err_out);
-                bit_set_count += 1;
+                break;
             }
         }
     }
