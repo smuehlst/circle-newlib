@@ -119,7 +119,7 @@ namespace _CircleStdlib
             memset(buf, 0, sizeof(*buf));
 
             // Just some arbitrary but fixed values.
-            buf->st_dev = 0x0202;
+            buf->st_dev = _CircleStdlib::CGlueIO::DeviceIdConsole;
             buf->st_ino = 2000;
             buf->st_nlink = 1;
 
@@ -134,6 +134,13 @@ namespace _CircleStdlib
         IsATty (void)
         {
             return 1;
+        }
+
+        TStatus GetSelectStatus (void) const
+        {
+            // TODO is that true for the console?
+            // Reading and writung never blocks.
+            return { true, true, true, true };
         }
 
     private:
@@ -528,6 +535,11 @@ namespace _CircleStdlib
         {
             errno = ENOTTY;
             return 0;
+        }
+
+        TStatus GetSelectStatus (void) const
+        {
+            return { true, true, true, true };
         }
 
         FIL mFile;

@@ -96,6 +96,32 @@ namespace _CircleStdlib
             return mRefCount;
         }
 
+        /**
+         * Arbitrary device id values to identify the type of device
+         * via fstat().
+         */
+        enum DeviceId {
+            DeviceIdFatFs = 0x0101,
+            DeviceIdConsole = 0x0202,
+            DeviceIdSocket = 0x0303
+        };
+
+        /**
+         * Status flags for GetStatus()
+         * 
+         * Extends the corresponding struct in netconnection.h
+         * for all file descriptor types.
+         */
+        struct TStatus
+        {
+            bool bConnected;
+            bool bRxReady;
+            bool bTxReady;
+            bool bException;
+        };
+        
+        virtual TStatus GetSelectStatus (void) const = 0;
+
     private:
         unsigned int mRefCount;
     };

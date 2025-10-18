@@ -68,10 +68,21 @@ namespace _CircleStdlib
         }
 
         int
-        FStat(struct stat *)
+        FStat(struct stat *buf)
         {
-            errno = EBADF;
-            return -1;
+            assert(buf);
+            memset(buf, 0, sizeof(*buf));
+
+            // Just some arbitrary but fixed values.
+            buf->st_dev = _CircleStdlib::CGlueIO::DeviceIdSocket;
+            buf->st_ino = 2000;
+            buf->st_nlink = 1;
+
+            // The important flag is S_IFCHR. This is needed by newlib
+            // internally to recognize that this is a TTY.
+            buf->st_mode = S_IRUSR | S_IWUSR | S_IFSOCK;
+
+            return 0;
         }
 
         int
@@ -318,6 +329,14 @@ namespace _CircleStdlib
             CScheduler::Get()->Yield();
 
             return result;
+        }
+
+        TStatus GetSelectStatus (void) const
+        {
+            assert(mSocket);
+
+            CSocket::TStatus status = mSocket->GetStatus();
+            return { status.bConnected, status.bRxReady, status.bTxReady, status.bException };
         }
 
         CSocket *mSocket;

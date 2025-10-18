@@ -38,6 +38,8 @@ int FD_ISSET(int fd, fd_set *fdset);
 void FD_SET(int fd, fd_set *fdset);
 void FD_ZERO(fd_set *fdset);
 
+#define FD_SETSIZE 32
+
 #ifdef __cplusplus
 }
 #endif

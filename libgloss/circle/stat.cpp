@@ -15,6 +15,7 @@
 #include <assert.h>
 #include "circle_macros.h"
 #include "circle_glue.h"
+#include "cglueio.h"
 
 extern "C" int
 _stat(const char *file, struct stat *statbuf)
@@ -71,7 +72,7 @@ _stat(const char *file, struct stat *statbuf)
 		statbuf->st_mode |= S_IFREG;
 	}
 
-	statbuf->st_dev = 0x0101;
+	statbuf->st_dev = _CircleStdlib::CGlueIO::DeviceIdFatFs;
 	statbuf->st_ino = 1000;
 	statbuf->st_nlink = 1;
 	statbuf->st_uid = 0;
