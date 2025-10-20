@@ -774,6 +774,7 @@ circle_libcirclenewlib_a_LIBADD =
 @CONFIG_CIRCLE_TRUE@	circle/io.$(OBJEXT) circle/kill.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/link.$(OBJEXT) circle/mem.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/mkdir.$(OBJEXT) \
+@CONFIG_CIRCLE_TRUE@	circle/poll.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/readlink.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/rename.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/sbrk.$(OBJEXT) \
@@ -1890,25 +1891,26 @@ am__depfiles_remade = ./$(DEPDIR)/close.Po ./$(DEPDIR)/debug.Po \
 	circle/$(DEPDIR)/gettod.Po circle/$(DEPDIR)/io.Po \
 	circle/$(DEPDIR)/kill.Po circle/$(DEPDIR)/link.Po \
 	circle/$(DEPDIR)/mem.Po circle/$(DEPDIR)/mkdir.Po \
-	circle/$(DEPDIR)/readlink.Po circle/$(DEPDIR)/rename.Po \
-	circle/$(DEPDIR)/sbrk.Po circle/$(DEPDIR)/select.Po \
-	circle/$(DEPDIR)/socketio.Po circle/$(DEPDIR)/stat.Po \
-	circle/$(DEPDIR)/symlink.Po circle/$(DEPDIR)/times.Po \
-	circle/$(DEPDIR)/unlink.Po circle/$(DEPDIR)/wait.Po \
-	cr16/$(DEPDIR)/_exit.Po cr16/$(DEPDIR)/_getenv.Po \
-	cr16/$(DEPDIR)/_rename.Po cr16/$(DEPDIR)/close.Po \
-	cr16/$(DEPDIR)/crt1.Po cr16/$(DEPDIR)/crti.Po \
-	cr16/$(DEPDIR)/crtn.Po cr16/$(DEPDIR)/dvz_hndl.Po \
-	cr16/$(DEPDIR)/flg_hndl.Po cr16/$(DEPDIR)/fstat.Po \
-	cr16/$(DEPDIR)/getpid.Po cr16/$(DEPDIR)/iad_hndl.Po \
-	cr16/$(DEPDIR)/intable.Po cr16/$(DEPDIR)/isatty.Po \
-	cr16/$(DEPDIR)/kill.Po cr16/$(DEPDIR)/lseek.Po \
-	cr16/$(DEPDIR)/open.Po cr16/$(DEPDIR)/putnum.Po \
-	cr16/$(DEPDIR)/read.Po cr16/$(DEPDIR)/sbrk.Po \
-	cr16/$(DEPDIR)/stat.Po cr16/$(DEPDIR)/svc_hndl.Po \
-	cr16/$(DEPDIR)/time.Po cr16/$(DEPDIR)/und_hndl.Po \
-	cr16/$(DEPDIR)/unlink.Po cr16/$(DEPDIR)/write.Po \
-	csky/$(DEPDIR)/crt0.Po csky/$(DEPDIR)/libsemi_a-getpid.Po \
+	circle/$(DEPDIR)/poll.Po circle/$(DEPDIR)/readlink.Po \
+	circle/$(DEPDIR)/rename.Po circle/$(DEPDIR)/sbrk.Po \
+	circle/$(DEPDIR)/select.Po circle/$(DEPDIR)/socketio.Po \
+	circle/$(DEPDIR)/stat.Po circle/$(DEPDIR)/symlink.Po \
+	circle/$(DEPDIR)/times.Po circle/$(DEPDIR)/unlink.Po \
+	circle/$(DEPDIR)/wait.Po cr16/$(DEPDIR)/_exit.Po \
+	cr16/$(DEPDIR)/_getenv.Po cr16/$(DEPDIR)/_rename.Po \
+	cr16/$(DEPDIR)/close.Po cr16/$(DEPDIR)/crt1.Po \
+	cr16/$(DEPDIR)/crti.Po cr16/$(DEPDIR)/crtn.Po \
+	cr16/$(DEPDIR)/dvz_hndl.Po cr16/$(DEPDIR)/flg_hndl.Po \
+	cr16/$(DEPDIR)/fstat.Po cr16/$(DEPDIR)/getpid.Po \
+	cr16/$(DEPDIR)/iad_hndl.Po cr16/$(DEPDIR)/intable.Po \
+	cr16/$(DEPDIR)/isatty.Po cr16/$(DEPDIR)/kill.Po \
+	cr16/$(DEPDIR)/lseek.Po cr16/$(DEPDIR)/open.Po \
+	cr16/$(DEPDIR)/putnum.Po cr16/$(DEPDIR)/read.Po \
+	cr16/$(DEPDIR)/sbrk.Po cr16/$(DEPDIR)/stat.Po \
+	cr16/$(DEPDIR)/svc_hndl.Po cr16/$(DEPDIR)/time.Po \
+	cr16/$(DEPDIR)/und_hndl.Po cr16/$(DEPDIR)/unlink.Po \
+	cr16/$(DEPDIR)/write.Po csky/$(DEPDIR)/crt0.Po \
+	csky/$(DEPDIR)/libsemi_a-getpid.Po \
 	csky/$(DEPDIR)/libsemi_a-io-close.Po \
 	csky/$(DEPDIR)/libsemi_a-io-exit.Po \
 	csky/$(DEPDIR)/libsemi_a-io-fstat.Po \
@@ -2922,6 +2924,7 @@ TEXINFO_TEX = ../texinfo/texinfo.tex
 @CONFIG_CIRCLE_TRUE@	circle/link.c \
 @CONFIG_CIRCLE_TRUE@	circle/mem.c \
 @CONFIG_CIRCLE_TRUE@	circle/mkdir.cpp \
+@CONFIG_CIRCLE_TRUE@	circle/poll.cpp \
 @CONFIG_CIRCLE_TRUE@	circle/readlink.c \
 @CONFIG_CIRCLE_TRUE@	circle/rename.cpp \
 @CONFIG_CIRCLE_TRUE@	circle/sbrk.c \
@@ -4318,6 +4321,8 @@ circle/link.$(OBJEXT): circle/$(am__dirstamp) \
 circle/mem.$(OBJEXT): circle/$(am__dirstamp) \
 	circle/$(DEPDIR)/$(am__dirstamp)
 circle/mkdir.$(OBJEXT): circle/$(am__dirstamp) \
+	circle/$(DEPDIR)/$(am__dirstamp)
+circle/poll.$(OBJEXT): circle/$(am__dirstamp) \
 	circle/$(DEPDIR)/$(am__dirstamp)
 circle/readlink.$(OBJEXT): circle/$(am__dirstamp) \
 	circle/$(DEPDIR)/$(am__dirstamp)
@@ -6491,6 +6496,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/link.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/mem.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/mkdir.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/poll.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/readlink.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/rename.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/sbrk.Po@am__quote@ # am--include-marker
@@ -10972,6 +10978,7 @@ distclean: distclean-recursive
 	-rm -f circle/$(DEPDIR)/link.Po
 	-rm -f circle/$(DEPDIR)/mem.Po
 	-rm -f circle/$(DEPDIR)/mkdir.Po
+	-rm -f circle/$(DEPDIR)/poll.Po
 	-rm -f circle/$(DEPDIR)/readlink.Po
 	-rm -f circle/$(DEPDIR)/rename.Po
 	-rm -f circle/$(DEPDIR)/sbrk.Po
@@ -11945,6 +11952,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f circle/$(DEPDIR)/link.Po
 	-rm -f circle/$(DEPDIR)/mem.Po
 	-rm -f circle/$(DEPDIR)/mkdir.Po
+	-rm -f circle/$(DEPDIR)/poll.Po
 	-rm -f circle/$(DEPDIR)/readlink.Po
 	-rm -f circle/$(DEPDIR)/rename.Po
 	-rm -f circle/$(DEPDIR)/sbrk.Po

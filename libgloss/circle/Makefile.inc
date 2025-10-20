@@ -18,6 +18,7 @@ multilibtool_LIBRARIES += %D%/libcirclenewlib.a
 	%D%/link.c \
 	%D%/mem.c \
 	%D%/mkdir.cpp \
+	%D%/poll.cpp \
 	%D%/readlink.c \
 	%D%/rename.cpp \
 	%D%/sbrk.c \
