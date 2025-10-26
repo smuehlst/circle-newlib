@@ -92,6 +92,11 @@ namespace _CircleStdlib
             return -1;
         }
 
+        Type GetType(void) const
+        {
+            return TypeSocket;
+        }
+
         int
         Bind(const struct sockaddr *sa,
              socklen_t len)
@@ -264,9 +269,9 @@ namespace _CircleStdlib
                 return -1;
             }
 
-            const struct sockaddr_in * const in_addr = reinterpret_cast<const struct sockaddr_in *>(address);
+            const struct sockaddr_in *const in_addr = reinterpret_cast<const struct sockaddr_in *>(address);
 
-            CIPAddress circle_address {in_addr->sin_addr.s_addr};
+            CIPAddress circle_address{in_addr->sin_addr.s_addr};
             u16 const circle_port = ntohs(in_addr->sin_port);
 
             int const result = mSocket->Connect(circle_address, circle_port);
@@ -331,12 +336,12 @@ namespace _CircleStdlib
             return result;
         }
 
-        TStatus GetSelectStatus (void) const
+        TStatus GetSelectStatus(void) const
         {
             assert(mSocket);
 
             CSocket::TStatus status = mSocket->GetStatus();
-            return { status.bConnected, status.bRxReady, status.bTxReady, status.bException };
+            return {status.bConnected, status.bRxReady, status.bTxReady, status.bException};
         }
 
         CSocket *mSocket;
@@ -487,7 +492,41 @@ extern "C" ssize_t sendto(int socket, const void *message, size_t length, int fl
 extern "C" int setsockopt(int socket, int level, int option_name,
                           const void *option_value, socklen_t option_len)
 {
-    errno = ENOSYS;
+    _CircleStdlib::FileTable::FileTableLock fileTabLock;
+
+    _CircleStdlib::CircleFile *const socket_file = _CircleStdlib::FileTable::GetFile(socket);
+
+    if (!socket_file || !socket_file->IsOpen())
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    _CircleStdlib::CGlueIO *const glueIO = socket_file->GetGlueIO();
+    if (!glueIO || glueIO->GetType() != _CircleStdlib::CGlueIO::TypeSocket)
+    {
+        errno = ENOTSOCK;
+        return -1;
+    }
+
+    // TODO preliminary dummy implementation
+    switch (level)
+    {
+    case SOL_SOCKET:
+        switch (option_name)
+        {
+        case SO_REUSEADDR:
+            // Circle sockets always reuse addresses.
+            return 0;
+
+        default:
+            break;
+        }
+    default:
+        break;
+    }
+
+    errno = ENOPROTOOPT;
     return -1;
 }
 

@@ -122,6 +122,16 @@ namespace _CircleStdlib
         
         virtual TStatus GetSelectStatus (void) const = 0;
 
+        enum Type
+        {
+            TypeUnknown,
+            TypeConsole,
+            TypeSocket,
+            TypeFatFs
+        };
+
+        virtual Type GetType (void) const = 0;
+
     private:
         unsigned int mRefCount;
     };
