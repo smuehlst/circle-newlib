@@ -143,11 +143,6 @@ namespace _CircleStdlib
             return { true, true, true, true };
         }
 
-        Type GetType (void) const
-        {
-            return TypeConsole;
-        }
-
     private:
         CConsole &mConsole;
         TConsoleMode const mMode;
@@ -545,11 +540,6 @@ namespace _CircleStdlib
         TStatus GetSelectStatus (void) const
         {
             return { true, true, true, true };
-        }
-
-        Type GetType (void) const
-        {
-            return TypeFatFs;
         }
 
         FIL mFile;

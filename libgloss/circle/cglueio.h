@@ -51,35 +51,6 @@ namespace _CircleStdlib
         virtual int
         IsATty (void) = 0;
 
-        virtual int
-        Bind (const struct sockaddr *,
-                socklen_t)
-        {
-            errno = ENOTSOCK;
-            return -1;           
-        }
-
-        virtual int
-        Listen (int backlog)
-        {
-            errno = ENOTSOCK;
-            return -1;
-        }
-
-        virtual int
-        Accept(struct sockaddr *, socklen_t *)
-        {
-            errno = ENOTSOCK;
-            return -1;
-        }
-
-        virtual int
-        Connect(const struct sockaddr *, socklen_t)
-        {
-            errno = ENOTSOCK;
-            return -1;
-        }
-
         void IncrementRefCount (void)
         {
             mRefCount += 1;
@@ -121,16 +92,6 @@ namespace _CircleStdlib
         };
         
         virtual TStatus GetSelectStatus (void) const = 0;
-
-        enum Type
-        {
-            TypeUnknown,
-            TypeConsole,
-            TypeSocket,
-            TypeFatFs
-        };
-
-        virtual Type GetType (void) const = 0;
 
     private:
         unsigned int mRefCount;

@@ -14,6 +14,8 @@
 
 #include <circle/logger.h>
 
+#include <functional>
+
 namespace _CircleStdlib
 {
 
@@ -92,11 +94,6 @@ namespace _CircleStdlib
             return -1;
         }
 
-        Type GetType(void) const
-        {
-            return TypeSocket;
-        }
-
         int
         Bind(const struct sockaddr *sa,
              socklen_t len)
@@ -143,7 +140,7 @@ namespace _CircleStdlib
             return 0;
         }
 
-        virtual int
+        int
         Listen(int backlog)
         {
             if (mState == socket_state_connected)
@@ -248,7 +245,7 @@ namespace _CircleStdlib
             return slot;
         }
 
-        virtual int
+        int
         Connect(const struct sockaddr *address, socklen_t address_len)
         {
             if (address->sa_family != AF_INET || mState == socket_state_listening)
@@ -341,6 +338,12 @@ namespace _CircleStdlib
             assert(mSocket);
 
             CSocket::TStatus status = mSocket->GetStatus();
+            // CLogger::Get()->Write("select", LogNotice, "GetSelectStatus: connected=%d, rxready=%d, txready=%d, exception=%d",
+            // status.bConnected, status.bRxReady, status.bTxReady, status.bException);
+            if (status.bConnected)
+            {
+                // CLogger::Get()->Write("select", LogNotice, "socket is connected");
+            }
             return {status.bConnected, status.bRxReady, status.bTxReady, status.bException};
         }
 
@@ -355,61 +358,57 @@ void CGlueNetworkInit(CNetSubSystem &rNetwork)
     _CircleStdlib::pCNet = &rNetwork;
 }
 
+namespace
+{
+    /**
+     * A wrapper for checking that the socket is valid.
+     */
+    using SocketOperation = std::function<int(_CircleStdlib::CGlueIoSocket *)>;
+
+    int ValidateAndExecute(int socket, SocketOperation const &operation)
+    {
+        _CircleStdlib::FileTable::FileTableLock fileTabLock;
+
+        _CircleStdlib::CircleFile *const socket_file = _CircleStdlib::FileTable::GetFile(socket);
+
+        if (!socket_file || !socket_file->IsOpen())
+        {
+            errno = EBADF;
+            return -1;
+        }
+
+        _CircleStdlib::CGlueIO *const glueIO = socket_file->GetGlueIO();
+        assert(glueIO);
+        _CircleStdlib::CGlueIoSocket *const socketGlueIO = dynamic_cast<_CircleStdlib::CGlueIoSocket *>(glueIO);
+        if (!socketGlueIO)
+        {
+            errno = ENOTSOCK;
+            return -1;
+        }
+
+        return operation(socketGlueIO);
+    }
+}
+
 extern "C" int accept(int socket, struct sockaddr *address,
                       socklen_t *address_len)
 {
-    _CircleStdlib::FileTable::FileTableLock fileTabLock;
-
-    _CircleStdlib::CircleFile *const socket_file = _CircleStdlib::FileTable::GetFile(socket);
-
-    if (!socket_file || !socket_file->IsOpen())
-    {
-        errno = EBADF;
-        return -1;
-    }
-
-    _CircleStdlib::CGlueIO *const glueIO = socket_file->GetGlueIO();
-    assert(glueIO);
-
-    return glueIO->Accept(address, address_len);
+    return ValidateAndExecute(socket, [address, address_len](_CircleStdlib::CGlueIoSocket *glueIO)
+                              { return glueIO->Accept(address, address_len); });
 }
 
 extern "C" int bind(int socket, const struct sockaddr *address,
                     socklen_t address_len)
 {
-    _CircleStdlib::FileTable::FileTableLock fileTabLock;
-
-    _CircleStdlib::CircleFile *const socket_file = _CircleStdlib::FileTable::GetFile(socket);
-
-    if (!socket_file || !socket_file->IsOpen())
-    {
-        errno = EBADF;
-        return -1;
-    }
-
-    _CircleStdlib::CGlueIO *const glueIO = socket_file->GetGlueIO();
-    assert(glueIO);
-
-    return glueIO->Bind(address, address_len);
+    return ValidateAndExecute(socket, [address, address_len](_CircleStdlib::CGlueIoSocket *glueIO)
+                              { return glueIO->Bind(address, address_len); });
 }
 
 extern "C" int connect(int socket, const struct sockaddr *address,
                        socklen_t address_len)
 {
-    _CircleStdlib::FileTable::FileTableLock fileTabLock;
-
-    _CircleStdlib::CircleFile *const socket_file = _CircleStdlib::FileTable::GetFile(socket);
-
-    if (!socket_file || !socket_file->IsOpen())
-    {
-        errno = EBADF;
-        return -1;
-    }
-
-    _CircleStdlib::CGlueIO *const glueIO = socket_file->GetGlueIO();
-    assert(glueIO);
-
-    return glueIO->Connect(address, address_len);
+    return ValidateAndExecute(socket, [address, address_len](_CircleStdlib::CGlueIoSocket *glueIO)
+                              { return glueIO->Connect(address, address_len); });
 }
 
 extern "C" int getpeername(int socket, struct sockaddr *address,
@@ -435,49 +434,43 @@ extern "C" int getsockopt(int socket, int level, int option_name,
 
 extern "C" int listen(int socket, int backlog)
 {
-    _CircleStdlib::FileTable::FileTableLock fileTabLock;
-
-    _CircleStdlib::CircleFile *const socket_file = _CircleStdlib::FileTable::GetFile(socket);
-
-    if (!socket_file || !socket_file->IsOpen())
-    {
-        errno = EBADF;
-        return -1;
-    }
-
-    _CircleStdlib::CGlueIO *const glueIO = socket_file->GetGlueIO();
-    assert(glueIO);
-
-    return glueIO->Listen(backlog);
+    return ValidateAndExecute(socket, [backlog](_CircleStdlib::CGlueIoSocket *glueIO)
+                              { return glueIO->Listen(backlog); });
 }
 
 extern "C" ssize_t recv(int socket, void *buffer, size_t length, int flags)
 {
-    errno = ENOSYS;
-    return -1;
+    return static_cast<ssize_t>(ValidateAndExecute(socket, [buffer, length, flags](_CircleStdlib::CGlueIoSocket *glueIO)
+                                                   {
+        // TODO set non-blocking if flags & MSG_DONTWAIT
+       return glueIO->mSocket->Receive(buffer, static_cast<unsigned int>(length), 0); }));
 }
 
 extern "C" ssize_t recvfrom(int socket, void *buffer, size_t length,
                             int flags, struct sockaddr *address, socklen_t *address_len)
 {
+    assert(false);
     errno = ENOSYS;
     return -1;
 }
 
 extern "C" ssize_t recvmsg(int socket, struct msghdr *message, int flags)
 {
+    assert(false);
     errno = ENOSYS;
     return -1;
 }
 
 extern "C" ssize_t send(int socket, const void *message, size_t length, int flags)
 {
-    errno = ENOSYS;
-    return -1;
+    return ValidateAndExecute(socket, [message, length, flags](_CircleStdlib::CGlueIoSocket *glueIO)
+                            // TODO set non-blocking for flags
+                              { return glueIO->mSocket->Send(message, static_cast<unsigned int>(length), flags); });
 }
 
 extern "C" ssize_t sendmsg(int socket, const struct msghdr *message, int flags)
 {
+    assert(false);
     errno = ENOSYS;
     return -1;
 }
@@ -485,6 +478,7 @@ extern "C" ssize_t sendmsg(int socket, const struct msghdr *message, int flags)
 extern "C" ssize_t sendto(int socket, const void *message, size_t length, int flags,
                           const struct sockaddr *dest_addr, socklen_t dest_len)
 {
+    assert(false);
     errno = ENOSYS;
     return -1;
 }
@@ -492,46 +486,32 @@ extern "C" ssize_t sendto(int socket, const void *message, size_t length, int fl
 extern "C" int setsockopt(int socket, int level, int option_name,
                           const void *option_value, socklen_t option_len)
 {
-    _CircleStdlib::FileTable::FileTableLock fileTabLock;
-
-    _CircleStdlib::CircleFile *const socket_file = _CircleStdlib::FileTable::GetFile(socket);
-
-    if (!socket_file || !socket_file->IsOpen())
-    {
-        errno = EBADF;
-        return -1;
-    }
-
-    _CircleStdlib::CGlueIO *const glueIO = socket_file->GetGlueIO();
-    if (!glueIO || glueIO->GetType() != _CircleStdlib::CGlueIO::TypeSocket)
-    {
-        errno = ENOTSOCK;
-        return -1;
-    }
-
-    // TODO preliminary dummy implementation
-    switch (level)
-    {
-    case SOL_SOCKET:
-        switch (option_name)
+    return ValidateAndExecute(socket, [level, option_name, option_value, option_len](_CircleStdlib::CGlueIoSocket *glueIO)
+                              {
+        // TODO preliminary dummy implementation
+        switch (level)
         {
-        case SO_REUSEADDR:
-            // Circle sockets always reuse addresses.
-            return 0;
+        case SOL_SOCKET:
+            switch (option_name)
+            {
+            case SO_REUSEADDR:
+                // Circle sockets always reuse addresses.
+                return 0;
 
+            default:
+                break;
+            }
         default:
             break;
         }
-    default:
-        break;
-    }
 
-    errno = ENOPROTOOPT;
-    return -1;
+        errno = ENOPROTOOPT;
+        return -1; });
 }
 
 extern "C" int shutdown(int socket, int how)
 {
+    assert(false);
     errno = ENOSYS;
     return -1;
 }
@@ -603,6 +583,7 @@ extern "C" int socket(int domain, int type, int protocol)
 extern "C" int socketpair(int domain, int type, int protocol,
                           int socket_vector[2])
 {
+    assert(false);
     errno = ENOSYS;
     return -1;
 }
