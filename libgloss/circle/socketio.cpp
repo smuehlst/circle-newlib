@@ -379,6 +379,24 @@ namespace
 
         return operation(socketGlueIO);
     }
+
+    /**
+     * Warn about untested socket functions.
+     */
+    void WarnUntestedSocketFunction(const char *functionName)
+    {
+        CLogger::Get()->Write("circle-stdlib socket", LogWarning,
+            "Socket function %s is untested!", functionName);
+    }
+
+    /**
+     * Warn about unimplemented socket functions.
+     */
+    void WarnUnimplementedSocketFunction(const char *functionName)
+    {
+        CLogger::Get()->Write("circle-stdlib socket", LogWarning,
+            "Socket function %s is unimplemented!", functionName);
+    }
 }
 
 extern "C" int accept(int socket, struct sockaddr *address,
@@ -405,6 +423,7 @@ extern "C" int connect(int socket, const struct sockaddr *address,
 extern "C" int getpeername(int socket, struct sockaddr *address,
                            socklen_t *address_len)
 {
+    WarnUnimplementedSocketFunction(__func__);
     errno = ENOSYS;
     return -1;
 }
@@ -412,6 +431,7 @@ extern "C" int getpeername(int socket, struct sockaddr *address,
 extern "C" int getsockname(int socket, struct sockaddr *address,
                            socklen_t *address_len)
 {
+    WarnUnimplementedSocketFunction(__func__);
     errno = ENOSYS;
     return -1;
 }
@@ -419,6 +439,7 @@ extern "C" int getsockname(int socket, struct sockaddr *address,
 extern "C" int getsockopt(int socket, int level, int option_name,
                           void *option_value, socklen_t *option_len)
 {
+    WarnUnimplementedSocketFunction(__func__);
     errno = ENOSYS;
     return -1;
 }
@@ -431,23 +452,52 @@ extern "C" int listen(int socket, int backlog)
 
 extern "C" ssize_t recv(int socket, void *buffer, size_t length, int flags)
 {
-    return static_cast<ssize_t>(ValidateAndExecute(socket, [buffer, length, flags](_CircleStdlib::CGlueIoSocket *glueIO)
-                                                   {
-        // TODO set non-blocking if flags & MSG_DONTWAIT
-       return glueIO->mSocket->Receive(buffer, static_cast<unsigned int>(length), 0); }));
+    return static_cast<ssize_t>(
+        ValidateAndExecute(socket,
+            [buffer, length, flags](_CircleStdlib::CGlueIoSocket *glueIO)
+            {
+                // TODO set flags
+                return glueIO->mSocket->Receive(buffer, static_cast<unsigned int>(length), 0);
+            }));
 }
 
 extern "C" ssize_t recvfrom(int socket, void *buffer, size_t length,
                             int flags, struct sockaddr *address, socklen_t *address_len)
 {
-    assert(false);
-    errno = ENOSYS;
-    return -1;
+    WarnUntestedSocketFunction(__func__);
+
+    return static_cast<ssize_t>(
+        ValidateAndExecute(socket,
+            [buffer, length, flags, address, address_len](_CircleStdlib::CGlueIoSocket *glueIO)
+            {
+                CIPAddress ForeignIP;
+		        u16 usForeignPort;
+                int const result = glueIO->mSocket->ReceiveFrom(buffer, length, flags, &ForeignIP, &usForeignPort);
+                if (result >= 0 && address && address_len && *address_len > 0)
+                {
+                    struct sockaddr_in sockaddr;
+                    socklen_t out_len = sizeof(struct sockaddr_in);
+                    socklen_t const in_len = *address_len;
+
+                    *address_len = out_len;
+                    if (out_len > in_len)
+                    {
+                        out_len = in_len;
+                    }
+
+                    sockaddr.sin_family = AF_INET;
+                    sockaddr.sin_addr.s_addr = static_cast<in_addr_t>(ForeignIP);
+                    sockaddr.sin_port = usForeignPort;
+
+                    memcpy(address, &sockaddr, out_len);
+                }
+                return result;
+            }));
 }
 
 extern "C" ssize_t recvmsg(int socket, struct msghdr *message, int flags)
 {
-    assert(false);
+    WarnUnimplementedSocketFunction(__func__);
     errno = ENOSYS;
     return -1;
 }
@@ -461,7 +511,7 @@ extern "C" ssize_t send(int socket, const void *message, size_t length, int flag
 
 extern "C" ssize_t sendmsg(int socket, const struct msghdr *message, int flags)
 {
-    assert(false);
+    WarnUnimplementedSocketFunction(__func__);
     errno = ENOSYS;
     return -1;
 }
@@ -469,7 +519,7 @@ extern "C" ssize_t sendmsg(int socket, const struct msghdr *message, int flags)
 extern "C" ssize_t sendto(int socket, const void *message, size_t length, int flags,
                           const struct sockaddr *dest_addr, socklen_t dest_len)
 {
-    assert(false);
+    WarnUnimplementedSocketFunction(__func__);
     errno = ENOSYS;
     return -1;
 }
@@ -477,6 +527,7 @@ extern "C" ssize_t sendto(int socket, const void *message, size_t length, int fl
 extern "C" int setsockopt(int socket, int level, int option_name,
                           const void *option_value, socklen_t option_len)
 {
+    WarnUnimplementedSocketFunction(__func__);
     return ValidateAndExecute(socket, [level, option_name, option_value, option_len](_CircleStdlib::CGlueIoSocket *glueIO)
                               {
         // TODO preliminary dummy implementation
@@ -502,7 +553,7 @@ extern "C" int setsockopt(int socket, int level, int option_name,
 
 extern "C" int shutdown(int socket, int how)
 {
-    assert(false);
+    WarnUnimplementedSocketFunction(__func__);
     errno = ENOSYS;
     return -1;
 }
@@ -574,7 +625,7 @@ extern "C" int socket(int domain, int type, int protocol)
 extern "C" int socketpair(int domain, int type, int protocol,
                           int socket_vector[2])
 {
-    assert(false);
+    WarnUnimplementedSocketFunction(__func__);
     errno = ENOSYS;
     return -1;
 }
