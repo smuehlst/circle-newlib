@@ -14,8 +14,6 @@
 
 #include <circle/logger.h>
 
-#include <functional>
-
 namespace _CircleStdlib
 {
 
@@ -357,9 +355,8 @@ namespace
     /**
      * A wrapper for checking that the socket is valid.
      */
-    using SocketOperation = std::function<int(_CircleStdlib::CGlueIoSocket *)>;
-
-    int ValidateAndExecute(int socket, SocketOperation const &operation)
+    template<typename Func>
+    int ValidateAndExecute(int socket, Func operation)
     {
         _CircleStdlib::FileTable::FileTableLock fileTabLock;
 
