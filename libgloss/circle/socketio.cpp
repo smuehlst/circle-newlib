@@ -338,12 +338,6 @@ namespace _CircleStdlib
             assert(mSocket);
 
             CSocket::TStatus status = mSocket->GetStatus();
-            // CLogger::Get()->Write("select", LogNotice, "GetSelectStatus: connected=%d, rxready=%d, txready=%d, exception=%d",
-            // status.bConnected, status.bRxReady, status.bTxReady, status.bException);
-            if (status.bConnected)
-            {
-                // CLogger::Get()->Write("select", LogNotice, "socket is connected");
-            }
             return {status.bConnected, status.bRxReady, status.bTxReady, status.bException};
         }
 
