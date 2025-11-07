@@ -235,6 +235,7 @@ namespace _CircleStdlib
             }
             else
             {
+                delete pConnection;
                 errno = ENFILE;
             }
 
@@ -457,7 +458,11 @@ extern "C" ssize_t recv(int socket, void *buffer, size_t length, int flags)
             [buffer, length, flags](_CircleStdlib::CGlueIoSocket *glueIO)
             {
                 // TODO set flags
-                return glueIO->mSocket->Receive(buffer, static_cast<unsigned int>(length), 0);
+                int const result = glueIO->mSocket->Receive(buffer, static_cast<unsigned int>(length), flags);
+
+                // Circle socket returns -1 when socket has been closed by peer,
+                // but POSIX recv() should return 0 in this case.
+                return result < 0 ? 0 : result;
             }));
 }
 
