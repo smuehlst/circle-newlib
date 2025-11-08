@@ -107,16 +107,30 @@ int     socketpair(int domain, int type, int protocol,
 #define SO_SNDTIMEO		(SO_ACCEPTCONN + 14)	/* Send timeout. */
 #define SO_TYPE		    (SO_ACCEPTCONN + 15)	/* Socket type. */
 
-/* Values for the msg_flags field in the msghdr structure, or the flags parameter in recvfrom(): */
-#define MSG_CTRUNC		1	                /* Control data truncated. */
-#define MSG_DONTROUTE	(MSG_CTRUNC + 1)	/* Send without using routing tables. */
-#define MSG_EOR		    (MSG_CTRUNC + 2)	/* Terminates a record (if supported by the protocol). */
-#define MSG_OOB		    (MSG_CTRUNC + 3)	/* Out-of-band data. */
-#define MSG_PEEK		(MSG_CTRUNC + 4)	/* Leave received data in queue. */
-#define MSG_TRUNC		(MSG_CTRUNC + 5)	/* Normal data truncated. */
-#define MSG_WAITALL		(MSG_CTRUNC + 6)	/* Attempt to fill the read buffer. */
+/* Flags for recv(), send(), msg_flags field in the msghdr structure, etc.: */
+#define MSG_CTRUNC		(1 << 0)	/* Control data truncated. */
+#define MSG_DONTROUTE	(1 << 1)	/* Send without using routing tables. */
+#define MSG_EOR		    (1 << 2)	/* Terminates a record (if supported by the protocol). */
+#define MSG_OOB		    (1 << 3)	/* Out-of-band data. */
+#define MSG_PEEK		(1 << 4)	/* Leave received data in queue. */
+#define MSG_TRUNC		(1 << 5)	/* Normal data truncated. */
+#define MSG_WAITALL		(1 << 6)	/* Attempt to fill the read buffer. */
+#define MSG_PROXY       (1 << 7)
+#define MSG_FIN         (1 << 8)
+#define MSG_SYN         (1 << 9)
+#define MSG_CONFIRM     (1 << 10)
+#define MSG_RST         (1 << 11)
+#define MSG_ERRQUEUE    (1 << 12)
+#define MSG_NOSIGNAL    (1 << 13)
+#define MSG_MORE        (1 << 14)
+#define MSG_WAITFORONE  (1 << 15)
+#define MSG_BATCH       (1 << 16)
+#define MSG_ZEROCOPY    (1 << 17)
+#define MSG_FASTOPEN    (1 << 18)
+#define MSG_CMSG_CLOEXEC (1 << 19)
+#define MSG_DONTWAIT    (1 << 20)
 
-/* */
+/* Socket types */
 #define AF_INET     1               /* Internet domain sockets for use with IPv4 addresses. */
 #define AF_INET6    (AF_INET + 1)   /* Internet domain sockets for use with IPv6 addresses. */
 #define AF_UNIX     (AF_INET + 2)   /* UNIX domain sockets. */
