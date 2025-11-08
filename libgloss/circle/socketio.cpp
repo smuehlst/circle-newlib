@@ -532,9 +532,18 @@ extern "C" ssize_t recvmsg(int socket, struct msghdr *message, int flags)
 
 extern "C" ssize_t send(int socket, const void *message, size_t length, int flags)
 {
-    return ValidateAndExecute(socket, [message, length, flags](_CircleStdlib::CGlueIoSocket *glueIO)
-                            // TODO set non-blocking for flags
-                              { return glueIO->mSocket->Send(message, static_cast<unsigned int>(length), flags); });
+    constexpr int supported_flags = MSG_DONTWAIT;
+
+    WarnUnsupportedSocketFlags(__func__, flags, supported_flags);
+
+    int circle_flags = 0;
+    if (flags & MSG_DONTWAIT)
+    {
+        circle_flags |= _CircleStdlib::CircleNetMap::C_MSG_DONTWAIT;
+    }
+
+    return ValidateAndExecute(socket, [message, length, circle_flags](_CircleStdlib::CGlueIoSocket *glueIO)
+                              { return glueIO->mSocket->Send(message, static_cast<unsigned int>(length), circle_flags); });
 }
 
 extern "C" ssize_t sendmsg(int socket, const struct msghdr *message, int flags)
