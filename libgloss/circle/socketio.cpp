@@ -398,6 +398,20 @@ namespace
         CLogger::Get()->Write("circle-stdlib socket", LogWarning,
             "Socket function %s is unimplemented!", functionName);
     }
+
+    /**
+     * Warn about unsupported flags.
+     */
+    void WarnUnsupportedSocketFlags(const char *functionName, int flags, int supportedFlags)
+    {
+        int const unimplementedFlags = flags & ~supportedFlags;
+        if (unimplementedFlags)
+        {
+            CLogger::Get()->Write("circle-stdlib socket", LogWarning,
+                "Socket function %s called with unimplemented flags 0x%X!", functionName, flags & ~supportedFlags);
+        }
+    }
+
 }
 
 extern "C" int accept(int socket, struct sockaddr *address,
@@ -453,12 +467,21 @@ extern "C" int listen(int socket, int backlog)
 
 extern "C" ssize_t recv(int socket, void *buffer, size_t length, int flags)
 {
+    constexpr int supported_flags = MSG_DONTWAIT;
+
+    WarnUnsupportedSocketFlags(__func__, flags, supported_flags);
+
+    int circle_flags = 0;
+    if (flags & MSG_DONTWAIT)
+    {
+        circle_flags |= _CircleStdlib::CircleNetMap::C_MSG_DONTWAIT;
+    }
+
     return static_cast<ssize_t>(
         ValidateAndExecute(socket,
-            [buffer, length, flags](_CircleStdlib::CGlueIoSocket *glueIO)
+            [buffer, length, circle_flags](_CircleStdlib::CGlueIoSocket *glueIO)
             {
-                // TODO set flags
-                int const result = glueIO->mSocket->Receive(buffer, static_cast<unsigned int>(length), flags);
+                int const result = glueIO->mSocket->Receive(buffer, static_cast<unsigned int>(length), circle_flags);
 
                 // Circle socket returns -1 when socket has been closed by peer,
                 // but POSIX recv() should return 0 in this case.

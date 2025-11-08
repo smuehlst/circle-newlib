@@ -15,6 +15,7 @@ namespace _CircleStdlib
     public:
         static int const C_IPPROTO_TCP;
         static int const C_IPPROTO_UDP;
+        static int const C_MSG_DONTWAIT;
     };
 }
 
