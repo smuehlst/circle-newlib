@@ -20,6 +20,54 @@ namespace _CircleStdlib
     static CNetSubSystem *pCNet = nullptr;
 
     /**
+     * Map Circle network error codes to errno values.
+     */
+    static int MapCircleNetErrorToErrno(int circleError)
+    {
+        switch (-circleError)
+        {
+             case NET_ERROR_WOULD_BLOCK:
+                return EWOULDBLOCK;
+
+            case NET_ERROR_PERMISSION_DENIED:
+                return EACCES;
+
+            case NET_ERROR_INVALID_VALUE:
+                return EINVAL;
+
+            case NET_ERROR_PROTOCOL_ERROR:
+                return EPROTO;
+
+            case NET_ERROR_PROTOCOL_NOT_SUPPORTED:
+                return EPROTONOSUPPORT;
+
+            case NET_ERROR_OPERATION_NOT_SUPPORTED:
+                return EOPNOTSUPP;
+
+            case NET_ERROR_CONNECTION_RESET:
+                return ECONNRESET;
+
+            case NET_ERROR_IS_CONNECTED:
+                return EISCONN;
+
+            case NET_ERROR_NOT_CONNECTED:
+                return ENOTCONN;
+
+            case NET_ERROR_CONNECTION_TIMED_OUT:
+                return ETIMEDOUT;
+
+            case NET_ERROR_CONNECTION_REFUSED:
+                return ECONNREFUSED;
+
+            case NET_ERROR_DESTINATION_UNREACHABLE:
+                return EHOSTUNREACH;
+
+            default:
+                return EIO;
+        }
+    }
+
+    /**
      * Posix sockets
      */
     struct CGlueIoSocket : public CGlueIO
@@ -122,20 +170,22 @@ namespace _CircleStdlib
              * The socket interface requires the port in network byte order. Therefore we
              * have to convert to host byte order here.
              */
-            int const bind_result = mSocket->Bind(ntohs(sa_in->sin_port));
+            int bind_result = mSocket->Bind(ntohs(sa_in->sin_port));
 
             if (bind_result < 0)
             {
-                // We don't know the specific reason for the failure. EACCESS seems like a good generic errno.
-                errno = EACCES;
-                return -1;
+                errno = MapCircleNetErrorToErrno(bind_result);
+                bind_result = -1;
             }
-
-            mState = socket_state_bound;
+            else
+            {
+                mState = socket_state_bound;
+                bind_result = 0;
+            }
 
             CScheduler::Get()->Yield();
 
-            return 0;
+            return bind_result;
         }
 
         int
@@ -170,15 +220,16 @@ namespace _CircleStdlib
                            ? SOMAXCONN
                            : backlog);
 
-            int const listen_result = mSocket->Listen(ubacklog);
+            int listen_result = mSocket->Listen(ubacklog);
             if (listen_result < 0)
             {
-                // We don't know the exact reason.
-                errno = ENOBUFS;
+                errno = MapCircleNetErrorToErrno(listen_result);
+                listen_result = -1;
             }
             else
             {
                 mState = socket_state_listening;
+                listen_result = 0;
             }
 
             CScheduler::Get()->Yield();
@@ -270,15 +321,16 @@ namespace _CircleStdlib
             CIPAddress circle_address{in_addr->sin_addr.s_addr};
             u16 const circle_port = ntohs(in_addr->sin_port);
 
-            int const result = mSocket->Connect(circle_address, circle_port);
-            if (result == -1)
+            int result = mSocket->Connect(circle_address, circle_port);
+            if (result < 0)
             {
-                // We don't know better.
-                errno = EADDRNOTAVAIL;
+                errno = MapCircleNetErrorToErrno(result);
+                result = -1;
             }
             else
             {
                 mState = socket_state_connected;
+                result = 0;
             }
 
             CScheduler::Get()->Yield();
@@ -297,11 +349,12 @@ namespace _CircleStdlib
                 return -1;
             }
 
-            int const result = mSocket->Receive(pBuffer, nCount, 0);
+            int result = mSocket->Receive(pBuffer, nCount, 0);
 
-            if (result == -1)
+            if (result < 0)
             {
-                errno = EPIPE;
+                errno = MapCircleNetErrorToErrno(result);
+                result = -1;
             }
 
             CScheduler::Get()->Yield();
@@ -320,11 +373,12 @@ namespace _CircleStdlib
                 return -1;
             }
 
-            int const result = mSocket->Send(pBuffer, nCount, 0);
+            int result = mSocket->Send(pBuffer, nCount, 0);
 
-            if (result == -1)
+            if (result < 0)
             {
-                errno = EPIPE;
+                errno = MapCircleNetErrorToErrno(result);
+                result = -1;
             }
 
             CScheduler::Get()->Yield();
@@ -465,28 +519,108 @@ extern "C" int listen(int socket, int backlog)
                               { return glueIO->Listen(backlog); });
 }
 
+namespace _CircleStdlib
+{
+    ssize_t DoRecvFrom(const char *func, int socket, void *buffer, size_t length,
+                       int flags, struct sockaddr *address, socklen_t *address_len)
+    {
+        constexpr int supported_flags = MSG_DONTWAIT;
+
+        WarnUnsupportedSocketFlags(func, flags, supported_flags);
+
+        auto const recv_from = [buffer, length, flags, address, address_len](_CircleStdlib::CGlueIoSocket *glueIO)
+        {
+            int circle_flags = 0;
+            if (flags & MSG_DONTWAIT)
+            {
+                circle_flags |= _CircleStdlib::CircleNetMap::C_MSG_DONTWAIT;
+            }
+
+            CIPAddress ForeignIP;
+            u16 usForeignPort;
+            CIPAddress * const pForeignIP = address ? &ForeignIP : nullptr;
+            u16 * const pUsForeignPort = address ? &usForeignPort : nullptr;
+            int result = glueIO->mSocket->ReceiveFrom(buffer, length, circle_flags, pForeignIP, pUsForeignPort);
+            if (result >= 0 && address && address_len && *address_len > 0)
+            {
+                struct sockaddr_in sockaddr;
+                socklen_t out_len = sizeof(struct sockaddr_in);
+                socklen_t const in_len = *address_len;
+
+                *address_len = out_len;
+                if (out_len > in_len)
+                {
+                    out_len = in_len;
+                }
+
+                sockaddr.sin_family = AF_INET;
+                sockaddr.sin_addr.s_addr = static_cast<in_addr_t>(ForeignIP);
+                sockaddr.sin_port = usForeignPort;
+
+                memcpy(address, &sockaddr, out_len);
+            }
+
+            if (result == -NET_ERROR_CONNECTION_RESET)
+            {
+                // According to POSIX, recv() and recvfrom() shall return 0
+                // when the connection has been closed by the peer.
+                result = 0;
+            }
+            else if (result < 0)
+            {
+                errno = MapCircleNetErrorToErrno(result);
+                result = -1;
+            }
+            else if ((flags & MSG_DONTWAIT) && result == 0)
+            {
+                errno = EWOULDBLOCK;
+                result = -1;
+            }
+
+            return result;
+        };
+
+        return static_cast<ssize_t>(ValidateAndExecute(socket, recv_from));
+    }
+}
+
 extern "C" ssize_t recv(int socket, void *buffer, size_t length, int flags)
 {
+    // TODO this really should use DoRecvFrom(), but that doesn't work.
     constexpr int supported_flags = MSG_DONTWAIT;
-
     WarnUnsupportedSocketFlags(__func__, flags, supported_flags);
-
-    int circle_flags = 0;
-    if (flags & MSG_DONTWAIT)
-    {
-        circle_flags |= _CircleStdlib::CircleNetMap::C_MSG_DONTWAIT;
-    }
-
+ 
     return static_cast<ssize_t>(
         ValidateAndExecute(socket,
-            [buffer, length, circle_flags](_CircleStdlib::CGlueIoSocket *glueIO)
+        [buffer, length, flags](_CircleStdlib::CGlueIoSocket *glueIO)
+        {
+            int circle_flags = 0;
+            if (flags & MSG_DONTWAIT)
             {
-                int const result = glueIO->mSocket->Receive(buffer, static_cast<unsigned int>(length), circle_flags);
+                circle_flags |= _CircleStdlib::CircleNetMap::C_MSG_DONTWAIT;
+            }
 
-                // Circle socket returns -1 when socket has been closed by peer,
-                // but POSIX recv() should return 0 in this case.
-                return result < 0 ? 0 : result;
-            }));
+            int result = glueIO->mSocket->Receive(buffer, static_cast<unsigned int>(length), circle_flags);
+
+            if (result == -NET_ERROR_CONNECTION_RESET)
+            {
+                // According to POSIX, recv() and recvfrom() shall return 0
+                // when the connection has been closed by the peer.
+                result = 0;
+            }
+            else if (result < 0)
+            {
+                errno = _CircleStdlib::MapCircleNetErrorToErrno(result);
+                result = -1;
+            }
+            else if ((flags & MSG_DONTWAIT) && result == 0)
+            {
+                errno = EWOULDBLOCK;
+                result = -1;
+            }
+
+            return result;
+        }));
 }
 
 extern "C" ssize_t recvfrom(int socket, void *buffer, size_t length,
@@ -494,33 +628,7 @@ extern "C" ssize_t recvfrom(int socket, void *buffer, size_t length,
 {
     WarnUntestedSocketFunction(__func__);
 
-    return static_cast<ssize_t>(
-        ValidateAndExecute(socket,
-            [buffer, length, flags, address, address_len](_CircleStdlib::CGlueIoSocket *glueIO)
-            {
-                CIPAddress ForeignIP;
-		        u16 usForeignPort;
-                int const result = glueIO->mSocket->ReceiveFrom(buffer, length, flags, &ForeignIP, &usForeignPort);
-                if (result >= 0 && address && address_len && *address_len > 0)
-                {
-                    struct sockaddr_in sockaddr;
-                    socklen_t out_len = sizeof(struct sockaddr_in);
-                    socklen_t const in_len = *address_len;
-
-                    *address_len = out_len;
-                    if (out_len > in_len)
-                    {
-                        out_len = in_len;
-                    }
-
-                    sockaddr.sin_family = AF_INET;
-                    sockaddr.sin_addr.s_addr = static_cast<in_addr_t>(ForeignIP);
-                    sockaddr.sin_port = usForeignPort;
-
-                    memcpy(address, &sockaddr, out_len);
-                }
-                return result;
-            }));
+    return _CircleStdlib::DoRecvFrom(__func__, socket, buffer, length, flags, address, address_len);
 }
 
 extern "C" ssize_t recvmsg(int socket, struct msghdr *message, int flags)
@@ -532,6 +640,7 @@ extern "C" ssize_t recvmsg(int socket, struct msghdr *message, int flags)
 
 extern "C" ssize_t send(int socket, const void *message, size_t length, int flags)
 {
+    // TODO unify with sendto when implemented
     constexpr int supported_flags = MSG_DONTWAIT;
 
     WarnUnsupportedSocketFlags(__func__, flags, supported_flags);
@@ -543,7 +652,15 @@ extern "C" ssize_t send(int socket, const void *message, size_t length, int flag
     }
 
     return ValidateAndExecute(socket, [message, length, circle_flags](_CircleStdlib::CGlueIoSocket *glueIO)
-                              { return glueIO->mSocket->Send(message, static_cast<unsigned int>(length), circle_flags); });
+    {
+        int result = glueIO->mSocket->Send(message, static_cast<unsigned int>(length), circle_flags);
+        if (result < 0)
+        {
+            errno = _CircleStdlib::MapCircleNetErrorToErrno(result);
+            result = -1;
+        }
+        return result;
+    });
 }
 
 extern "C" ssize_t sendmsg(int socket, const struct msghdr *message, int flags)
