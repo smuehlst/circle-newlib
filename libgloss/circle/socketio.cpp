@@ -586,41 +586,7 @@ namespace _CircleStdlib
 
 extern "C" ssize_t recv(int socket, void *buffer, size_t length, int flags)
 {
-    // TODO this really should use DoRecvFrom(), but that doesn't work.
-    constexpr int supported_flags = MSG_DONTWAIT;
-    WarnUnsupportedSocketFlags(__func__, flags, supported_flags);
- 
-    return static_cast<ssize_t>(
-        ValidateAndExecute(socket,
-        [buffer, length, flags](_CircleStdlib::CGlueIoSocket *glueIO)
-        {
-            int circle_flags = 0;
-            if (flags & MSG_DONTWAIT)
-            {
-                circle_flags |= _CircleStdlib::CircleNetMap::C_MSG_DONTWAIT;
-            }
-
-            int result = glueIO->mSocket->Receive(buffer, static_cast<unsigned int>(length), circle_flags);
-
-            if (result == -NET_ERROR_CONNECTION_RESET)
-            {
-                // According to POSIX, recv() and recvfrom() shall return 0
-                // when the connection has been closed by the peer.
-                result = 0;
-            }
-            else if (result < 0)
-            {
-                errno = _CircleStdlib::MapCircleNetErrorToErrno(result);
-                result = -1;
-            }
-            else if ((flags & MSG_DONTWAIT) && result == 0)
-            {
-                errno = EWOULDBLOCK;
-                result = -1;
-            }
-
-            return result;
-        }));
+     return _CircleStdlib::DoRecvFrom(__func__, socket, buffer, length, flags, nullptr, nullptr);
 }
 
 extern "C" ssize_t recvfrom(int socket, void *buffer, size_t length,
