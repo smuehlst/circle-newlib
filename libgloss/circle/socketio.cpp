@@ -524,6 +524,14 @@ namespace _CircleStdlib
     ssize_t DoRecvFrom(const char *func, int socket, void *buffer, size_t length,
                        int flags, struct sockaddr *address, socklen_t *address_len)
     {
+        if (flags & MSG_OOB)
+        {
+            // According to Posix EINVAL is a valid behavior:
+            // "The MSG_OOB flag is set and no out-of-band data is available."
+            errno = EINVAL;
+            return -1;
+        }
+
         constexpr int supported_flags = MSG_DONTWAIT;
 
         WarnUnsupportedSocketFlags(func, flags, supported_flags);
