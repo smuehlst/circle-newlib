@@ -614,7 +614,6 @@ extern "C" ssize_t recvmsg(int socket, struct msghdr *message, int flags)
 
 extern "C" ssize_t send(int socket, const void *message, size_t length, int flags)
 {
-    // TODO unify with sendto when implemented
     constexpr int supported_flags = MSG_DONTWAIT;
 
     WarnUnsupportedSocketFlags(__func__, flags, supported_flags);
@@ -647,9 +646,46 @@ extern "C" ssize_t sendmsg(int socket, const struct msghdr *message, int flags)
 extern "C" ssize_t sendto(int socket, const void *message, size_t length, int flags,
                           const struct sockaddr *dest_addr, socklen_t dest_len)
 {
-    WarnUnimplementedSocketFunction(__func__);
-    errno = ENOSYS;
-    return -1;
+
+    // Circle supports MSG_DONTWAIT, but this is not documented for sendto().
+    constexpr int supported_flags = 0;
+    WarnUnsupportedSocketFlags(__func__, flags, supported_flags);
+
+    CIPAddress circle_address;
+    u16 circle_port = 0;
+
+    if (dest_addr)
+    {
+        const struct sockaddr_in *const in_addr = reinterpret_cast<const struct sockaddr_in *>(dest_addr);
+
+        if (dest_addr->sa_family != AF_INET)
+        {
+            errno = EAFNOSUPPORT;
+            return -1;
+        }
+
+        if (dest_len != sizeof(struct sockaddr_in))
+        {
+            errno = EINVAL;
+            return -1;
+        }
+
+        circle_address.Set(in_addr->sin_addr.s_addr);
+        circle_port = ntohs(in_addr->sin_port);
+    }
+
+    return ValidateAndExecute(socket, [&](_CircleStdlib::CGlueIoSocket *glueIO)
+    {
+        int circle_result = glueIO->mSocket->SendTo(message, static_cast<unsigned int>(length), 0,
+                                                   circle_address, circle_port);
+        if (circle_result < 0)
+        {
+            errno = _CircleStdlib::MapCircleNetErrorToErrno(circle_result);
+            circle_result = -1;
+        }
+    
+        return circle_result;   
+    });
 }
 
 extern "C" int setsockopt(int socket, int level, int option_name,
