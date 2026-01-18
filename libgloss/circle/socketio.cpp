@@ -750,10 +750,14 @@ extern "C" int socket(int domain, int type, int protocol)
     case SOCK_DGRAM:
         switch (protocol)
         {
+#if 0
+        // Because of semantic differences in Circle's UDP implementation
+        // we currently do not support UDP sockets.
         case IPPROTO_UDP:
         case 0:
             circle_socket_protocol = _CircleStdlib::CircleNetMap::C_IPPROTO_UDP;
             break;
+#endif
 
         default:
             errno = EPROTONOSUPPORT;
