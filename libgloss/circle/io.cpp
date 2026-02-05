@@ -639,7 +639,10 @@ _close (int fildes)
         result = 0;
     }
 
-    CScheduler::Get()->Yield();
+    if (CScheduler::IsActive ())
+    {
+        CScheduler::Get ()->Yield ();
+    }
 
     return result;
 }
