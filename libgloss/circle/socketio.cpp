@@ -26,7 +26,7 @@ namespace _CircleStdlib
     {
         switch (-circleError)
         {
-             case NET_ERROR_WOULD_BLOCK:
+            case NET_ERROR_WOULD_BLOCK:
                 return EWOULDBLOCK;
 
             case NET_ERROR_PERMISSION_DENIED:
@@ -684,14 +684,13 @@ extern "C" ssize_t sendto(int socket, const void *message, size_t length, int fl
             circle_result = -1;
         }
     
-        return circle_result;   
+        return circle_result;
     });
 }
 
 extern "C" int setsockopt(int socket, int level, int option_name,
                           const void *option_value, socklen_t option_len)
 {
-    WarnUnimplementedSocketFunction(__func__);
     return ValidateAndExecute(socket, [level, option_name, option_value, option_len](_CircleStdlib::CGlueIoSocket *glueIO)
                               {
         // TODO preliminary dummy implementation
@@ -705,6 +704,7 @@ extern "C" int setsockopt(int socket, int level, int option_name,
                 return 0;
 
             default:
+                WarnUnimplementedSocketFunction(__func__);
                 break;
             }
         default:
@@ -817,7 +817,7 @@ extern "C" uint16_t htons(uint16_t hostshort)
 #else
         hostshort
 #endif
-            ;
+    ;
 }
 
 extern "C" uint32_t ntohl(uint32_t netlong)
