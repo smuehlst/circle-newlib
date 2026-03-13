@@ -20,12 +20,17 @@ typedef unsigned int socklen_t;
 
 struct sockaddr  {
     sa_family_t  sa_family; /* Address family. */
-    char         sa_data[]; /* Socket address (variable-length data). */
+    char         sa_data[14]; /* Socket address (officially variable-length data). */
 };
 
-/* TODO alignment issues? */
+#define _SS_MAXSIZE 128
+#define _SS_ALIGNSIZE (sizeof(unsigned long long))
+#define _SS_PADSIZE (_SS_MAXSIZE - sizeof(sa_family_t) - _SS_ALIGNSIZE)
+
 struct sockaddr_storage {
-    sa_family_t   ss_family;
+    sa_family_t ss_family;
+    char __ss_padding[_SS_PADSIZE];
+    unsigned long long __ss_align;
 };
 
 struct cmsghdr {
