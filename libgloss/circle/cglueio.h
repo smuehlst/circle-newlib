@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <errno.h>
+#include <assert.h>
 
 namespace _CircleStdlib
 {
@@ -42,6 +44,13 @@ namespace _CircleStdlib
         FSync (void)
         {
             errno = EINVAL;
+            return -1;
+        }
+
+        virtual int
+        Fcntl (int cmd, int arg)
+        {
+            errno = ENOSYS;
             return -1;
         }
 

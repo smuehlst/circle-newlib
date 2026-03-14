@@ -964,19 +964,19 @@ _fcntl (int fildes, int cmd, ...)
         return -1;
     }
 
-    if (cmd != F_DUPFD)
-    {
-        errno = ENOSYS;
-        return -1;
-    }
-
     va_list args;
     va_start(args, cmd);
     int const arg = va_arg(args, int);
     va_end(args);
 
-    // TODO: F_DUPFD is the only operation implemented so far.
-	return _CircleStdlib::FileTable::DupFd (*original_file, arg);
+    if (cmd == F_DUPFD)
+    {
+        return _CircleStdlib::FileTable::DupFd (*original_file, arg);
+    }
+    else
+    {
+        return original_file->GetGlueIO()->Fcntl (cmd, arg);
+    }
 }
 
 extern "C" int
