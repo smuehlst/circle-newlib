@@ -19,7 +19,7 @@ namespace _CircleStdlib
     static_assert(sizeof(struct sockaddr_in) <= sizeof(struct sockaddr_storage),
         "sockaddr_storage must be large enough for sockaddr_in");
 
-    static CNetSubSystem *pCNet = nullptr;
+    CNetSubSystem *pCNet = nullptr;
 
     /**
      * Map Circle network error codes to errno values.
