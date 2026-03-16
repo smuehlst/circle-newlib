@@ -648,7 +648,6 @@ extern "C" ssize_t sendmsg(int socket, const struct msghdr *message, int flags)
 extern "C" ssize_t sendto(int socket, const void *message, size_t length, int flags,
                           const struct sockaddr *dest_addr, socklen_t dest_len)
 {
-
     // Circle supports MSG_DONTWAIT, but this is not documented for sendto().
     constexpr int supported_flags = 0;
     WarnUnsupportedSocketFlags(__func__, flags, supported_flags);
@@ -752,14 +751,10 @@ extern "C" int socket(int domain, int type, int protocol)
     case SOCK_DGRAM:
         switch (protocol)
         {
-#if 0
-        // Because of semantic differences in Circle's UDP implementation
-        // we currently do not support UDP sockets.
         case IPPROTO_UDP:
         case 0:
             circle_socket_protocol = _CircleStdlib::CircleNetMap::C_IPPROTO_UDP;
             break;
-#endif
 
         default:
             errno = EPROTONOSUPPORT;
