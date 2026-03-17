@@ -440,6 +440,7 @@ namespace
     /**
      * Warn about untested socket functions.
      */
+    [[maybe_unused]]
     void WarnUntestedSocketFunction(const char *functionName)
     {
         CLogger::Get()->Write("circle-stdlib socket", LogWarning,
@@ -596,14 +597,12 @@ namespace _CircleStdlib
 
 extern "C" ssize_t recv(int socket, void *buffer, size_t length, int flags)
 {
-     return _CircleStdlib::DoRecvFrom(__func__, socket, buffer, length, flags, nullptr, nullptr);
+    return _CircleStdlib::DoRecvFrom(__func__, socket, buffer, length, flags, nullptr, nullptr);
 }
 
 extern "C" ssize_t recvfrom(int socket, void *buffer, size_t length,
                             int flags, struct sockaddr *address, socklen_t *address_len)
 {
-    WarnUntestedSocketFunction(__func__);
-
     return _CircleStdlib::DoRecvFrom(__func__, socket, buffer, length, flags, address, address_len);
 }
 
