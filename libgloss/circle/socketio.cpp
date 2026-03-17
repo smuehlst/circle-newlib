@@ -565,7 +565,7 @@ namespace _CircleStdlib
 
                 sockaddr.sin_family = AF_INET;
                 sockaddr.sin_addr.s_addr = static_cast<in_addr_t>(ForeignIP);
-                sockaddr.sin_port = usForeignPort;
+                sockaddr.sin_port = htons(usForeignPort);
 
                 memcpy(address, &sockaddr, out_len);
             }
