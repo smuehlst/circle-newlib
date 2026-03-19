@@ -504,11 +504,42 @@ extern "C" int getpeername(int socket, struct sockaddr *address,
 }
 
 extern "C" int getsockname(int socket, struct sockaddr *address,
-                           socklen_t *address_len)
-{
-    WarnUnimplementedSocketFunction(__func__);
-    errno = ENOSYS;
-    return -1;
+                           socklen_t *address_len) {
+    return ValidateAndExecute(socket, [address, address_len](_CircleStdlib::CGlueIoSocket *glueIO)
+    {
+        /*
+        * From the Opengroup documentation about getsockname():
+        *
+        * The getsockname() function shall retrieve the locally-bound name
+        * of the specified socket, store this address in the sockaddr structure
+        * pointed to by the address argument, and store the length of this
+        * address in the object pointed to by the address_len argument.
+        *
+        * If the actual length of the address is greater than the length of
+        * the supplied sockaddr structure, the stored address shall be truncated.
+        *
+        * The Linux documentation makes it clear that on entry *address_len
+        * shall contain the length of the amount of space pointed to by address.
+        */
+        CIPAddress const * const p_circle_ip_addr{_CircleStdlib::pCNet->GetConfig()->GetIPAddress()};
+        u32 const circle_ip_addr{*p_circle_ip_addr};
+        in_addr const socket_ip_addr{circle_ip_addr};
+        sockaddr_in const in_addr{
+            AF_INET,
+            htons(glueIO->mSocket->GetOwnPort()),
+            socket_ip_addr
+        };
+
+        socklen_t const dest_len = *address_len;
+        *address_len = sizeof(sockaddr_in);
+
+        size_t const copy_len = sizeof(sockaddr_in) > dest_len ?
+                                    dest_len : sizeof(sockaddr_in);
+
+        memcpy(address, &in_addr, copy_len);
+
+        return 0;
+    });
 }
 
 extern "C" int getsockopt(int socket, int level, int option_name,
