@@ -752,8 +752,11 @@ extern "C" int setsockopt(int socket, int level, int option_name,
 extern "C" int shutdown(int socket, int how)
 {
     WarnUnimplementedSocketFunction(__func__);
-    errno = ENOSYS;
-    return -1;
+
+    // For the time being this function returns 0 although it does nothing
+    // for compatibility reasons.
+
+    return 0;
 }
 
 extern "C" int socket(int domain, int type, int protocol)
