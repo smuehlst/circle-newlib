@@ -160,12 +160,15 @@ namespace _CircleStdlib
 
             const struct sockaddr_in *const sa_in = reinterpret_cast<const struct sockaddr_in *>(sa);
 
-            // Circle has no means of binding to a specific interface
+#if 0
+            // Circle has no means of binding to a specific interface.
+            // For compatibility reasons the s_addr member is ignored for the time being.
             if (sa_in->sin_addr.s_addr != htonl(INADDR_ANY))
             {
                 errno = EADDRNOTAVAIL;
                 return -1;
             }
+#endif
 
             /*
              * Circle expects the port in little-endian representation, e.g. in host byte order.
