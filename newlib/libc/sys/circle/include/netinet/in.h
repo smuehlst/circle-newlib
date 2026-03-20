@@ -41,12 +41,13 @@ struct ip_mreq_source
     struct in_addr imr_sourceaddr;
 };
 
-#define IPPROTO_IP 1                  /* Internet protocol. */
-#define IPPROTO_IPV6 (IPPROTO_IP + 1) /* Internet Protocol Version 6. */
-#define IPPROTO_ICMP (IPPROTO_IP + 2) /* Control message protocol. */
-#define IPPROTO_RAW (IPPROTO_IP + 3)  /* Raw IP Packets Protocol. */
-#define IPPROTO_TCP (IPPROTO_IP + 4)  /* Transmission control protocol. */
-#define IPPROTO_UDP (IPPROTO_IP + 5)  /* User datagram protocol. */
+#define IPPROTO_IP 0        /* Internet protocol. */
+#define IPPROTO_ICMP 1      /* Control message protocol. */
+#define IPPROTO_TCP 6       /* Transmission control protocol. */
+#define IPPROTO_UDP 17      /* User datagram protocol. */
+#define IPPROTO_IPV6 41     /* Internet Protocol Version 6. */
+#define IPPROTO_ICMPV6 58   /* Control message protocol Version 6. */
+#define IPPROTO_RAW 255     /* Raw IP Packets Protocol. */
 
 #define INADDR_ANY ((in_addr_t)0x00000000)       /* IPv4 wildcard address. */
 #define INADDR_LOOPBACK ((in_addr_t)0x7f000001)  /* IPv4 local host address. */

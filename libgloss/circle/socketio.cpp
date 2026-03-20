@@ -17,7 +17,7 @@
 namespace _CircleStdlib
 {
     static_assert(sizeof(struct sockaddr_in) <= sizeof(struct sockaddr_storage),
-        "sockaddr_storage must be large enough for sockaddr_in");
+                  "sockaddr_storage must be large enough for sockaddr_in");
 
     CNetSubSystem *pCNet = nullptr;
 
@@ -28,44 +28,44 @@ namespace _CircleStdlib
     {
         switch (-circleError)
         {
-            case NET_ERROR_WOULD_BLOCK:
-                return EWOULDBLOCK;
+        case NET_ERROR_WOULD_BLOCK:
+            return EWOULDBLOCK;
 
-            case NET_ERROR_PERMISSION_DENIED:
-                return EACCES;
+        case NET_ERROR_PERMISSION_DENIED:
+            return EACCES;
 
-            case NET_ERROR_INVALID_VALUE:
-                return EINVAL;
+        case NET_ERROR_INVALID_VALUE:
+            return EINVAL;
 
-            case NET_ERROR_PROTOCOL_ERROR:
-                return EPROTO;
+        case NET_ERROR_PROTOCOL_ERROR:
+            return EPROTO;
 
-            case NET_ERROR_PROTOCOL_NOT_SUPPORTED:
-                return EPROTONOSUPPORT;
+        case NET_ERROR_PROTOCOL_NOT_SUPPORTED:
+            return EPROTONOSUPPORT;
 
-            case NET_ERROR_OPERATION_NOT_SUPPORTED:
-                return EOPNOTSUPP;
+        case NET_ERROR_OPERATION_NOT_SUPPORTED:
+            return EOPNOTSUPP;
 
-            case NET_ERROR_CONNECTION_RESET:
-                return ECONNRESET;
+        case NET_ERROR_CONNECTION_RESET:
+            return ECONNRESET;
 
-            case NET_ERROR_IS_CONNECTED:
-                return EISCONN;
+        case NET_ERROR_IS_CONNECTED:
+            return EISCONN;
 
-            case NET_ERROR_NOT_CONNECTED:
-                return ENOTCONN;
+        case NET_ERROR_NOT_CONNECTED:
+            return ENOTCONN;
 
-            case NET_ERROR_CONNECTION_TIMED_OUT:
-                return ETIMEDOUT;
+        case NET_ERROR_CONNECTION_TIMED_OUT:
+            return ETIMEDOUT;
 
-            case NET_ERROR_CONNECTION_REFUSED:
-                return ECONNREFUSED;
+        case NET_ERROR_CONNECTION_REFUSED:
+            return ECONNREFUSED;
 
-            case NET_ERROR_DESTINATION_UNREACHABLE:
-                return EHOSTUNREACH;
+        case NET_ERROR_DESTINATION_UNREACHABLE:
+            return EHOSTUNREACH;
 
-            default:
-                return EIO;
+        default:
+            return EIO;
         }
     }
 
@@ -415,7 +415,7 @@ namespace
     /**
      * A wrapper for checking that the socket is valid.
      */
-    template<typename Func>
+    template <typename Func>
     int ValidateAndExecute(int socket, Func operation)
     {
         _CircleStdlib::FileTable::FileTableLock fileTabLock;
@@ -447,7 +447,7 @@ namespace
     void WarnUntestedSocketFunction(const char *functionName)
     {
         CLogger::Get()->Write("circle-stdlib socket", LogWarning,
-            "Socket function %s is untested!", functionName);
+                              "Socket function %s is untested!", functionName);
     }
 
     /**
@@ -456,7 +456,7 @@ namespace
     void WarnUnimplementedSocketFunction(const char *functionName)
     {
         CLogger::Get()->Write("circle-stdlib socket", LogWarning,
-            "Socket function %s is unimplemented!", functionName);
+                              "Socket function %s is unimplemented!", functionName);
     }
 
     /**
@@ -468,7 +468,7 @@ namespace
         if (unimplementedFlags)
         {
             CLogger::Get()->Write("circle-stdlib socket", LogWarning,
-                "Socket function %s called with unimplemented flags 0x%X!", functionName, flags & ~supportedFlags);
+                                  "Socket function %s called with unimplemented flags 0x%X!", functionName, flags & ~supportedFlags);
         }
     }
 
@@ -504,9 +504,10 @@ extern "C" int getpeername(int socket, struct sockaddr *address,
 }
 
 extern "C" int getsockname(int socket, struct sockaddr *address,
-                           socklen_t *address_len) {
+                           socklen_t *address_len)
+{
     return ValidateAndExecute(socket, [address, address_len](_CircleStdlib::CGlueIoSocket *glueIO)
-    {
+                              {
         /*
         * From the Opengroup documentation about getsockname():
         *
@@ -538,8 +539,7 @@ extern "C" int getsockname(int socket, struct sockaddr *address,
 
         memcpy(address, &in_addr, copy_len);
 
-        return 0;
-    });
+        return 0; });
 }
 
 extern "C" int getsockopt(int socket, int level, int option_name,
@@ -583,8 +583,8 @@ namespace _CircleStdlib
 
             CIPAddress ForeignIP;
             u16 usForeignPort;
-            CIPAddress * const pForeignIP = address ? &ForeignIP : nullptr;
-            u16 * const pUsForeignPort = address ? &usForeignPort : nullptr;
+            CIPAddress *const pForeignIP = address ? &ForeignIP : nullptr;
+            u16 *const pUsForeignPort = address ? &usForeignPort : nullptr;
             int result = glueIO->mSocket->ReceiveFrom(buffer, length, circle_flags, pForeignIP, pUsForeignPort);
             if (result >= 0 && address && address_len && *address_len > 0)
             {
@@ -660,15 +660,14 @@ extern "C" ssize_t send(int socket, const void *message, size_t length, int flag
     }
 
     return ValidateAndExecute(socket, [message, length, circle_flags](_CircleStdlib::CGlueIoSocket *glueIO)
-    {
+                              {
         int result = glueIO->mSocket->Send(message, static_cast<unsigned int>(length), circle_flags);
         if (result < 0)
         {
             errno = _CircleStdlib::MapCircleNetErrorToErrno(result);
             result = -1;
         }
-        return result;
-    });
+        return result; });
 }
 
 extern "C" ssize_t sendmsg(int socket, const struct msghdr *message, int flags)
@@ -709,7 +708,7 @@ extern "C" ssize_t sendto(int socket, const void *message, size_t length, int fl
     }
 
     return ValidateAndExecute(socket, [&](_CircleStdlib::CGlueIoSocket *glueIO)
-    {
+                              {
         int circle_result = glueIO->mSocket->SendTo(message, static_cast<unsigned int>(length), 0,
                                                    circle_address, circle_port);
         if (circle_result < 0)
@@ -718,8 +717,7 @@ extern "C" ssize_t sendto(int socket, const void *message, size_t length, int fl
             circle_result = -1;
         }
     
-        return circle_result;
-    });
+        return circle_result; });
 }
 
 extern "C" int setsockopt(int socket, int level, int option_name,
@@ -727,7 +725,9 @@ extern "C" int setsockopt(int socket, int level, int option_name,
 {
     return ValidateAndExecute(socket, [level, option_name, option_value, option_len](_CircleStdlib::CGlueIoSocket *glueIO)
                               {
-        // TODO preliminary dummy implementation
+        // TODO incomplete implementation
+        int result = 0;
+        CIPAddress ip_address;
         switch (level)
         {
         case SOL_SOCKET:
@@ -737,13 +737,83 @@ extern "C" int setsockopt(int socket, int level, int option_name,
                 // Circle sockets always reuse addresses.
                 return 0;
 
+            case SO_BROADCAST:
+                if (option_len != sizeof(int))
+                {
+                    errno = EINVAL;
+                    return -1;
+                }
+                result = glueIO->mSocket->SetOptionBroadcast(
+                                            !!*static_cast<const int *>(option_value));
+                if (result < 0)
+                {
+                    errno = _CircleStdlib::MapCircleNetErrorToErrno(result);
+                    result = -1;
+                }
+                return result;
+
             default:
                 WarnUnimplementedSocketFunction(__func__);
                 break;
             }
+            break;
+            
+        case IPPROTO_IP:
+            switch (option_name)
+            {
+            case IP_ADD_MEMBERSHIP:
+            case IP_DROP_MEMBERSHIP:
+                // Both structs are possible parameters
+                if (   option_len != sizeof(struct ip_mreqn)
+                    && option_len != sizeof(struct ip_mreq))
+                {
+                    errno = EINVAL;
+                    return -1;
+                }
+                // TODO: Access option_value->imr_multiaddr using struct definitions
+                ip_address.Set(static_cast<const u8 *>(option_value));
+                if (option_name == IP_ADD_MEMBERSHIP)
+                {
+                    result = glueIO->mSocket->SetOptionAddMembership(ip_address);
+                }
+                else
+                {
+                    result = glueIO->mSocket->SetOptionDropMembership(ip_address);
+                }
+                if (result < 0)
+                {
+                    errno = _CircleStdlib::MapCircleNetErrorToErrno(result);
+                    result = -1;
+                }
+                return result;
+
+            case IP_MULTICAST_LOOP:
+                if (option_len != sizeof(int))
+                {
+                    errno = EINVAL;
+                    return -1;
+                }
+                // Cannot be enabled in Circle
+                if (*static_cast<const int *>(option_value))
+                {
+                    break;
+                }
+                return 0;
+
+            case IP_MULTICAST_IF:
+                return 0;
+
+            default:
+                WarnUnimplementedSocketFunction(__func__);
+                break;
+            }
+            break;
         default:
             break;
         }
+
+        CLogger::Get()->Write("circle-stdlib socket", LogDebug,
+                              "setsockopt(%d, %d) is unimplemented", level, option_name);
 
         errno = ENOPROTOOPT;
         return -1; });
@@ -873,5 +943,5 @@ extern "C" uint16_t ntohs(uint16_t netshort)
 #else
         netshort
 #endif
-            ;
+    ;
 }
