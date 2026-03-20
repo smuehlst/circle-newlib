@@ -749,9 +749,10 @@ extern "C" int setsockopt(int socket, int level, int option_name,
         return -1; });
 }
 
-extern "C" int shutdown(int socket, int how)
+extern "C" int shutdown(int /* socket */, int /* how */)
 {
-    WarnUnimplementedSocketFunction(__func__);
+    // Warning disabled because it clutters the output too much.
+    // WarnUnimplementedSocketFunction(__func__);
 
     // For the time being this function returns 0 although it does nothing
     // for compatibility reasons.
