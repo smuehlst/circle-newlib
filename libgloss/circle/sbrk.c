@@ -5,8 +5,7 @@
 #include <errno.h>
 
 void *
-_sbrk (incr)
-     int incr;
+_sbrk (int incr)
 {
    errno = ENOMEM;
 
