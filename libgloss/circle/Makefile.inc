@@ -13,6 +13,8 @@ multilibtool_LIBRARIES += %D%/libcirclenewlib.a
 	%D%/getcwd.cpp \
 	%D%/getpid.c \
 	%D%/gettod.cpp \
+	%D%/if.cpp \
+	%D%/inet.cpp \
 	%D%/io.cpp \
 	%D%/kill.c \
 	%D%/link.c \

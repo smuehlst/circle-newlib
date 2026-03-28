@@ -771,6 +771,7 @@ circle_libcirclenewlib_a_LIBADD =
 @CONFIG_CIRCLE_TRUE@	circle/getcwd.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/getpid.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/gettod.$(OBJEXT) \
+@CONFIG_CIRCLE_TRUE@	circle/if.$(OBJEXT) circle/inet.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/io.$(OBJEXT) circle/kill.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/link.$(OBJEXT) circle/mem.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/mkdir.$(OBJEXT) \
@@ -1892,7 +1893,8 @@ am__depfiles_remade = ./$(DEPDIR)/close.Po ./$(DEPDIR)/debug.Po \
 	circle/$(DEPDIR)/errno.Po circle/$(DEPDIR)/execve.Po \
 	circle/$(DEPDIR)/filetable.Po circle/$(DEPDIR)/fork.Po \
 	circle/$(DEPDIR)/getcwd.Po circle/$(DEPDIR)/getpid.Po \
-	circle/$(DEPDIR)/gettod.Po circle/$(DEPDIR)/io.Po \
+	circle/$(DEPDIR)/gettod.Po circle/$(DEPDIR)/if.Po \
+	circle/$(DEPDIR)/inet.Po circle/$(DEPDIR)/io.Po \
 	circle/$(DEPDIR)/kill.Po circle/$(DEPDIR)/link.Po \
 	circle/$(DEPDIR)/mem.Po circle/$(DEPDIR)/mkdir.Po \
 	circle/$(DEPDIR)/mknod.Po circle/$(DEPDIR)/netdb.Po \
@@ -2925,6 +2927,8 @@ TEXINFO_TEX = ../texinfo/texinfo.tex
 @CONFIG_CIRCLE_TRUE@	circle/getcwd.cpp \
 @CONFIG_CIRCLE_TRUE@	circle/getpid.c \
 @CONFIG_CIRCLE_TRUE@	circle/gettod.cpp \
+@CONFIG_CIRCLE_TRUE@	circle/if.cpp \
+@CONFIG_CIRCLE_TRUE@	circle/inet.cpp \
 @CONFIG_CIRCLE_TRUE@	circle/io.cpp \
 @CONFIG_CIRCLE_TRUE@	circle/kill.c \
 @CONFIG_CIRCLE_TRUE@	circle/link.c \
@@ -4321,6 +4325,10 @@ circle/getcwd.$(OBJEXT): circle/$(am__dirstamp) \
 circle/getpid.$(OBJEXT): circle/$(am__dirstamp) \
 	circle/$(DEPDIR)/$(am__dirstamp)
 circle/gettod.$(OBJEXT): circle/$(am__dirstamp) \
+	circle/$(DEPDIR)/$(am__dirstamp)
+circle/if.$(OBJEXT): circle/$(am__dirstamp) \
+	circle/$(DEPDIR)/$(am__dirstamp)
+circle/inet.$(OBJEXT): circle/$(am__dirstamp) \
 	circle/$(DEPDIR)/$(am__dirstamp)
 circle/io.$(OBJEXT): circle/$(am__dirstamp) \
 	circle/$(DEPDIR)/$(am__dirstamp)
@@ -6509,6 +6517,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/getcwd.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/getpid.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/gettod.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/if.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/inet.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/io.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/kill.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/link.Po@am__quote@ # am--include-marker
@@ -10995,6 +11005,8 @@ distclean: distclean-recursive
 	-rm -f circle/$(DEPDIR)/getcwd.Po
 	-rm -f circle/$(DEPDIR)/getpid.Po
 	-rm -f circle/$(DEPDIR)/gettod.Po
+	-rm -f circle/$(DEPDIR)/if.Po
+	-rm -f circle/$(DEPDIR)/inet.Po
 	-rm -f circle/$(DEPDIR)/io.Po
 	-rm -f circle/$(DEPDIR)/kill.Po
 	-rm -f circle/$(DEPDIR)/link.Po
@@ -11973,6 +11985,8 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f circle/$(DEPDIR)/getcwd.Po
 	-rm -f circle/$(DEPDIR)/getpid.Po
 	-rm -f circle/$(DEPDIR)/gettod.Po
+	-rm -f circle/$(DEPDIR)/if.Po
+	-rm -f circle/$(DEPDIR)/inet.Po
 	-rm -f circle/$(DEPDIR)/io.Po
 	-rm -f circle/$(DEPDIR)/kill.Po
 	-rm -f circle/$(DEPDIR)/link.Po
