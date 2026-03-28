@@ -83,3 +83,9 @@ _stat(const char *file, struct stat *statbuf)
 
 	return 0;
 }
+
+extern "C" int
+lstat (char const * const file, struct stat * const statbuf)
+{
+	return _stat (file, statbuf);
+}
