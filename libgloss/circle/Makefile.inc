@@ -22,6 +22,7 @@ multilibtool_LIBRARIES += %D%/libcirclenewlib.a
 	%D%/mkdir.cpp \
 	%D%/mknod.cpp \
 	%D%/netdb.cpp \
+	%D%/pause.cpp \
 	%D%/pipe.cpp \
 	%D%/poll.cpp \
 	%D%/readlink.c \
