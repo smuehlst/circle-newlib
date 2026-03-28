@@ -37,3 +37,10 @@ void *_calloc_r(struct _reent *r, size_t nelem, size_t elsize)
 
 	return calloc(nelem, elsize);
 }
+
+void *_memalign_r(struct _reent *r, size_t alignment, size_t size)
+{
+	(void) r;
+
+	return memalign(alignment, size);
+}
