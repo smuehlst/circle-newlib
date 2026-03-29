@@ -16,4 +16,10 @@ _times(struct tms *buf)
   return -1;
 }
 
+int
+timespec_get (struct timespec *ts, int base)
+{
+  return 0;
+}
+
 // stub_warning(_times)

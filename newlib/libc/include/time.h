@@ -305,6 +305,9 @@ int clock_getenable_attr (clockid_t clock_id, int *attr);
 
 #endif /* _POSIX_CPUTIME or _POSIX_THREAD_CPUTIME */
 
+// Addition for libc++ support in circle-newlib
+int timespec_get(struct timespec *ts, int base);
+
 #ifdef __cplusplus
 }
 #endif
