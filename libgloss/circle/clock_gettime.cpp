@@ -1,4 +1,5 @@
 #define _POSIX_TIMERS 1
+#define _POSIX_MONOTONIC_CLOCK 200112L
 #include "config.h"
 #include <errno.h>
 #include <time.h>
