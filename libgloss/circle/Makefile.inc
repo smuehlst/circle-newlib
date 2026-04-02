@@ -12,6 +12,7 @@ multilibtool_LIBRARIES += %D%/libcirclenewlib.a
 	%D%/fork.c \
 	%D%/getcwd.cpp \
 	%D%/getpid.c \
+	%D%/clock_gettime.cpp \
 	%D%/gettod.cpp \
 	%D%/if.cpp \
 	%D%/inet.cpp \
