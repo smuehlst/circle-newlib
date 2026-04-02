@@ -33,6 +33,7 @@ multilibtool_LIBRARIES += %D%/libcirclenewlib.a
 	%D%/socketio.cpp \
 	%D%/stat.cpp \
 	%D%/statvfs.cpp \
+	%D%/sysconf.cpp \
 	%D%/symlink.c \
 	%D%/times.c \
 	%D%/unlink.cpp \

@@ -788,6 +788,7 @@ circle_libcirclenewlib_a_LIBADD =
 @CONFIG_CIRCLE_TRUE@	circle/socketio.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/stat.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/statvfs.$(OBJEXT) \
+@CONFIG_CIRCLE_TRUE@	circle/sysconf.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/symlink.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/times.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/unlink.$(OBJEXT) \
@@ -1906,22 +1907,23 @@ am__depfiles_remade = ./$(DEPDIR)/close.Po ./$(DEPDIR)/debug.Po \
 	circle/$(DEPDIR)/rename.Po circle/$(DEPDIR)/sbrk.Po \
 	circle/$(DEPDIR)/select.Po circle/$(DEPDIR)/socketio.Po \
 	circle/$(DEPDIR)/stat.Po circle/$(DEPDIR)/statvfs.Po \
-	circle/$(DEPDIR)/symlink.Po circle/$(DEPDIR)/times.Po \
-	circle/$(DEPDIR)/unlink.Po circle/$(DEPDIR)/wait.Po \
-	cr16/$(DEPDIR)/_exit.Po cr16/$(DEPDIR)/_getenv.Po \
-	cr16/$(DEPDIR)/_rename.Po cr16/$(DEPDIR)/close.Po \
-	cr16/$(DEPDIR)/crt1.Po cr16/$(DEPDIR)/crti.Po \
-	cr16/$(DEPDIR)/crtn.Po cr16/$(DEPDIR)/dvz_hndl.Po \
-	cr16/$(DEPDIR)/flg_hndl.Po cr16/$(DEPDIR)/fstat.Po \
-	cr16/$(DEPDIR)/getpid.Po cr16/$(DEPDIR)/iad_hndl.Po \
-	cr16/$(DEPDIR)/intable.Po cr16/$(DEPDIR)/isatty.Po \
-	cr16/$(DEPDIR)/kill.Po cr16/$(DEPDIR)/lseek.Po \
-	cr16/$(DEPDIR)/open.Po cr16/$(DEPDIR)/putnum.Po \
-	cr16/$(DEPDIR)/read.Po cr16/$(DEPDIR)/sbrk.Po \
-	cr16/$(DEPDIR)/stat.Po cr16/$(DEPDIR)/svc_hndl.Po \
-	cr16/$(DEPDIR)/time.Po cr16/$(DEPDIR)/und_hndl.Po \
-	cr16/$(DEPDIR)/unlink.Po cr16/$(DEPDIR)/write.Po \
-	csky/$(DEPDIR)/crt0.Po csky/$(DEPDIR)/libsemi_a-getpid.Po \
+	circle/$(DEPDIR)/symlink.Po circle/$(DEPDIR)/sysconf.Po \
+	circle/$(DEPDIR)/times.Po circle/$(DEPDIR)/unlink.Po \
+	circle/$(DEPDIR)/wait.Po cr16/$(DEPDIR)/_exit.Po \
+	cr16/$(DEPDIR)/_getenv.Po cr16/$(DEPDIR)/_rename.Po \
+	cr16/$(DEPDIR)/close.Po cr16/$(DEPDIR)/crt1.Po \
+	cr16/$(DEPDIR)/crti.Po cr16/$(DEPDIR)/crtn.Po \
+	cr16/$(DEPDIR)/dvz_hndl.Po cr16/$(DEPDIR)/flg_hndl.Po \
+	cr16/$(DEPDIR)/fstat.Po cr16/$(DEPDIR)/getpid.Po \
+	cr16/$(DEPDIR)/iad_hndl.Po cr16/$(DEPDIR)/intable.Po \
+	cr16/$(DEPDIR)/isatty.Po cr16/$(DEPDIR)/kill.Po \
+	cr16/$(DEPDIR)/lseek.Po cr16/$(DEPDIR)/open.Po \
+	cr16/$(DEPDIR)/putnum.Po cr16/$(DEPDIR)/read.Po \
+	cr16/$(DEPDIR)/sbrk.Po cr16/$(DEPDIR)/stat.Po \
+	cr16/$(DEPDIR)/svc_hndl.Po cr16/$(DEPDIR)/time.Po \
+	cr16/$(DEPDIR)/und_hndl.Po cr16/$(DEPDIR)/unlink.Po \
+	cr16/$(DEPDIR)/write.Po csky/$(DEPDIR)/crt0.Po \
+	csky/$(DEPDIR)/libsemi_a-getpid.Po \
 	csky/$(DEPDIR)/libsemi_a-io-close.Po \
 	csky/$(DEPDIR)/libsemi_a-io-exit.Po \
 	csky/$(DEPDIR)/libsemi_a-io-fstat.Po \
@@ -2950,6 +2952,7 @@ TEXINFO_TEX = ../texinfo/texinfo.tex
 @CONFIG_CIRCLE_TRUE@	circle/socketio.cpp \
 @CONFIG_CIRCLE_TRUE@	circle/stat.cpp \
 @CONFIG_CIRCLE_TRUE@	circle/statvfs.cpp \
+@CONFIG_CIRCLE_TRUE@	circle/sysconf.cpp \
 @CONFIG_CIRCLE_TRUE@	circle/symlink.c \
 @CONFIG_CIRCLE_TRUE@	circle/times.c \
 @CONFIG_CIRCLE_TRUE@	circle/unlink.cpp \
@@ -4370,6 +4373,8 @@ circle/socketio.$(OBJEXT): circle/$(am__dirstamp) \
 circle/stat.$(OBJEXT): circle/$(am__dirstamp) \
 	circle/$(DEPDIR)/$(am__dirstamp)
 circle/statvfs.$(OBJEXT): circle/$(am__dirstamp) \
+	circle/$(DEPDIR)/$(am__dirstamp)
+circle/sysconf.$(OBJEXT): circle/$(am__dirstamp) \
 	circle/$(DEPDIR)/$(am__dirstamp)
 circle/symlink.$(OBJEXT): circle/$(am__dirstamp) \
 	circle/$(DEPDIR)/$(am__dirstamp)
@@ -6547,6 +6552,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/stat.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/statvfs.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/symlink.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/sysconf.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/times.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/unlink.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/wait.Po@am__quote@ # am--include-marker
@@ -11037,6 +11043,7 @@ distclean: distclean-recursive
 	-rm -f circle/$(DEPDIR)/stat.Po
 	-rm -f circle/$(DEPDIR)/statvfs.Po
 	-rm -f circle/$(DEPDIR)/symlink.Po
+	-rm -f circle/$(DEPDIR)/sysconf.Po
 	-rm -f circle/$(DEPDIR)/times.Po
 	-rm -f circle/$(DEPDIR)/unlink.Po
 	-rm -f circle/$(DEPDIR)/wait.Po
@@ -12019,6 +12026,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f circle/$(DEPDIR)/stat.Po
 	-rm -f circle/$(DEPDIR)/statvfs.Po
 	-rm -f circle/$(DEPDIR)/symlink.Po
+	-rm -f circle/$(DEPDIR)/sysconf.Po
 	-rm -f circle/$(DEPDIR)/times.Po
 	-rm -f circle/$(DEPDIR)/unlink.Po
 	-rm -f circle/$(DEPDIR)/wait.Po
