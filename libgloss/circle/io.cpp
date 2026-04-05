@@ -726,6 +726,124 @@ ftruncate (int fildes, off_t length)
     return file->GetGlueIO()->FTruncate (length);
 }
 
+extern "C" int
+truncate (char const *path, off_t length)
+{
+    if (length < 0)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    // Use stat() to verify the file exists and is a regular file
+    struct stat st;
+    if (stat (path, &st) != 0)
+    {
+        return -1;  // errno set by stat()
+    }
+
+    if (S_ISDIR (st.st_mode))
+    {
+        errno = EISDIR;
+        return -1;
+    }
+
+    FIL file;
+    memset (&file, 0, sizeof (file));
+    FRESULT const open_result = f_open (&file, path, FA_READ | FA_WRITE);
+    if (open_result != FR_OK)
+    {
+        switch (open_result)
+        {
+            case FR_NO_FILE:
+            case FR_INVALID_NAME:
+                errno = ENOENT;
+                break;
+
+            case FR_NO_PATH:
+            case FR_INVALID_DRIVE:
+                errno = ENOTDIR;
+                break;
+
+            case FR_DENIED:
+            case FR_WRITE_PROTECTED:
+                errno = EACCES;
+                break;
+
+            default:
+                errno = EIO;
+                break;
+        }
+        return -1;
+    }
+
+    int result = 0;
+    FSIZE_t const current_size = f_size (&file);
+
+    if (static_cast<FSIZE_t> (length) < current_size)
+    {
+        // Shorten: seek to desired length, then truncate
+        if (f_lseek (&file, static_cast<FSIZE_t> (length)) != FR_OK)
+        {
+            errno = EIO;
+            result = -1;
+        }
+        else
+        {
+            FRESULT const fresult = f_truncate (&file);
+            if (fresult != FR_OK)
+            {
+                switch (fresult)
+                {
+                    case FR_DENIED:
+                        errno = EACCES;
+                        break;
+
+                    default:
+                        errno = EIO;
+                        break;
+                }
+                result = -1;
+            }
+        }
+    }
+    else if (static_cast<FSIZE_t> (length) > current_size)
+    {
+        // Extend: seek to current end, zero-fill to new length
+        if (f_lseek (&file, current_size) != FR_OK)
+        {
+            errno = EIO;
+            result = -1;
+        }
+        else
+        {
+            char const zero_buf[512] = {};
+            FSIZE_t remaining = static_cast<FSIZE_t> (length) - current_size;
+
+            while (remaining > 0 && result == 0)
+            {
+                UINT const chunk = static_cast<UINT> (
+                    remaining < sizeof (zero_buf) ? remaining : sizeof (zero_buf));
+                UINT bytes_written = 0;
+                FRESULT const wresult = f_write (&file, zero_buf, chunk, &bytes_written);
+                if (wresult != FR_OK || bytes_written != chunk)
+                {
+                    errno = EIO;
+                    result = -1;
+                }
+                else
+                {
+                    remaining -= bytes_written;
+                }
+            }
+        }
+    }
+    // else length == current_size: nothing to do
+
+    f_close (&file);
+    return result;
+}
+
 template<int (_CircleStdlib::CGlueIO::*func) (void)>
 int call_glueio_func_void_arg_valid_fildes(int fildes)
 {

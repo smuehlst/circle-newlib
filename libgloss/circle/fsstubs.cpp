@@ -71,12 +71,6 @@ extern "C"
         return stat(pathname, buf);
     }
 
-    int truncate(const char * /*path*/, off_t /*length*/)
-    {
-        errno = ENOSYS;
-        return -1;
-    }
-
     int utimes(const char * /*filename*/, const struct timeval /*times*/[2])
     {
         errno = ENOSYS;
