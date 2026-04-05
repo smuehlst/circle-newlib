@@ -10,6 +10,7 @@ multilibtool_LIBRARIES += %D%/libcirclenewlib.a
 	%D%/_exit.cpp \
 	%D%/filetable.cpp \
 	%D%/fork.c \
+	%D%/fsstubs.cpp \
 	%D%/getcwd.cpp \
 	%D%/getpid.c \
 	%D%/clock_gettime.cpp \

@@ -768,6 +768,7 @@ circle_libcirclenewlib_a_LIBADD =
 @CONFIG_CIRCLE_TRUE@	circle/_exit.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/filetable.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/fork.$(OBJEXT) \
+@CONFIG_CIRCLE_TRUE@	circle/fsstubs.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/getcwd.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/getpid.$(OBJEXT) \
 @CONFIG_CIRCLE_TRUE@	circle/clock_gettime.$(OBJEXT) \
@@ -1896,34 +1897,34 @@ am__depfiles_remade = ./$(DEPDIR)/close.Po ./$(DEPDIR)/debug.Po \
 	circle/$(DEPDIR)/clock_gettime.Po circle/$(DEPDIR)/environ.Po \
 	circle/$(DEPDIR)/errno.Po circle/$(DEPDIR)/execve.Po \
 	circle/$(DEPDIR)/filetable.Po circle/$(DEPDIR)/fork.Po \
-	circle/$(DEPDIR)/getcwd.Po circle/$(DEPDIR)/getpid.Po \
-	circle/$(DEPDIR)/gettod.Po circle/$(DEPDIR)/if.Po \
-	circle/$(DEPDIR)/inet.Po circle/$(DEPDIR)/io.Po \
-	circle/$(DEPDIR)/kill.Po circle/$(DEPDIR)/link.Po \
-	circle/$(DEPDIR)/mem.Po circle/$(DEPDIR)/mkdir.Po \
-	circle/$(DEPDIR)/mknod.Po circle/$(DEPDIR)/netdb.Po \
-	circle/$(DEPDIR)/pause.Po circle/$(DEPDIR)/pipe.Po \
-	circle/$(DEPDIR)/poll.Po circle/$(DEPDIR)/readlink.Po \
-	circle/$(DEPDIR)/rename.Po circle/$(DEPDIR)/sbrk.Po \
-	circle/$(DEPDIR)/select.Po circle/$(DEPDIR)/socketio.Po \
-	circle/$(DEPDIR)/stat.Po circle/$(DEPDIR)/statvfs.Po \
-	circle/$(DEPDIR)/symlink.Po circle/$(DEPDIR)/sysconf.Po \
-	circle/$(DEPDIR)/times.Po circle/$(DEPDIR)/unlink.Po \
-	circle/$(DEPDIR)/wait.Po cr16/$(DEPDIR)/_exit.Po \
-	cr16/$(DEPDIR)/_getenv.Po cr16/$(DEPDIR)/_rename.Po \
-	cr16/$(DEPDIR)/close.Po cr16/$(DEPDIR)/crt1.Po \
-	cr16/$(DEPDIR)/crti.Po cr16/$(DEPDIR)/crtn.Po \
-	cr16/$(DEPDIR)/dvz_hndl.Po cr16/$(DEPDIR)/flg_hndl.Po \
-	cr16/$(DEPDIR)/fstat.Po cr16/$(DEPDIR)/getpid.Po \
-	cr16/$(DEPDIR)/iad_hndl.Po cr16/$(DEPDIR)/intable.Po \
-	cr16/$(DEPDIR)/isatty.Po cr16/$(DEPDIR)/kill.Po \
-	cr16/$(DEPDIR)/lseek.Po cr16/$(DEPDIR)/open.Po \
-	cr16/$(DEPDIR)/putnum.Po cr16/$(DEPDIR)/read.Po \
-	cr16/$(DEPDIR)/sbrk.Po cr16/$(DEPDIR)/stat.Po \
-	cr16/$(DEPDIR)/svc_hndl.Po cr16/$(DEPDIR)/time.Po \
-	cr16/$(DEPDIR)/und_hndl.Po cr16/$(DEPDIR)/unlink.Po \
-	cr16/$(DEPDIR)/write.Po csky/$(DEPDIR)/crt0.Po \
-	csky/$(DEPDIR)/libsemi_a-getpid.Po \
+	circle/$(DEPDIR)/fsstubs.Po circle/$(DEPDIR)/getcwd.Po \
+	circle/$(DEPDIR)/getpid.Po circle/$(DEPDIR)/gettod.Po \
+	circle/$(DEPDIR)/if.Po circle/$(DEPDIR)/inet.Po \
+	circle/$(DEPDIR)/io.Po circle/$(DEPDIR)/kill.Po \
+	circle/$(DEPDIR)/link.Po circle/$(DEPDIR)/mem.Po \
+	circle/$(DEPDIR)/mkdir.Po circle/$(DEPDIR)/mknod.Po \
+	circle/$(DEPDIR)/netdb.Po circle/$(DEPDIR)/pause.Po \
+	circle/$(DEPDIR)/pipe.Po circle/$(DEPDIR)/poll.Po \
+	circle/$(DEPDIR)/readlink.Po circle/$(DEPDIR)/rename.Po \
+	circle/$(DEPDIR)/sbrk.Po circle/$(DEPDIR)/select.Po \
+	circle/$(DEPDIR)/socketio.Po circle/$(DEPDIR)/stat.Po \
+	circle/$(DEPDIR)/statvfs.Po circle/$(DEPDIR)/symlink.Po \
+	circle/$(DEPDIR)/sysconf.Po circle/$(DEPDIR)/times.Po \
+	circle/$(DEPDIR)/unlink.Po circle/$(DEPDIR)/wait.Po \
+	cr16/$(DEPDIR)/_exit.Po cr16/$(DEPDIR)/_getenv.Po \
+	cr16/$(DEPDIR)/_rename.Po cr16/$(DEPDIR)/close.Po \
+	cr16/$(DEPDIR)/crt1.Po cr16/$(DEPDIR)/crti.Po \
+	cr16/$(DEPDIR)/crtn.Po cr16/$(DEPDIR)/dvz_hndl.Po \
+	cr16/$(DEPDIR)/flg_hndl.Po cr16/$(DEPDIR)/fstat.Po \
+	cr16/$(DEPDIR)/getpid.Po cr16/$(DEPDIR)/iad_hndl.Po \
+	cr16/$(DEPDIR)/intable.Po cr16/$(DEPDIR)/isatty.Po \
+	cr16/$(DEPDIR)/kill.Po cr16/$(DEPDIR)/lseek.Po \
+	cr16/$(DEPDIR)/open.Po cr16/$(DEPDIR)/putnum.Po \
+	cr16/$(DEPDIR)/read.Po cr16/$(DEPDIR)/sbrk.Po \
+	cr16/$(DEPDIR)/stat.Po cr16/$(DEPDIR)/svc_hndl.Po \
+	cr16/$(DEPDIR)/time.Po cr16/$(DEPDIR)/und_hndl.Po \
+	cr16/$(DEPDIR)/unlink.Po cr16/$(DEPDIR)/write.Po \
+	csky/$(DEPDIR)/crt0.Po csky/$(DEPDIR)/libsemi_a-getpid.Po \
 	csky/$(DEPDIR)/libsemi_a-io-close.Po \
 	csky/$(DEPDIR)/libsemi_a-io-exit.Po \
 	csky/$(DEPDIR)/libsemi_a-io-fstat.Po \
@@ -2929,6 +2930,7 @@ TEXINFO_TEX = ../texinfo/texinfo.tex
 @CONFIG_CIRCLE_TRUE@	circle/_exit.cpp \
 @CONFIG_CIRCLE_TRUE@	circle/filetable.cpp \
 @CONFIG_CIRCLE_TRUE@	circle/fork.c \
+@CONFIG_CIRCLE_TRUE@	circle/fsstubs.cpp \
 @CONFIG_CIRCLE_TRUE@	circle/getcwd.cpp \
 @CONFIG_CIRCLE_TRUE@	circle/getpid.c \
 @CONFIG_CIRCLE_TRUE@	circle/clock_gettime.cpp \
@@ -4327,6 +4329,8 @@ circle/_exit.$(OBJEXT): circle/$(am__dirstamp) \
 circle/filetable.$(OBJEXT): circle/$(am__dirstamp) \
 	circle/$(DEPDIR)/$(am__dirstamp)
 circle/fork.$(OBJEXT): circle/$(am__dirstamp) \
+	circle/$(DEPDIR)/$(am__dirstamp)
+circle/fsstubs.$(OBJEXT): circle/$(am__dirstamp) \
 	circle/$(DEPDIR)/$(am__dirstamp)
 circle/getcwd.$(OBJEXT): circle/$(am__dirstamp) \
 	circle/$(DEPDIR)/$(am__dirstamp)
@@ -6529,6 +6533,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/execve.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/filetable.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/fork.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/fsstubs.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/getcwd.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/getpid.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@circle/$(DEPDIR)/gettod.Po@am__quote@ # am--include-marker
@@ -11020,6 +11025,7 @@ distclean: distclean-recursive
 	-rm -f circle/$(DEPDIR)/execve.Po
 	-rm -f circle/$(DEPDIR)/filetable.Po
 	-rm -f circle/$(DEPDIR)/fork.Po
+	-rm -f circle/$(DEPDIR)/fsstubs.Po
 	-rm -f circle/$(DEPDIR)/getcwd.Po
 	-rm -f circle/$(DEPDIR)/getpid.Po
 	-rm -f circle/$(DEPDIR)/gettod.Po
@@ -12003,6 +12009,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f circle/$(DEPDIR)/execve.Po
 	-rm -f circle/$(DEPDIR)/filetable.Po
 	-rm -f circle/$(DEPDIR)/fork.Po
+	-rm -f circle/$(DEPDIR)/fsstubs.Po
 	-rm -f circle/$(DEPDIR)/getcwd.Po
 	-rm -f circle/$(DEPDIR)/getpid.Po
 	-rm -f circle/$(DEPDIR)/gettod.Po
