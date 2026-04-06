@@ -117,6 +117,8 @@ struct sigaction {
 
 #define SA_NOCLDSTOP 1  /* only value supported now for sa_flags */
 
+#define SA_RESTART   0x10000000
+
 typedef void (*_sig_func_ptr)(int);
 
 struct sigaction 

@@ -10,6 +10,7 @@
 #define _SYS_SELECT_H
 
 #include <sys/_sigset.h>
+#include <sys/_timeval.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,8 +24,6 @@ typedef	__sigset_t	sigset_t;
 typedef struct {
     int _x;
 } fd_set;
-
-struct timeval;
 
 int pselect(int nfds, fd_set *readfds,
             fd_set *writefds, fd_set *errorfds,

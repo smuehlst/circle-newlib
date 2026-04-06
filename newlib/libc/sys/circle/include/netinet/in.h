@@ -88,4 +88,39 @@ struct ip_mreq_source
 #define IP_UNBLOCK_SOURCE (IP_ADD_MEMBERSHIP + 30)
 #define SO_PEERSEC (IP_ADD_MEMBERSHIP + 31)
 
+/* The following IPv6 definitions are not really supported,
+   but are necessary to compile Asio: */
+
+struct in6_addr
+{
+    union
+    {
+        uint8_t u6_addr8[16];
+    }
+    in6_u;
+#define s6_addr in6_u.u6_addr8
+};
+
+struct sockaddr_in6
+{
+    uint16_t        sin6_family;
+    uint16_t        sin6_port;
+    uint32_t        sin6_flowinfo;
+    struct in6_addr sin6_addr;
+    uint32_t        sin6_scope_id;
+};
+
+struct ipv6_mreq
+{
+        struct in6_addr ipv6mr_multiaddr;
+        unsigned        ipv6mr_interface;
+};
+
+#define IPV6_UNICAST_HOPS (IP_ADD_MEMBERSHIP + 32)
+#define IPV6_MULTICAST_IF (IP_ADD_MEMBERSHIP + 33)
+#define IPV6_MULTICAST_HOPS (IP_ADD_MEMBERSHIP + 34)
+#define IPV6_MULTICAST_LOOP (IP_ADD_MEMBERSHIP + 35)
+#define IPV6_JOIN_GROUP (IP_ADD_MEMBERSHIP + 36)
+#define IPV6_LEAVE_GROUP (IP_ADD_MEMBERSHIP + 37)
+
 #endif

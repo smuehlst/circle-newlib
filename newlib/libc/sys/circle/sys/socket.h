@@ -81,6 +81,7 @@ int     shutdown(int socket, int how);
 int     socket(int domain, int type, int protocol);
 int     socketpair(int domain, int type, int protocol,
              int socket_vector[2]);
+int     sockatmark(int socket);
 
 /* */
 #define SOCK_DGRAM  1                   /* Datagram socket. */
@@ -140,6 +141,11 @@ int     socketpair(int domain, int type, int protocol,
 #define AF_INET6    (AF_INET + 1)   /* Internet domain sockets for use with IPv6 addresses. */
 #define AF_UNIX     (AF_INET + 2)   /* UNIX domain sockets. */
 #define AF_UNSPEC   (AF_INET + 3)   /* Unspecified. */
+
+/* Protocol families  */
+#define PF_INET         AF_INET     /* IP protocol family.  */
+#define PF_INET6        AF_INET6    /* IP version 6.  */
+#define PF_UNSPEC       AF_UNSPEC   /* Unspecified. */
 
 /* Type of shutdown for shutdown() "how" argument: */
 #define SHUT_RD     1               /* Disables further receive operations. */
