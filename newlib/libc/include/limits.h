@@ -129,7 +129,22 @@
 
 #if defined __GNUC__ && !defined _GCC_LIMITS_H_
 /* `_GCC_LIMITS_H_' is what GCC's file defines.  */
+
+#if defined __cplusplus && !defined __STDC_VERSION__
+// This is a circle-newlib hack to get LLONG_MAX and LLONG_MIN
+// defined. The gcc header limits.h only defines these if
+// __STDC_VERSION__ >= 199901L.
+#define __STDC_VERSION__ 199901L
+#define __CIRCLE_STDLIB_LIMITS_HACK
+#endif
+
 # include_next <limits.h>
+
+#ifdef __CIRCLE_STDLIB_LIMITS_HACK
+#undef __STDC_VERSION__
+#undef __CIRCLE_STDLIB_LIMITS_HACK
+#endif
+
 #endif /* __GNUC__ && !_GCC_LIMITS_H_ */
 
 #ifndef _POSIX2_RE_DUP_MAX
