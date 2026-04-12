@@ -6,6 +6,7 @@
 #include <_ansi.h>
 #include <_syslist.h>
 #include <sys/times.h>
+#include <sys/timespec.h>
 #include <errno.h>
 #include "warning.h"
 
