@@ -70,7 +70,7 @@
     information so we need to enable the VFP version that is most
     appropriate.  The choice here should support all suitable VFP
     versions that the older toolchains can handle.  */
-#if __GNUC__ && __GNUC__ < 12
+#if __GNUC__ && __GNUC__ < 12 && !defined(__clang__)
 /*  Ensure that FPU instructions are correctly compiled and, likewise,
     the appropriate build attributes are added to the resulting object
     file.  Check whether the MVE extension is present and whether
