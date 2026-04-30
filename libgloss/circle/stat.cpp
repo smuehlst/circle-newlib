@@ -51,7 +51,7 @@ _stat(const char *file, struct stat *statbuf)
 	}
 
 	assert (statbuf);
-	memset (statbuf, 0, sizeof statbuf);
+	memset (statbuf, 0, sizeof(*statbuf));
 
 	// Reading, write and executing allowed for all, corrected
 	// below if readonly flag is set
