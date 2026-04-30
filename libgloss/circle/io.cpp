@@ -933,6 +933,11 @@ opendir (const char *name)
         case FR_TOO_MANY_OPEN_FILES:
             errno = ENFILE;
             break;
+        
+        default:
+            // Should never happen, the default: avoids a warning with LLVM
+            errno = EIO;
+            break;
     }
 
     return result;
