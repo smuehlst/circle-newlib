@@ -4,18 +4,15 @@ This is a fork of [newlib](https://sourceware.org/newlib/) for using it with [Ci
 
 ## Project Home
 
-This project moved from GitHub to **Codeberg**.
+The project is hosted in GitHub:
 
-**Canonical repository:** https://codeberg.org/larchcone/circle-newlib.git
-
-The GitHub repository https://github.com/smuehlst/circle-newlib.git
-is a read-only mirror.
+https://github.com/smuehlst/circle-newlib
 
 ## Getting Started
 
 This repository can only be used in the context of the
-[circle-stdlib](https://codeberg.org/larchcone/circle-stdlib) project.
-[circle-stdlib](https://codeberg.org/larchcone/circle-stdlib) contains
+[circle-stdlib](https://github.com/smuehlst/circle-stdlib) project.
+[circle-stdlib](https://github.com/smuehlst/circle-stdlib) contains
 documentation and scripts for building newlib in combination with Circle.
 
 ## Modifying Newlib for Circle
